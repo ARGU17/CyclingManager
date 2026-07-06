@@ -1,11 +1,11 @@
 /* ============================================================
    CYCLING MANAGER TOUR - game.js
-   v0.5: guardado, temporada, entrenamiento, grupos, crisis,
-   cortes por viento, moral/forma, objetivos, historial maillots.
+   v0.6: etapa viva por sectores, nutrición, material,
+   radio, pelotón, órdenes en carrera y sistemas manager.
    ============================================================ */
 
 const app = document.getElementById("app");
-const SAVE_KEY = "cyclingManagerTour_v05";
+const SAVE_KEY = "cyclingManagerTour_v06";
 
 const Game = {
   selectedRaceId: DEFAULT_RACE_ID,
@@ -18,7 +18,12 @@ const Game = {
   betweenRaces: false,
   activeTab: "strategy",
   currentStageIndex: 0,
+
   riderTactics: {},
+  riderEquipment: {},
+  nutritionPlanId: "auto_balanced",
+  teamNutritionStock: {},
+
   riders: [],
   teamTimes: {},
   stageHistory: [],
@@ -29,9 +34,13 @@ const Game = {
   finalUciAssignedForRace: {},
   stageWinCounts: {},
   teamStageWinCounts: {},
+
   budget: 0,
   prestige: 0,
   sponsorSatisfaction: 75,
+
+  liveStage: null,
+
   finished: false,
   seasonFinished: false
 };
@@ -40,12 +49,12 @@ const Game = {
    UTILIDADES
    ============================================================ */
 
-function deepClone(v) {
-  return JSON.parse(JSON.stringify(v));
+function deepClone(value) {
+  return JSON.parse(JSON.stringify(value));
 }
 
-function clamp(v, min, max) {
-  return Math.max(min, Math.min(max, v));
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
 }
 
 function randomBetween(min, max) {
@@ -53,16 +62,16 @@ function randomBetween(min, max) {
 }
 
 function average(values) {
-  return values.length ? values.reduce((s, v) => s + v, 0) / values.length : 0;
+  return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
 }
 
 function standardDeviation(values) {
-  const a = average(values);
-  return values.length ? Math.sqrt(average(values.map(v => (v - a) ** 2))) : 0;
+  const avg = average(values);
+  return values.length ? Math.sqrt(average(values.map(value => Math.pow(value - avg, 2)))) : 0;
 }
 
-function escapeHtml(v) {
-  return String(v)
+function escapeHtml(value) {
+  return String(value)
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
@@ -70,8 +79,8 @@ function escapeHtml(v) {
     .replaceAll("'", "&#039;");
 }
 
-function money(v) {
-  return `${Math.round(v / 1000000 * 10) / 10} M€`;
+function money(value) {
+  return `${Math.round(value / 1000000 * 10) / 10} M€`;
 }
 
 function secondsToTime(seconds) {
@@ -80,18 +89,20 @@ function secondsToTime(seconds) {
   const m = Math.floor((total % 3600) / 60);
   const s = total % 60;
 
-  return h > 0
-    ? `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`
-    : `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  if (h > 0) {
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  }
+
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
 function gapToLeader(seconds, leaderSeconds) {
-  const g = Math.round(seconds - leaderSeconds);
-  return g <= 0 ? "m.t." : `+${secondsToTime(g)}`;
+  const gap = Math.round(seconds - leaderSeconds);
+  return gap <= 0 ? "m.t." : `+${secondsToTime(gap)}`;
 }
 
 function getRace() {
-  return RACES.find(r => r.id === Game.selectedRaceId) || RACES[0];
+  return RACES.find(race => race.id === Game.selectedRaceId) || RACES[0];
 }
 
 function getStages() {
@@ -102,16 +113,36 @@ function getCurrentStage() {
   return getStages()[Game.currentStageIndex];
 }
 
-function getTeam(id) {
-  return TEAMS.find(t => t.id === id);
+function getTeam(teamId) {
+  return TEAMS.find(team => team.id === teamId);
 }
 
-function getRider(id) {
-  return Game.riders.find(r => r.id === id);
+function getTeamBlueprint(teamId) {
+  return TEAM_BLUEPRINTS.find(team => team.id === teamId);
 }
 
-function getTactic(id) {
-  return TACTICS.find(t => t.id === id) || TACTICS.find(t => t.id === "balanced");
+function getRider(riderId) {
+  return Game.riders.find(rider => rider.id === riderId);
+}
+
+function getTactic(tacticId) {
+  return TACTICS.find(tactic => tactic.id === tacticId) || TACTICS.find(tactic => tactic.id === "balanced");
+}
+
+function getBike(bikeId) {
+  return BIKE_SETUPS.find(bike => bike.id === bikeId) || BIKE_SETUPS[0];
+}
+
+function getWheels(wheelsId) {
+  return WHEEL_SETUPS.find(wheels => wheels.id === wheelsId) || WHEEL_SETUPS[0];
+}
+
+function getNutritionItem(itemId) {
+  return NUTRITION_ITEMS.find(item => item.id === itemId);
+}
+
+function getNutritionPlan() {
+  return NUTRITION_PLANS.find(plan => plan.id === Game.nutritionPlanId) || NUTRITION_PLANS[0];
 }
 
 function getDifficulty() {
@@ -119,11 +150,11 @@ function getDifficulty() {
 }
 
 function getAllActiveRiders() {
-  return Game.riders.filter(r => !r.abandoned);
+  return Game.riders.filter(rider => !rider.abandoned);
 }
 
 function getTeamRiders(teamId) {
-  return Game.riders.filter(r => r.teamId === teamId && !r.abandoned);
+  return Game.riders.filter(rider => rider.teamId === teamId && !rider.abandoned);
 }
 
 function getUserTacticForRider(rider) {
@@ -134,8 +165,8 @@ function isGrandTour() {
   return getRace().uciClass === "grand_tour";
 }
 
-function currentRaceDoneKey() {
-  return Game.selectedRaceId;
+function isLiveStageActive() {
+  return Game.liveStage && Game.liveStage.active;
 }
 
 /* ============================================================
@@ -169,7 +200,7 @@ function clearSave() {
 }
 
 /* ============================================================
-   INICIO / FLUJO
+   INICIO
    ============================================================ */
 
 function initGame() {
@@ -182,9 +213,14 @@ function initGame() {
   Game.betweenRaces = false;
   Game.activeTab = "strategy";
   Game.currentStageIndex = 0;
+
   Game.riderTactics = {};
+  Game.riderEquipment = {};
+  Game.nutritionPlanId = "auto_balanced";
+  Game.teamNutritionStock = {};
+
   Game.riders = deepClone(RIDERS);
-  Game.teamTimes = Object.fromEntries(TEAMS.map(t => [t.id, 0]));
+  Game.teamTimes = Object.fromEntries(TEAMS.map(team => [team.id, 0]));
   Game.stageHistory = [];
   Game.jerseyHistory = [];
   Game.incidentHistory = [];
@@ -193,11 +229,15 @@ function initGame() {
   Game.finalUciAssignedForRace = {};
   Game.stageWinCounts = {};
   Game.teamStageWinCounts = {};
-  Game.finished = false;
-  Game.seasonFinished = false;
+
   Game.budget = 0;
   Game.prestige = 0;
   Game.sponsorSatisfaction = 75;
+
+  Game.liveStage = null;
+
+  Game.finished = false;
+  Game.seasonFinished = false;
 
   renderHome();
 }
@@ -236,6 +276,7 @@ function startWithTeam(teamId) {
   Game.budget = team.management.budget;
   Game.prestige = team.management.prestige;
   Game.sponsorSatisfaction = 75;
+
   Game.riders = deepClone(RIDERS);
 
   startRaceState(true);
@@ -248,8 +289,12 @@ function startRaceState(resetRidersForNewGame = false) {
   Game.activeTab = "strategy";
   Game.betweenRaces = false;
   Game.finished = false;
+  Game.liveStage = null;
   Game.riderTactics = {};
-  Game.teamTimes = Object.fromEntries(TEAMS.map(t => [t.id, 0]));
+  Game.riderEquipment = {};
+  Game.teamNutritionStock = {};
+
+  Game.teamTimes = Object.fromEntries(TEAMS.map(team => [team.id, 0]));
   Game.stageHistory = [];
   Game.jerseyHistory = [];
   Game.incidentHistory = [];
@@ -258,38 +303,41 @@ function startRaceState(resetRidersForNewGame = false) {
   Game.finalUciAssignedForRace[Game.selectedRaceId] = false;
 
   if (resetRidersForNewGame) {
-    Game.riders.forEach(r => {
-      r.fatigue = 0;
-      r.energy = 100;
-      r.totalTime = 0;
-      r.raceDays = 0;
-      r.points = 0;
-      r.mountainPoints = 0;
-      r.abandoned = false;
-      r.stageWins = 0;
+    Game.riders.forEach(rider => {
+      rider.fatigue = 0;
+      rider.energy = 100;
+      rider.totalTime = 0;
+      rider.raceDays = 0;
+      rider.points = 0;
+      rider.mountainPoints = 0;
+      rider.abandoned = false;
+      rider.stageWins = 0;
     });
   } else {
-    Game.riders.forEach(r => {
-      r.totalTime = 0;
-      r.raceDays = 0;
-      r.points = 0;
-      r.mountainPoints = 0;
-      r.abandoned = false;
-      r.stageWins = 0;
-      r.fatigue = clamp(r.fatigue, 0, 70);
-      r.energy = 100;
+    Game.riders.forEach(rider => {
+      rider.totalTime = 0;
+      rider.raceDays = 0;
+      rider.points = 0;
+      rider.mountainPoints = 0;
+      rider.abandoned = false;
+      rider.stageWins = 0;
+      rider.fatigue = clamp(rider.fatigue, 0, 70);
+      rider.energy = 100;
     });
   }
 
   Game.protectedRiderId = getTeamRiders(Game.selectedTeamId)[0]?.id || null;
+
   resetUserRiderTactics("balanced");
+  applyEquipmentPreset("auto");
+  setNutritionPlan("auto_balanced", false);
 }
 
 function resetUserRiderTactics(tacticId = "balanced") {
   Game.riderTactics = {};
 
-  getTeamRiders(Game.selectedTeamId).forEach(r => {
-    Game.riderTactics[r.id] = tacticId;
+  getTeamRiders(Game.selectedTeamId).forEach(rider => {
+    Game.riderTactics[rider.id] = tacticId;
   });
 }
 
@@ -299,8 +347,8 @@ function setRiderTactic(riderId, tacticId) {
 }
 
 function applyTacticToAll(tacticId) {
-  getTeamRiders(Game.selectedTeamId).forEach(r => {
-    Game.riderTactics[r.id] = tacticId;
+  getTeamRiders(Game.selectedTeamId).forEach(rider => {
+    Game.riderTactics[rider.id] = tacticId;
   });
 
   renderRaceScreen();
@@ -314,32 +362,32 @@ function setProtectedRider(riderId) {
 function applySmartPreset(presetId) {
   const stage = getCurrentStage();
 
-  getTeamRiders(Game.selectedTeamId).forEach(r => {
+  getTeamRiders(Game.selectedTeamId).forEach(rider => {
     let tactic = "balanced";
 
     if (presetId === "protect_gc") {
-      tactic = r.id === Game.protectedRiderId ? "balanced" : "protect_leader";
+      tactic = rider.id === Game.protectedRiderId ? "balanced" : "protect_leader";
     }
 
     if (presetId === "sprint") {
       tactic =
-        r.roleKey === "sprinter"
+        rider.roleKey === "sprinter"
           ? "aggressive"
-          : ["rouleur", "classics", "domestique"].includes(r.roleKey)
+          : ["rouleur", "classics", "domestique"].includes(rider.roleKey)
             ? "sprint_train"
             : "conservative";
     }
 
     if (presetId === "breakaway") {
       tactic =
-        ["puncheur", "classics", "rouleur", "climber"].includes(r.roleKey)
+        ["puncheur", "classics", "rouleur", "climber"].includes(rider.roleKey)
           ? "aggressive"
           : "conservative";
     }
 
     if (presetId === "mountain_attack") {
       tactic =
-        ["gc", "co_leader", "climber"].includes(r.roleKey)
+        ["gc", "co_leader", "climber"].includes(rider.roleKey)
           ? "aggressive"
           : "protect_leader";
     }
@@ -350,16 +398,93 @@ function applySmartPreset(presetId) {
 
     if (presetId === "time_trial") {
       tactic =
-        ["gc", "co_leader", "time_trialist"].includes(r.roleKey) ||
+        ["gc", "co_leader", "time_trialist"].includes(rider.roleKey) ||
         ["time_trial", "team_time_trial"].includes(stage.type)
           ? "aggressive"
           : "balanced";
     }
 
-    Game.riderTactics[r.id] = tactic;
+    Game.riderTactics[rider.id] = tactic;
   });
 
   renderRaceScreen();
+}
+
+/* ============================================================
+   MATERIAL / NUTRICIÓN
+   ============================================================ */
+
+function autoEquipmentForStage(stage) {
+  if (stage.type === "time_trial" || stage.type === "team_time_trial") {
+    return { bike: "tt", wheels: "disc_tt" };
+  }
+
+  if (stage.type === "mountain") {
+    return { bike: "lightweight", wheels: "climbing" };
+  }
+
+  if (stage.type === "cobbles_hills" || stage.profile.roadSurface === "pavé") {
+    return { bike: "endurance", wheels: "cobbles" };
+  }
+
+  if (stage.type === "hilly") {
+    return { bike: "lightweight", wheels: "shallow_35" };
+  }
+
+  if (stage.profile.windExposure > 65 || stage.profile.rainRisk > 45) {
+    return { bike: "endurance", wheels: "shallow_35" };
+  }
+
+  return { bike: "aero", wheels: "deep_60" };
+}
+
+function applyEquipmentPreset(presetId) {
+  const stage = getCurrentStage();
+
+  getTeamRiders(Game.selectedTeamId).forEach(rider => {
+    let setup;
+
+    if (presetId === "auto") {
+      setup = autoEquipmentForStage(stage);
+    } else {
+      const preset = EQUIPMENT_PRESETS.find(item => item.id === presetId);
+      setup = preset ? { bike: preset.bike, wheels: preset.wheels } : autoEquipmentForStage(stage);
+    }
+
+    Game.riderEquipment[rider.id] = setup;
+  });
+
+  renderRaceScreen();
+}
+
+function setRiderBike(riderId, bikeId) {
+  Game.riderEquipment[riderId] = Game.riderEquipment[riderId] || autoEquipmentForStage(getCurrentStage());
+  Game.riderEquipment[riderId].bike = bikeId;
+  renderRaceScreen();
+}
+
+function setRiderWheels(riderId, wheelsId) {
+  Game.riderEquipment[riderId] = Game.riderEquipment[riderId] || autoEquipmentForStage(getCurrentStage());
+  Game.riderEquipment[riderId].wheels = wheelsId;
+  renderRaceScreen();
+}
+
+function getRiderEquipment(riderId) {
+  if (!Game.riderEquipment[riderId]) {
+    Game.riderEquipment[riderId] = autoEquipmentForStage(getCurrentStage());
+  }
+
+  return Game.riderEquipment[riderId];
+}
+
+function setNutritionPlan(planId, rerender = true) {
+  Game.nutritionPlanId = planId;
+  const plan = getNutritionPlan();
+  Game.teamNutritionStock = deepClone(plan.stock);
+
+  if (rerender) {
+    renderRaceScreen();
+  }
 }
 
 /* ============================================================
@@ -373,7 +498,7 @@ function renderHome() {
     <div class="header">
       <div>
         <h1>Cycling Manager Tour 🚴‍♂️</h1>
-        <p>v0.5 · temporada · guardado · objetivos · moral · crisis · grupos · viento · entrenamientos</p>
+        <p>v0.6 · etapa por sectores · nutrición · material · radio · órdenes en carrera</p>
       </div>
       <div class="top-actions">
         ${saved ? `<button class="secondary" onclick="loadGame()">Cargar partida</button><button class="danger" onclick="clearSave()">Borrar guardado</button>` : ""}
@@ -397,9 +522,9 @@ function renderHome() {
 
       <h2>Dificultad</h2>
       <div class="preset-row">
-        ${Object.entries(DIFFICULTY_LEVELS).map(([id, d]) => `
+        ${Object.entries(DIFFICULTY_LEVELS).map(([id, difficulty]) => `
           <button class="secondary ${Game.difficulty === id ? "active-soft" : ""}" onclick="selectDifficulty('${id}')">
-            ${escapeHtml(d.label)}
+            ${escapeHtml(difficulty.label)}
           </button>
         `).join("")}
       </div>
@@ -421,11 +546,11 @@ function renderRaceSelector() {
     <section class="panel" style="margin-top:16px;">
       <h2>Elige carrera</h2>
       <div class="race-grid">
-        ${RACES.map(r => `
-          <button class="race-card ${Game.selectedRaceId === r.id ? "active" : ""}" onclick="selectRace('${r.id}')">
-            <span class="race-title">${escapeHtml(r.name)}</span>
-            <span class="badge ${r.leaderJerseyClass}">${escapeHtml(r.leaderJerseyName)}</span>
-            <span class="muted small">${r.stages.length} etapa${r.stages.length > 1 ? "s" : ""} · ${escapeHtml(r.country)} · ${escapeHtml(r.uciClass)}</span>
+        ${RACES.map(race => `
+          <button class="race-card ${Game.selectedRaceId === race.id ? "active" : ""}" onclick="selectRace('${race.id}')">
+            <span class="race-title">${escapeHtml(race.name)}</span>
+            <span class="badge ${race.leaderJerseyClass}">${escapeHtml(race.leaderJerseyName)}</span>
+            <span class="muted small">${race.stages.length} etapa${race.stages.length > 1 ? "s" : ""} · ${escapeHtml(race.country)} · ${escapeHtml(race.uciClass)}</span>
           </button>
         `).join("")}
       </div>
@@ -438,14 +563,14 @@ function renderSeasonPreview() {
     <section class="panel" style="margin-top:16px;">
       <h2>Temporada</h2>
       <div class="stage-list compact">
-        ${Game.seasonRaceIds.map((id, i) => {
-          const r = RACES.find(x => x.id === id);
+        ${Game.seasonRaceIds.map((id, index) => {
+          const race = RACES.find(item => item.id === id);
 
           return `
             <div class="stage-card">
-              <span class="badge green">${i + 1}</span>
-              <strong>${escapeHtml(r.name)}</strong>
-              <p class="muted small">${r.stages.length} etapa${r.stages.length > 1 ? "s" : ""} · ${escapeHtml(r.uciClass)}</p>
+              <span class="badge green">${index + 1}</span>
+              <strong>${escapeHtml(race.name)}</strong>
+              <p class="muted small">${race.stages.length} etapa${race.stages.length > 1 ? "s" : ""} · ${escapeHtml(race.uciClass)}</p>
             </div>
           `;
         }).join("")}
@@ -455,7 +580,7 @@ function renderSeasonPreview() {
 }
 
 function renderTeamCard(team) {
-  const riders = RIDERS.filter(r => r.teamId === team.id);
+  const riders = RIDERS.filter(rider => rider.teamId === team.id);
 
   return `
     <div class="team-card">
@@ -467,7 +592,7 @@ function renderTeamCard(team) {
       <h3>${escapeHtml(team.name)}</h3>
       <p class="muted">${escapeHtml(team.description)}</p>
       <div class="badge-row">
-        ${riders.map(r => `<span class="badge">${escapeHtml(r.name)}</span>`).join("")}
+        ${riders.map(rider => `<span class="badge">${escapeHtml(rider.name)}</span>`).join("")}
       </div>
       <div class="objectives-list">
         ${team.objectives.map(id => `<span class="objective-chip">${escapeHtml(OBJECTIVE_DEFINITIONS[id].label)}</span>`).join("")}
@@ -478,7 +603,7 @@ function renderTeamCard(team) {
 }
 
 /* ============================================================
-   RENDER CARRERA
+   RENDER PRINCIPAL
    ============================================================ */
 
 function renderRaceScreen() {
@@ -499,6 +624,11 @@ function renderRaceScreen() {
 
   if (Game.finished) {
     renderFinalScreen();
+    return;
+  }
+
+  if (isLiveStageActive()) {
+    renderLiveStageScreen();
     return;
   }
 
@@ -529,6 +659,8 @@ function renderTabs() {
   const tabs = [
     ["overview", "Carrera"],
     ["strategy", "Estrategia"],
+    ["equipment", "Material"],
+    ["nutrition", "Nutrición"],
     ["team", "Equipo"],
     ["classifications", "Clasificaciones"],
     ["history", "Historial"]
@@ -547,6 +679,8 @@ function renderTabs() {
 
 function renderActiveTab() {
   if (Game.activeTab === "overview") return renderOverviewTab();
+  if (Game.activeTab === "equipment") return renderEquipmentTab();
+  if (Game.activeTab === "nutrition") return renderNutritionTab();
   if (Game.activeTab === "team") return renderTeamTab();
   if (Game.activeTab === "classifications") return renderClassificationsTab();
   if (Game.activeTab === "history") return renderHistoryTab();
@@ -579,9 +713,9 @@ function renderLeaderCards() {
   `;
 }
 
-function renderLeaderCard(title, rider, cls, value) {
+function renderLeaderCard(title, rider, className, value) {
   return `
-    <div class="leader-card ${cls}">
+    <div class="leader-card ${className}">
       <span>${escapeHtml(title)}</span>
       <strong>${rider ? escapeHtml(rider.name) : "—"}</strong>
       <small>${escapeHtml(value)}</small>
@@ -623,10 +757,10 @@ function renderStrategyTab() {
 
         <div class="simulation-actions">
           <div>
-            <strong>Listo para simular</strong>
-            <div class="muted small">Puedes guardar antes de simular.</div>
+            <strong>Etapa por sectores</strong>
+            <div class="muted small">La etapa no se resuelve de golpe: podrás cambiar estrategia, comer y dar órdenes entre sectores.</div>
           </div>
-          <button onclick="simulateCurrentStage()">Simular etapa</button>
+          <button onclick="startLiveStage()">Iniciar etapa</button>
         </div>
       </section>
 
@@ -636,6 +770,113 @@ function renderStrategyTab() {
         <hr>
         ${renderObjectivePanel()}
       </section>
+    </div>
+  `;
+}
+
+function renderEquipmentTab() {
+  return `
+    <section class="panel">
+      <h2>Material de carrera</h2>
+      <p class="help">El material afecta rendimiento y riesgo: aero en llano, ligera en montaña, endurance en pavés, cabra en crono.</p>
+
+      <div class="preset-row">
+        ${EQUIPMENT_PRESETS.map(preset => `
+          <button class="secondary" onclick="applyEquipmentPreset('${preset.id}')">
+            ${escapeHtml(preset.name)}
+          </button>
+        `).join("")}
+      </div>
+
+      <div class="strategy-grid">
+        ${getTeamRiders(Game.selectedTeamId).map(renderEquipmentCard).join("")}
+      </div>
+    </section>
+  `;
+}
+
+function renderEquipmentCard(rider) {
+  const setup = getRiderEquipment(rider.id);
+
+  return `
+    <div class="strategy-card">
+      <h3>${escapeHtml(rider.name)}</h3>
+      <p class="muted small">${escapeHtml(rider.role)} · ${escapeHtml(rider.nationality)}</p>
+
+      <label class="field-label">Bici</label>
+      <select onchange="setRiderBike('${rider.id}', this.value)">
+        ${BIKE_SETUPS.map(bike => `
+          <option value="${bike.id}" ${setup.bike === bike.id ? "selected" : ""}>
+            ${bike.name}
+          </option>
+        `).join("")}
+      </select>
+
+      <label class="field-label">Ruedas</label>
+      <select onchange="setRiderWheels('${rider.id}', this.value)">
+        ${WHEEL_SETUPS.map(wheels => `
+          <option value="${wheels.id}" ${setup.wheels === wheels.id ? "selected" : ""}>
+            ${wheels.name}
+          </option>
+        `).join("")}
+      </select>
+
+      <p class="muted small">
+        ${escapeHtml(getBike(setup.bike).description)} · ${escapeHtml(getWheels(setup.wheels).description)}
+      </p>
+    </div>
+  `;
+}
+
+function renderNutritionTab() {
+  const plan = getNutritionPlan();
+
+  return `
+    <section class="panel">
+      <h2>Nutrición de carrera</h2>
+      <p class="help">La alimentación influye en energía, hidratación, riesgo de pájara y rendimiento en el final.</p>
+
+      <div class="race-grid">
+        ${NUTRITION_PLANS.map(item => `
+          <button class="race-card ${Game.nutritionPlanId === item.id ? "active" : ""}" onclick="setNutritionPlan('${item.id}')">
+            <span class="race-title">${escapeHtml(item.name)}</span>
+            <span class="muted small">${escapeHtml(item.description)}</span>
+          </button>
+        `).join("")}
+      </div>
+
+      <hr>
+
+      <h2>Stock inicial del coche</h2>
+      ${renderNutritionStock(plan.stock)}
+
+      <hr>
+
+      <h2>Productos</h2>
+      <div class="nutrition-grid">
+        ${NUTRITION_ITEMS.map(item => `
+          <div class="nutrition-card">
+            <h3>${escapeHtml(item.name)}</h3>
+            <p class="muted small">${escapeHtml(item.description)}</p>
+            <div class="badge-row">
+              <span class="badge green">Energía +${item.energy}</span>
+              <span class="badge blue">Hidratación ${item.hydration >= 0 ? "+" : ""}${item.hydration}</span>
+              <span class="badge orange">Estómago +${item.stomachLoad}</span>
+            </div>
+          </div>
+        `).join("")}
+      </div>
+    </section>
+  `;
+}
+
+function renderNutritionStock(stock) {
+  return `
+    <div class="badge-row">
+      ${Object.entries(stock).map(([id, amount]) => {
+        const item = getNutritionItem(id);
+        return `<span class="badge">${escapeHtml(item?.name || id)} x${amount}</span>`;
+      }).join("")}
     </div>
   `;
 }
@@ -697,12 +938,14 @@ function renderCurrentStage(stage) {
         <span class="badge blue">${escapeHtml(stage.label)}</span>
         <span class="badge">${stage.distance} km</span>
         <span class="badge orange">Dificultad ${stage.difficulty}</span>
+        <span class="badge">${stage.sectors.length} sectores</span>
       </div>
       <h2>${escapeHtml(stage.name)}</h2>
       <p class="help">${escapeHtml(stage.description)}</p>
       ${renderWeather(stage)}
       ${renderStageProfile(stage)}
       ${renderClimbList(stage)}
+      ${renderSectorTimeline(stage)}
     </div>
   `;
 }
@@ -720,36 +963,35 @@ function renderWeather(stage) {
 }
 
 function renderStageProfile(stage) {
-  const pts = buildProfilePoints(stage);
-  const max = Math.max(...pts.map(p => p.alt), 1000);
-  const min = Math.min(...pts.map(p => p.alt), 0);
-  const w = 720;
-  const h = 180;
+  const points = buildProfilePoints(stage);
+  const maxAlt = Math.max(...points.map(p => p.alt), 1000);
+  const minAlt = Math.min(...points.map(p => p.alt), 0);
+  const width = 720;
+  const height = 180;
   const pad = 18;
 
-  const d = pts.map((p, i) => {
-    const x = pad + (p.km / stage.distance) * (w - pad * 2);
-    const y = h - pad - ((p.alt - min) / Math.max(1, max - min)) * (h - pad * 2);
-
-    return `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`;
+  const d = points.map((p, index) => {
+    const x = pad + (p.km / stage.distance) * (width - pad * 2);
+    const y = height - pad - ((p.alt - minAlt) / Math.max(1, maxAlt - minAlt)) * (height - pad * 2);
+    return `${index === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`;
   }).join(" ");
 
-  const labels = (stage.profile.climbs || []).map(c => {
-    const x = pad + (c.km / stage.distance) * (w - pad * 2);
+  const labels = (stage.profile.climbs || []).map(climbItem => {
+    const x = pad + (climbItem.km / stage.distance) * (width - pad * 2);
 
     return `
       <g>
         <line x1="${x}" y1="26" x2="${x}" y2="160" class="profile-climb-line"/>
-        <text x="${x + 4}" y="22" class="profile-label">${escapeHtml(c.category)} · ${escapeHtml(c.name)}</text>
+        <text x="${x + 4}" y="22" class="profile-label">${escapeHtml(climbItem.category)} · ${escapeHtml(climbItem.name)}</text>
       </g>
     `;
   }).join("");
 
   return `
     <div class="profile-box">
-      <svg viewBox="0 0 ${w} ${h}">
-        <path d="M${pad},${h - pad} L${w - pad},${h - pad}" class="profile-axis"/>
-        <path d="${d} L${w - pad},${h - pad} L${pad},${h - pad} Z" class="profile-area"/>
+      <svg viewBox="0 0 ${width} ${height}">
+        <path d="M${pad},${height - pad} L${width - pad},${height - pad}" class="profile-axis"/>
+        <path d="${d} L${width - pad},${height - pad} L${pad},${height - pad} Z" class="profile-area"/>
         <path d="${d}" class="profile-line"/>
         ${labels}
       </svg>
@@ -758,30 +1000,29 @@ function renderStageProfile(stage) {
 }
 
 function buildProfilePoints(stage) {
-  const pts = [{ km: 0, alt: 120 }];
+  const points = [{ km: 0, alt: 120 }];
   const climbs = [...(stage.profile.climbs || [])].sort((a, b) => a.km - b.km);
+  let currentAlt = 120;
 
-  let alt = 120;
+  climbs.forEach(climbItem => {
+    const startKm = clamp(climbItem.km - climbItem.length, 0, stage.distance);
+    const climbGain = climbItem.length * climbItem.gradient * 10;
 
-  climbs.forEach(c => {
-    const start = clamp(c.km - c.length, 0, stage.distance);
-    const gain = c.length * c.gradient * 10;
+    points.push({ km: Math.max(0, startKm - 8), alt: Math.max(80, currentAlt - 120) });
+    points.push({ km: startKm, alt: currentAlt });
 
-    pts.push({ km: Math.max(0, start - 8), alt: Math.max(80, alt - 120) });
-    pts.push({ km: start, alt });
+    currentAlt = clamp(currentAlt + climbGain, 200, 2600);
+    points.push({ km: climbItem.km, alt: currentAlt });
 
-    alt = clamp(alt + gain, 200, 2600);
-    pts.push({ km: c.km, alt });
-
-    alt = Math.max(120, alt - gain * 0.45);
+    currentAlt = Math.max(120, currentAlt - climbGain * 0.45);
   });
 
-  pts.push({
+  points.push({
     km: stage.distance,
-    alt: stage.profile.finalClimb ? alt : Math.max(100, alt - 150)
+    alt: stage.profile.finalClimb ? currentAlt : Math.max(100, currentAlt - 150)
   });
 
-  return pts.sort((a, b) => a.km - b.km);
+  return points.sort((a, b) => a.km - b.km);
 }
 
 function renderClimbList(stage) {
@@ -793,22 +1034,66 @@ function renderClimbList(stage) {
 
   return `
     <div class="climb-list">
-      ${climbs.map(c => `
-        <span class="climb-chip cat-${String(c.category).replace("HC", "hc")}">
-          ${escapeHtml(c.category)} · ${escapeHtml(c.name)} · km ${c.km} · ${c.length} km al ${c.gradient}%
+      ${climbs.map(climbItem => `
+        <span class="climb-chip cat-${String(climbItem.category).replace("HC", "hc")}">
+          ${escapeHtml(climbItem.category)} · ${escapeHtml(climbItem.name)} · km ${climbItem.km} · ${climbItem.length} km al ${climbItem.gradient}%
         </span>
       `).join("")}
     </div>
   `;
 }
 
+function renderSectorTimeline(stage) {
+  return `
+    <div class="sector-timeline">
+      ${stage.sectors.map((sector, index) => `
+        <div class="sector-chip">
+          <strong>${index + 1}</strong>
+          <span>${escapeHtml(sector.name)}</span>
+          <small>km ${sector.kmStart}-${sector.kmEnd}</small>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+function renderStageProgressCard(stage, index) {
+  const statusClass =
+    index < Game.currentStageIndex ? "done" :
+    index === Game.currentStageIndex ? "current" :
+    "";
+
+  const status =
+    index < Game.currentStageIndex ? "Completada" :
+    index === Game.currentStageIndex ? "Actual" :
+    "Pendiente";
+
+  return `
+    <div class="stage-card ${statusClass}">
+      <div class="badge-row">
+        <span class="badge">Etapa ${stage.number}</span>
+        <span class="badge blue">${escapeHtml(stage.label)}</span>
+        <span class="badge ${index === Game.currentStageIndex ? "green" : ""}">${status}</span>
+      </div>
+      <strong>${escapeHtml(stage.name)}</strong>
+      <div class="muted small">
+        ${stage.distance} km · ${stage.profile.climbs.length} puertos · ${stage.profile.elevationGain} m+ · ${stage.sectors.length} sectores
+      </div>
+    </div>
+  `;
+}
+
+/* ============================================================
+   ESTRATEGIA RENDER
+   ============================================================ */
+
 function renderProtectedRiderSelector(riders) {
   return `
     <h2>Líder protegido</h2>
     <select onchange="setProtectedRider(this.value)">
-      ${riders.map(r => `
-        <option value="${r.id}" ${Game.protectedRiderId === r.id ? "selected" : ""}>
-          ${escapeHtml(r.name)} · ${escapeHtml(r.role)}
+      ${riders.map(rider => `
+        <option value="${rider.id}" ${Game.protectedRiderId === rider.id ? "selected" : ""}>
+          ${escapeHtml(rider.name)} · ${escapeHtml(rider.role)}
         </option>
       `).join("")}
     </select>
@@ -819,9 +1104,9 @@ function renderSmartPresets() {
   return `
     <h2>Presets inteligentes</h2>
     <div class="preset-row">
-      ${SMART_PRESETS.map(p => `
-        <button class="secondary" onclick="applySmartPreset('${p.id}')">
-          ${escapeHtml(p.name)}
+      ${SMART_PRESETS.map(preset => `
+        <button class="secondary" onclick="applySmartPreset('${preset.id}')">
+          ${escapeHtml(preset.name)}
         </button>
       `).join("")}
     </div>
@@ -832,9 +1117,9 @@ function renderTacticPresets() {
   return `
     <h2>Presets básicos</h2>
     <div class="preset-row">
-      ${TACTICS.map(t => `
-        <button class="secondary" onclick="applyTacticToAll('${t.id}')">
-          Todo: ${escapeHtml(t.name)}
+      ${TACTICS.map(tactic => `
+        <button class="secondary" onclick="applyTacticToAll('${tactic.id}')">
+          Todo: ${escapeHtml(tactic.name)}
         </button>
       `).join("")}
     </div>
@@ -850,28 +1135,28 @@ function renderIndividualTactics(riders) {
   `;
 }
 
-function renderRiderStrategyCard(r) {
-  const id = Game.riderTactics[r.id] || "balanced";
-  const t = getTactic(id);
+function renderRiderStrategyCard(rider) {
+  const tacticId = Game.riderTactics[rider.id] || "balanced";
+  const tactic = getTactic(tacticId);
 
   return `
-    <div class="strategy-card ${Game.protectedRiderId === r.id ? "protected" : ""}">
+    <div class="strategy-card ${Game.protectedRiderId === rider.id ? "protected" : ""}">
       <div>
         <div class="badge-row">
-          <span class="badge green">${escapeHtml(r.role)}</span>
-          <span class="badge blue">Forma ${Math.round(r.form)}</span>
-          <span class="badge orange">Fatiga ${Math.round(r.fatigue)}</span>
-          <span class="badge">Energía ${Math.round(r.energy)}</span>
-          ${Game.protectedRiderId === r.id ? `<span class="badge jersey-yellow">Protegido</span>` : ""}
+          <span class="badge green">${escapeHtml(rider.role)}</span>
+          <span class="badge blue">Forma ${Math.round(rider.form)}</span>
+          <span class="badge orange">Fatiga ${Math.round(rider.fatigue)}</span>
+          <span class="badge">Energía ${Math.round(rider.energy)}</span>
+          ${Game.protectedRiderId === rider.id ? `<span class="badge jersey-yellow">Protegido</span>` : ""}
         </div>
-        <h3>${escapeHtml(r.name)}</h3>
-        <p class="muted small">${escapeHtml(t.description)}</p>
+        <h3>${escapeHtml(rider.name)}</h3>
+        <p class="muted small">${escapeHtml(tactic.description)}</p>
       </div>
 
-      <select onchange="setRiderTactic('${r.id}', this.value)">
-        ${TACTICS.map(x => `
-          <option value="${x.id}" ${id === x.id ? "selected" : ""}>
-            ${x.name}
+      <select onchange="setRiderTactic('${rider.id}', this.value)">
+        ${TACTICS.map(item => `
+          <option value="${item.id}" ${tacticId === item.id ? "selected" : ""}>
+            ${item.name}
           </option>
         `).join("")}
       </select>
@@ -879,7 +1164,7 @@ function renderRiderStrategyCard(r) {
   `;
 }
 
-function renderRiderCard(r) {
+function renderRiderCard(rider) {
   const stats = [
     ["flat", "Llano"],
     ["sprint", "Sprint"],
@@ -896,86 +1181,927 @@ function renderRiderCard(r) {
   return `
     <div class="rider-card">
       <div class="badge-row">
-        <span class="badge green">${escapeHtml(r.role)}</span>
-        <span class="badge">${r.age} años</span>
-        <span class="badge orange">Fatiga ${Math.round(r.fatigue)}</span>
-        <span class="badge blue">UCI ${r.uciPoints}</span>
-        <span class="badge">Moral ${Math.round(r.morale)}</span>
+        <span class="badge green">${escapeHtml(rider.role)}</span>
+        <span class="badge">${rider.age} años</span>
+        <span class="badge orange">Fatiga ${Math.round(rider.fatigue)}</span>
+        <span class="badge blue">UCI ${rider.uciPoints}</span>
+        <span class="badge">Moral ${Math.round(rider.morale)}</span>
       </div>
 
-      <h4>${escapeHtml(r.name)}</h4>
-      <p class="muted small">${escapeHtml(r.nationality)} · ${r.abandoned ? "ABANDONO" : "Activo"}</p>
+      <h4>${escapeHtml(rider.name)}</h4>
+      <p class="muted small">${escapeHtml(rider.nationality)} · ${rider.abandoned ? "ABANDONO" : "Activo"}</p>
 
-      ${stats.map(([k, l]) => `
+      ${stats.map(([key, label]) => `
         <div class="stat-row">
-          <span>${l}</span>
+          <span>${label}</span>
           <div class="stat-bar">
-            <div class="stat-fill" style="width:${clamp(r.stats[k], 0, 100)}%"></div>
+            <div class="stat-fill" style="width:${clamp(rider.stats[key], 0, 100)}%"></div>
           </div>
-          <span>${r.stats[k]}</span>
+          <span>${rider.stats[key]}</span>
         </div>
       `).join("")}
     </div>
   `;
 }
 
-function renderStageProgressCard(stage, index) {
-  const cls =
-    index < Game.currentStageIndex ? "done" :
-    index === Game.currentStageIndex ? "current" :
-    "";
+/* ============================================================
+   LIVE STAGE
+   ============================================================ */
 
-  const status =
-    index < Game.currentStageIndex ? "Completada" :
-    index === Game.currentStageIndex ? "Actual" :
-    "Pendiente";
+function startLiveStage() {
+  const stage = getCurrentStage();
+  const plan = getNutritionPlan();
+
+  Game.liveStage = {
+    active: true,
+    stageId: stage.id,
+    currentSectorIndex: 0,
+    riderState: {},
+    breakawayIds: [],
+    breakawayGap: 0,
+    pelotonSize: getAllActiveRiders().length,
+    droppedCount: 0,
+    radio: [],
+    sectorLogs: [],
+    manualNutritionLog: [],
+    orders: {
+      teamPull: false,
+      waitLeader: false,
+      markRival: false
+    }
+  };
+
+  Game.teamNutritionStock = deepClone(plan.stock);
+
+  getAllActiveRiders().forEach(rider => {
+    Game.liveStage.riderState[rider.id] = {
+      stageTime: 0,
+      sectorTime: 0,
+      energy: clamp(100 - rider.fatigue * 0.35, 5, 100),
+      hydration: 100,
+      stomachLoad: 0,
+      fatigueGain: 0,
+      finalBonus: 0,
+      crisis: false,
+      incident: null,
+      dropped: false,
+      groupLabel: "Pelotón",
+      domestiqueBurned: false,
+      usedCaffeine: false,
+      nutritionUsed: []
+    };
+  });
+
+  Game.liveStage.breakawayIds = generateLiveBreakaway(stage);
+  Game.liveStage.breakawayGap = Game.liveStage.breakawayIds.length ? Math.round(randomBetween(80, 190)) : 0;
+
+  addRadio(`Salida lanzada. ${Game.liveStage.breakawayIds.length ? `Se forma una fuga de ${Game.liveStage.breakawayIds.length} corredores.` : "No se consolida fuga inicial."}`);
+  addRadio(getStageRadioHint(stage));
+
+  saveGame();
+  renderLiveStageScreen();
+}
+
+function generateLiveBreakaway(stage) {
+  if (["time_trial", "team_time_trial"].includes(stage.type)) return [];
+
+  const candidates = getAllActiveRiders()
+    .map(rider => {
+      const tactic =
+        rider.teamId === Game.selectedTeamId
+          ? getUserTacticForRider(rider)
+          : chooseAITactic(rider, stage);
+
+      const leader = getGCLeader();
+      const gcGap = leader ? rider.totalTime - leader.totalTime : 0;
+      const teamAI = getTeam(rider.teamId).aiProfile || {};
+
+      const score =
+        (gcGap > 8 * 60 ? 8 : 0) +
+        (["puncheur", "classics", "climber", "rouleur"].includes(rider.roleKey) ? 7 : 0) +
+        (tactic.id === "aggressive" ? 11 : tactic.id === "all_in" ? 17 : 0) +
+        ((teamAI.breakawayFocus || 50) / 12) +
+        (stage.type === "hilly" ? 8 : stage.type === "mountain" ? 6 : stage.type === "cobbles_hills" ? 9 : -2) +
+        randomBetween(0, 8) -
+        rider.fatigue * 0.12;
+
+      return { rider, score };
+    })
+    .sort((a, b) => b.score - a.score);
+
+  return candidates
+    .slice(0, clamp(Math.round(randomBetween(3, 8)), 3, 8))
+    .filter(item => item.score > 9)
+    .map(item => item.rider.id);
+}
+
+function getStageRadioHint(stage) {
+  if (stage.type === "mountain") return "Radio: guarda geles para los últimos puertos. Alimentar tarde puede costar la general.";
+  if (stage.type === "flat" && stage.profile.windExposure > 60) return "Radio: viento peligroso. Colocación y protección del líder serán críticas.";
+  if (stage.type === "cobbles_hills") return "Radio: pavés peligroso. Material endurance y ruedas de pavés reducen mucho el riesgo.";
+  if (stage.type === "time_trial") return "Radio: crono pura. Material TT y gestión de energía desde el inicio.";
+  return "Radio: vigila la fuga y el estado de energía antes del final.";
+}
+
+function addRadio(message) {
+  if (!Game.liveStage) return;
+
+  Game.liveStage.radio.unshift({
+    message,
+    time: new Date().toLocaleTimeString()
+  });
+
+  Game.liveStage.radio = Game.liveStage.radio.slice(0, 8);
+}
+
+function renderLiveStageScreen() {
+  const stage = getCurrentStage();
+  const sector = stage.sectors[Game.liveStage.currentSectorIndex];
+  const progress = Math.round((sector.kmStart / stage.distance) * 100);
+
+  app.innerHTML = `
+    <div class="header">
+      <div>
+        <h1>En carrera · ${escapeHtml(stage.name)}</h1>
+        <p>Sector ${Game.liveStage.currentSectorIndex + 1}/${stage.sectors.length} · km ${sector.kmStart}-${sector.kmEnd} · ${escapeHtml(sector.name)}</p>
+      </div>
+
+      <div class="top-actions">
+        <button class="secondary" onclick="saveGame(true)">Guardar</button>
+        <button class="danger" onclick="cancelLiveStage()">Cancelar etapa</button>
+      </div>
+    </div>
+
+    <section class="live-progress">
+      <div class="progress-bar">
+        <div class="progress-fill" style="width:${progress}%"></div>
+      </div>
+      <div class="sector-timeline live">
+        ${stage.sectors.map((s, i) => `
+          <div class="sector-chip ${i === Game.liveStage.currentSectorIndex ? "active" : ""} ${i < Game.liveStage.currentSectorIndex ? "done" : ""}">
+            <strong>${i + 1}</strong>
+            <span>${escapeHtml(s.name)}</span>
+            <small>km ${s.kmStart}-${s.kmEnd}</small>
+          </div>
+        `).join("")}
+      </div>
+    </section>
+
+    <div class="grid two" style="margin-top:16px;">
+      <section class="panel">
+        <h2>Situación de carrera</h2>
+        ${renderLiveSituation(sector)}
+        ${renderLiveOrders()}
+        ${renderLiveTeamControls()}
+      </section>
+
+      <section class="panel">
+        <h2>Radio del director</h2>
+        ${renderRadioMessages()}
+        <hr>
+        <h2>Nutrición coche</h2>
+        ${renderNutritionStock(Game.teamNutritionStock)}
+      </section>
+    </div>
+
+    <section class="panel" style="margin-top:16px;">
+      <h2>Tu equipo en carrera</h2>
+      <div class="live-rider-grid">
+        ${getTeamRiders(Game.selectedTeamId).map(renderLiveRiderCard).join("")}
+      </div>
+    </section>
+
+    <div class="simulation-actions">
+      <button class="secondary" onclick="renderRaceScreen()">Volver a panel</button>
+      <button onclick="simulateCurrentSector()">Simular sector</button>
+    </div>
+  `;
+}
+
+function renderLiveSituation(sector) {
+  const stage = getCurrentStage();
+  const breakawayNames = Game.liveStage.breakawayIds
+    .map(id => getRider(id)?.name)
+    .filter(Boolean);
 
   return `
-    <div class="stage-card ${cls}">
+    <div class="live-situation">
       <div class="badge-row">
-        <span class="badge">Etapa ${stage.number}</span>
-        <span class="badge blue">${escapeHtml(stage.label)}</span>
-        <span class="badge ${index === Game.currentStageIndex ? "green" : ""}">${status}</span>
+        <span class="badge green">Km ${sector.kmStart}-${sector.kmEnd}</span>
+        <span class="badge blue">${escapeHtml(sector.type)}</span>
+        <span class="badge orange">Dificultad ${sector.difficulty}</span>
+        <span class="badge">Ataque ${sector.attackValue}</span>
+        <span class="badge">Riesgo ${sector.risk}</span>
       </div>
-      <strong>${escapeHtml(stage.name)}</strong>
-      <div class="muted small">
-        ${stage.distance} km · ${stage.profile.climbs.length} puertos · ${stage.profile.elevationGain} m+
+
+      <p class="help">
+        ${breakawayNames.length
+          ? `Fuga: ${escapeHtml(breakawayNames.join(", "))}. Ventaja: ${secondsToTime(Game.liveStage.breakawayGap)}.`
+          : "No hay fuga consolidada."}
+        <br>
+        Pelotón principal: ${Game.liveStage.pelotonSize} corredores · Cortados: ${Game.liveStage.droppedCount}.
+      </p>
+
+      ${renderStageProfile(stage)}
+    </div>
+  `;
+}
+
+function renderLiveOrders() {
+  return `
+    <h2>Órdenes de coche</h2>
+    <div class="preset-row">
+      <button class="secondary ${Game.liveStage.orders.teamPull ? "active-soft" : ""}" onclick="toggleLiveOrder('teamPull')">
+        Tirar del pelotón
+      </button>
+      <button class="secondary ${Game.liveStage.orders.waitLeader ? "active-soft" : ""}" onclick="toggleLiveOrder('waitLeader')">
+        Esperar líder
+      </button>
+      <button class="secondary ${Game.liveStage.orders.markRival ? "active-soft" : ""}" onclick="toggleLiveOrder('markRival')">
+        Marcar rival
+      </button>
+    </div>
+  `;
+}
+
+function toggleLiveOrder(orderId) {
+  Game.liveStage.orders[orderId] = !Game.liveStage.orders[orderId];
+
+  if (orderId === "teamPull" && Game.liveStage.orders[orderId]) {
+    addRadio("Orden dada: el equipo tirará del pelotón en el próximo sector.");
+  }
+
+  if (orderId === "waitLeader" && Game.liveStage.orders[orderId]) {
+    addRadio("Orden dada: gregarios preparados para esperar al líder si hay problema.");
+  }
+
+  if (orderId === "markRival" && Game.liveStage.orders[orderId]) {
+    addRadio("Orden dada: líder protegido marcará al rival directo.");
+  }
+
+  renderLiveStageScreen();
+}
+
+function renderLiveTeamControls() {
+  return `
+    <h2>Cambios rápidos de estrategia</h2>
+    <div class="preset-row">
+      ${TACTICS.map(tactic => `
+        <button class="secondary" onclick="applyTacticToAllLive('${tactic.id}')">
+          Todo: ${escapeHtml(tactic.name)}
+        </button>
+      `).join("")}
+    </div>
+  `;
+}
+
+function applyTacticToAllLive(tacticId) {
+  getTeamRiders(Game.selectedTeamId).forEach(rider => {
+    Game.riderTactics[rider.id] = tacticId;
+  });
+
+  addRadio(`Cambio táctico global: ${getTactic(tacticId).name}.`);
+  renderLiveStageScreen();
+}
+
+function renderRadioMessages() {
+  return `
+    <div class="radio-list">
+      ${Game.liveStage.radio.map(item => `
+        <div class="radio-message">
+          <span>${escapeHtml(item.time)}</span>
+          <p>${escapeHtml(item.message)}</p>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+function renderLiveRiderCard(rider) {
+  const live = Game.liveStage.riderState[rider.id];
+  const tacticId = Game.riderTactics[rider.id] || "balanced";
+  const setup = getRiderEquipment(rider.id);
+
+  return `
+    <div class="live-rider-card ${Game.protectedRiderId === rider.id ? "protected" : ""}">
+      <div class="badge-row">
+        <span class="badge green">${escapeHtml(rider.role)}</span>
+        <span class="badge">E ${Math.round(live.energy)}</span>
+        <span class="badge blue">H ${Math.round(live.hydration)}</span>
+        <span class="badge orange">Est ${Math.round(live.stomachLoad)}</span>
+        ${live.domestiqueBurned ? `<span class="badge red">Quemado</span>` : ""}
+        ${live.crisis ? `<span class="badge red">Crisis</span>` : ""}
+      </div>
+
+      <h3>${escapeHtml(rider.name)}</h3>
+      <p class="muted small">
+        Tiempo acumulado sector: ${secondsToTime(live.stageTime)} · ${escapeHtml(getBike(setup.bike).name)} + ${escapeHtml(getWheels(setup.wheels).name)}
+      </p>
+
+      <select onchange="setRiderTacticLive('${rider.id}', this.value)">
+        ${TACTICS.map(tactic => `
+          <option value="${tactic.id}" ${tacticId === tactic.id ? "selected" : ""}>
+            ${tactic.name}
+          </option>
+        `).join("")}
+      </select>
+
+      <div class="nutrition-actions">
+        ${NUTRITION_ITEMS.map(item => `
+          <button class="mini-button" onclick="useNutrition('${rider.id}', '${item.id}')">
+            ${escapeHtml(item.name)}
+          </button>
+        `).join("")}
       </div>
     </div>
   `;
 }
 
+function setRiderTacticLive(riderId, tacticId) {
+  const old = Game.riderTactics[riderId] || "balanced";
+  Game.riderTactics[riderId] = tacticId;
+
+  const live = Game.liveStage.riderState[riderId];
+
+  if (old !== tacticId && live) {
+    live.energy = clamp(live.energy - getTacticChangeCost(old, tacticId), 0, 100);
+  }
+
+  addRadio(`${getRider(riderId).name}: cambio a ${getTactic(tacticId).name}.`);
+  renderLiveStageScreen();
+}
+
+function getTacticChangeCost(oldId, newId) {
+  if (oldId === newId) return 0;
+  if (newId === "all_in") return 8;
+  if (newId === "aggressive") return 5;
+  if (newId === "protect_leader") return 4;
+  if (newId === "pull_peloton") return 6;
+  if (newId === "wait_leader") return 5;
+  return 2;
+}
+
+function useNutrition(riderId, itemId) {
+  const item = getNutritionItem(itemId);
+  const live = Game.liveStage.riderState[riderId];
+  const sector = getCurrentStage().sectors[Game.liveStage.currentSectorIndex];
+
+  if (!item || !live) return;
+
+  if ((Game.teamNutritionStock[itemId] || 0) <= 0) {
+    addRadio(`No quedan unidades de ${item.name}.`);
+    renderLiveStageScreen();
+    return;
+  }
+
+  const effectiveness = getNutritionEffectiveness(item, sector, live);
+
+  Game.teamNutritionStock[itemId] -= 1;
+
+  live.energy = clamp(live.energy + item.energy * effectiveness, 0, 115);
+  live.hydration = clamp(live.hydration + item.hydration, 0, 120);
+  live.stomachLoad = clamp(live.stomachLoad + item.stomachLoad * (sector.difficulty > 85 ? 1.15 : 1), 0, 100);
+  live.finalBonus += sector.type === "final" ? item.finalBonus || 0 : 0;
+
+  if (item.id === "caffeine_gel") {
+    live.usedCaffeine = true;
+  }
+
+  live.nutritionUsed.push(item.id);
+
+  const rider = getRider(riderId);
+  rider.morale = clamp(rider.morale + (item.morale || 0), 30, 100);
+
+  addRadio(`${rider.name} toma ${item.name}. Energía +${Math.round(item.energy * effectiveness)}.`);
+  renderLiveStageScreen();
+}
+
+function getNutritionEffectiveness(item, sector, live) {
+  let effectiveness = 1.0;
+
+  if (sector.type === "climb" && item.id === "bar") effectiveness *= 0.48;
+  if (sector.type === "final" && item.delay > 0) effectiveness *= 0.50;
+  if (sector.difficulty > 88 && item.id === "bar") effectiveness *= 0.45;
+  if (live.stomachLoad > 65) effectiveness *= 0.65;
+  if (live.stomachLoad > 82) effectiveness *= 0.45;
+
+  return clamp(effectiveness, 0.35, 1.15);
+}
+
+function cancelLiveStage() {
+  Game.liveStage = null;
+  renderRaceScreen();
+}
+
 /* ============================================================
-   SIMULACIÓN
+   SIMULAR SECTOR Y FINALIZAR ETAPA
    ============================================================ */
 
-function simulateCurrentStage() {
+function simulateCurrentSector() {
   const stage = getCurrentStage();
-  const breakawayInfo = generateBreakaway(stage);
+  const sector = stage.sectors[Game.liveStage.currentSectorIndex];
 
-  let results =
-    stage.type === "team_time_trial"
-      ? simulateTeamTimeTrial(stage)
-      : simulateRoadStage(stage, breakawayInfo);
+  applyAutoNutritionForSector(sector);
+
+  const sectorLog = {
+    sectorIndex: Game.liveStage.currentSectorIndex,
+    sectorName: sector.name,
+    events: []
+  };
+
+  getAllActiveRiders().forEach(rider => {
+    simulateRiderSector(rider, stage, sector, sectorLog);
+  });
+
+  updateBreakawayAfterSector(stage, sector, sectorLog);
+  updatePelotonState(sectorLog);
+  applySectorOrders(sector, sectorLog);
+
+  Game.liveStage.sectorLogs.push(sectorLog);
+  Game.liveStage.currentSectorIndex += 1;
+
+  sectorLog.events.slice(0, 4).forEach(event => addRadio(event));
+
+  if (Game.liveStage.currentSectorIndex >= stage.sectors.length) {
+    finishLiveStage();
+    return;
+  }
+
+  addRadio(getSectorTransitionHint(stage.sectors[Game.liveStage.currentSectorIndex]));
+  saveGame();
+  renderLiveStageScreen();
+}
+
+function applyAutoNutritionForSector(sector) {
+  const plan = getNutritionPlan();
+  const rule = plan.rules.find(item => item.sectorType === sector.type);
+
+  if (!rule) return;
+
+  getTeamRiders(Game.selectedTeamId).forEach(rider => {
+    const live = Game.liveStage.riderState[rider.id];
+
+    if (!live || live.energy > 62) return;
+
+    if ((Game.teamNutritionStock[rule.item] || 0) <= 0) return;
+
+    const item = getNutritionItem(rule.item);
+    const effectiveness = getNutritionEffectiveness(item, sector, live);
+
+    Game.teamNutritionStock[rule.item] -= 1;
+
+    live.energy = clamp(live.energy + item.energy * effectiveness, 0, 115);
+    live.hydration = clamp(live.hydration + item.hydration, 0, 120);
+    live.stomachLoad = clamp(live.stomachLoad + item.stomachLoad, 0, 100);
+    live.finalBonus += sector.type === "final" ? item.finalBonus || 0 : 0;
+
+    if (item.id === "caffeine_gel") live.usedCaffeine = true;
+
+    live.nutritionUsed.push(item.id);
+  });
+}
+
+function simulateRiderSector(rider, stage, sector, sectorLog) {
+  const live = Game.liveStage.riderState[rider.id];
+  if (!live || rider.abandoned) return;
+
+  const tactic =
+    rider.teamId === Game.selectedTeamId
+      ? getUserTacticForRider(rider)
+      : chooseAITactic(rider, stage);
+
+  const equipmentBonus = calculateEquipmentBonus(rider, stage, sector);
+  const nutritionBonus = calculateNutritionBonus(live, sector);
+  const supportBonus = rider.teamId === Game.selectedTeamId ? calculateLiveSupportBonus(rider, sector) : 0;
+  const moraleBonus = (rider.morale - 75) * 0.04;
+  const fatiguePenalty = rider.fatigue * getSectorFatigueFactor(sector);
+  const energyPenalty = live.energy < 35 ? (35 - live.energy) * 0.10 : 0;
+  const hydrationPenalty = live.hydration < 45 ? (45 - live.hydration) * 0.08 : 0;
+  const stomachPenalty = live.stomachLoad > 70 ? (live.stomachLoad - 70) * 0.08 : 0;
+
+  const terrainScore =
+    calculateSectorTerrainScore(rider, stage, sector) +
+    tactic.bonus +
+    equipmentBonus +
+    nutritionBonus +
+    supportBonus +
+    moraleBonus -
+    fatiguePenalty -
+    energyPenalty -
+    hydrationPenalty -
+    stomachPenalty +
+    randomBetween(-3, 3);
+
+  const baseSectorTime = getBaseSectorTime(stage, sector);
+  let sectorTime = convertSectorPerformanceToTime(terrainScore, baseSectorTime, sector);
+
+  const incident = calculateLiveIncident(rider, stage, sector, tactic);
+  if (incident) {
+    sectorTime += incident.timeLoss;
+    live.incident = incident;
+    live.energy = clamp(live.energy - incident.energyLoss, 0, 100);
+    live.fatigueGain += incident.fatigue;
+    sectorLog.events.push(`${rider.name}: ${incident.type} (+${Math.round(incident.timeLoss)}s).`);
+
+    if (incident.abandon) {
+      rider.abandoned = true;
+    }
+  }
+
+  const crisis = calculateLiveCrisis(rider, stage, sector, live, tactic);
+  if (crisis) {
+    sectorTime += crisis.timeLoss;
+    live.crisis = true;
+    live.fatigueGain += crisis.fatigue;
+    sectorLog.events.push(`${rider.name} entra en crisis y pierde ${secondsToTime(crisis.timeLoss)}.`);
+  }
+
+  live.sectorTime = sectorTime;
+  live.stageTime += sectorTime;
+  live.energy = clamp(live.energy - calculateSectorEnergyCost(rider, sector, tactic), 0, 115);
+  live.hydration = clamp(live.hydration - calculateSectorHydrationCost(stage, sector), 0, 120);
+  live.stomachLoad = clamp(live.stomachLoad - 4, 0, 100);
+  live.fatigueGain += calculateSectorFatigueGain(rider, stage, sector, tactic, terrainScore);
+
+  if (live.energy < 20 && !live.dropped) {
+    live.dropped = true;
+    live.groupLabel = "Grupo cortado";
+    Game.liveStage.droppedCount += 1;
+  }
+}
+
+function calculateSectorTerrainScore(rider, stage, sector) {
+  const s = rider.stats;
+
+  if (sector.type === "flat") {
+    return s.flat * 0.42 + s.sprint * 0.16 + s.stamina * 0.14 + s.positioning * 0.13 + rider.form * 0.10 + s.recovery * 0.05;
+  }
+
+  if (sector.type === "hilly") {
+    return s.hills * 0.36 + s.acceleration * 0.18 + s.stamina * 0.15 + s.mountain * 0.10 + s.positioning * 0.08 + rider.form * 0.08 + s.recovery * 0.05;
+  }
+
+  if (sector.type === "climb") {
+    return s.mountain * 0.50 + s.stamina * 0.18 + s.recovery * 0.10 + s.acceleration * 0.08 + rider.form * 0.10 + s.downhill * 0.04;
+  }
+
+  if (sector.type === "cobbles") {
+    return s.cobbles * 0.36 + s.positioning * 0.18 + s.stamina * 0.14 + s.hills * 0.12 + s.acceleration * 0.10 + rider.form * 0.10;
+  }
+
+  if (sector.type === "tt") {
+    return s.timeTrial * 0.58 + s.flat * 0.14 + s.stamina * 0.12 + s.consistency * 0.08 + rider.form * 0.08;
+  }
+
+  if (sector.type === "final") {
+    if (stage.type === "flat") {
+      return s.sprint * 0.40 + s.flat * 0.20 + s.acceleration * 0.18 + s.positioning * 0.12 + rider.form * 0.10;
+    }
+
+    if (stage.type === "mountain") {
+      return s.mountain * 0.48 + s.acceleration * 0.17 + s.stamina * 0.15 + rider.form * 0.12 + s.recovery * 0.08;
+    }
+
+    return s.hills * 0.35 + s.acceleration * 0.22 + s.stamina * 0.14 + s.positioning * 0.12 + rider.form * 0.10 + s.cobbles * 0.07;
+  }
+
+  return s.stamina * 0.30 + s.flat * 0.25 + rider.form * 0.20 + s.recovery * 0.15 + s.positioning * 0.10;
+}
+
+function calculateEquipmentBonus(rider, stage, sector) {
+  const setup = getRiderEquipment(rider.id);
+  const bike = getBike(setup.bike);
+  const wheels = getWheels(setup.wheels);
+
+  let bonus = 0;
+
+  const stageKey =
+    sector.type === "climb" ? "mountain" :
+    sector.type === "cobbles" ? "cobbles" :
+    sector.type === "tt" ? stage.type :
+    sector.type === "final" ? stage.type :
+    sector.type;
+
+  bonus += bike.bonuses[stageKey] || 0;
+  bonus += wheels.bonuses[stageKey] || 0;
+
+  if (stage.profile.roadSurface === "pavé" || sector.type === "cobbles") {
+    bonus += bike.bonuses.cobbles || 0;
+    bonus += wheels.bonuses.cobbles || 0;
+  }
+
+  if (stage.profile.windExposure > 60) {
+    bonus -= wheels.bonuses.windPenalty || 0;
+  }
+
+  if (stage.profile.rainRisk > 45) {
+    bonus += (bike.bonuses.handling || 0) + (wheels.bonuses.handling || 0);
+  }
+
+  return bonus;
+}
+
+function calculateNutritionBonus(live, sector) {
+  let bonus = 0;
+
+  if (live.energy > 80) bonus += 1.5;
+  if (live.energy < 35) bonus -= 3;
+  if (live.hydration < 40) bonus -= 2.5;
+  if (live.stomachLoad > 75) bonus -= 2.5;
+  if (sector.type === "final") bonus += live.finalBonus || 0;
+  if (sector.type === "final" && live.usedCaffeine) bonus += 1.5;
+
+  return bonus;
+}
+
+function calculateLiveSupportBonus(rider, sector) {
+  if (rider.id !== Game.protectedRiderId) return 0;
+
+  const mates = getTeamRiders(Game.selectedTeamId).filter(mate => mate.id !== rider.id);
+  let support = 0;
+
+  mates.forEach(mate => {
+    const tactic = getUserTacticForRider(mate);
+    const liveMate = Game.liveStage.riderState[mate.id];
+
+    if (!liveMate || liveMate.energy < 8) return;
+
+    support += (tactic.supportBonus || 0) * (mate.stats.stamina / 85);
+
+    if (tactic.waitsLeader && Game.liveStage.orders.waitLeader) {
+      support += 1.8;
+      liveMate.domestiqueBurned = true;
+    }
+  });
+
+  if (sector.type === "climb" || sector.type === "final") support *= 1.15;
+  if (sector.type === "flat" && Game.liveStage.orders.markRival) support += 1.5;
+
+  return clamp(support, 0, 11);
+}
+
+function getBaseSectorTime(stage, sector) {
+  const distance = sector.kmEnd - sector.kmStart;
+  const speed =
+    sector.type === "flat" ? 44 :
+    sector.type === "valley" ? 42 :
+    sector.type === "hilly" ? 38 :
+    sector.type === "climb" ? 28 :
+    sector.type === "cobbles" ? 35 :
+    sector.type === "tt" ? 50 :
+    sector.type === "final" ? (stage.type === "mountain" ? 27 : stage.type === "flat" ? 46 : 36) :
+    40;
+
+  return (distance / speed) * 3600;
+}
+
+function convertSectorPerformanceToTime(performance, baseTime, sector) {
+  const separation =
+    sector.type === "flat" ? 1.6 :
+    sector.type === "hilly" ? 3.2 :
+    sector.type === "climb" ? 5.2 :
+    sector.type === "cobbles" ? 4.4 :
+    sector.type === "tt" ? 4.0 :
+    sector.type === "final" ? 5.8 :
+    2.5;
+
+  return baseTime + (82 - clamp(performance, 35, 115)) * separation + sector.difficulty * 0.08 + randomBetween(-4, 4);
+}
+
+function getSectorFatigueFactor(sector) {
+  return (
+    sector.type === "flat" ? 0.04 :
+    sector.type === "hilly" ? 0.08 :
+    sector.type === "climb" ? 0.12 :
+    sector.type === "cobbles" ? 0.11 :
+    sector.type === "tt" ? 0.09 :
+    sector.type === "final" ? 0.13 :
+    0.06
+  );
+}
+
+function calculateSectorEnergyCost(rider, sector, tactic) {
+  const base = sector.energyCost * tactic.sectorEnergy;
+  const staminaReduction = rider.stats.stamina * 0.055;
+  return clamp(base - staminaReduction, 4, 55);
+}
+
+function calculateSectorHydrationCost(stage, sector) {
+  return clamp(8 + stage.profile.heat * 0.08 + sector.difficulty * 0.03, 6, 22);
+}
+
+function calculateSectorFatigueGain(rider, stage, sector, tactic, performance) {
+  return clamp(
+    sector.energyCost * 0.18 * tactic.fatigueMultiplier +
+    stage.profile.heat * 0.015 +
+    (stage.profile.roadSurface === "pavé" ? 1.2 : 0) -
+    rider.stats.recovery * 0.025 +
+    (performance > 88 ? 1.2 : 0),
+    0.4,
+    10
+  );
+}
+
+function calculateLiveIncident(rider, stage, sector, tactic) {
+  const diff = getDifficulty();
+  const setup = getRiderEquipment(rider.id);
+  const bike = getBike(setup.bike);
+  const wheels = getWheels(setup.wheels);
+
+  const surfaceRisk = stage.profile.roadSurface === "pavé" || sector.type === "cobbles" ? 0.070 : 0.012;
+  const rainRisk = stage.profile.rainRisk / 1000;
+  const descentRisk = stage.profile.technicalDescent / 1800;
+  const tacticRisk = tactic.risk * 0.04;
+  const sectorRisk = sector.risk / 1400;
+  const protection = (rider.stats.positioning + rider.stats.downhill + rider.stats.injuryResistance) / 6500;
+
+  const risk = clamp(
+    (surfaceRisk + rainRisk + descentRisk + tacticRisk + sectorRisk - protection) *
+      diff.incidentMultiplier *
+      bike.punctureRisk *
+      wheels.punctureRisk,
+    0.004,
+    0.22
+  );
+
+  if (Math.random() > risk) return null;
+
+  const roll = Math.random();
+
+  if (roll < 0.48) {
+    return { type: "Pinchazo", timeLoss: randomBetween(20, 95), fatigue: 1.5, energyLoss: 4 };
+  }
+
+  if (roll < 0.78) {
+    return { type: "Avería", timeLoss: randomBetween(35, 155), fatigue: 2, energyLoss: 5 };
+  }
+
+  if (roll < 0.96) {
+    return { type: "Caída leve", timeLoss: randomBetween(45, 190), fatigue: 5, energyLoss: 12, performancePenalty: 4 };
+  }
+
+  return { type: "Abandono", timeLoss: 1800, fatigue: 20, energyLoss: 100, performancePenalty: 15, abandon: true };
+}
+
+function calculateLiveCrisis(rider, stage, sector, live, tactic) {
+  const diff = getDifficulty();
+
+  const risk = clamp(
+    (
+      (28 - live.energy) / 75 +
+      (42 - live.hydration) / 120 +
+      live.stomachLoad / 260 +
+      rider.fatigue / 250 +
+      stage.profile.heat / 520 +
+      (tactic.id === "all_in" ? 0.10 : 0)
+    ) * diff.crisisMultiplier,
+    0,
+    0.50
+  );
+
+  if (live.energy > 28 && live.hydration > 35) return null;
+  if (Math.random() > risk) return null;
+
+  const severe = live.energy < 8 || live.hydration < 18;
+
+  return {
+    type: severe ? "Pájara severa" : "Crisis",
+    timeLoss: severe ? randomBetween(300, 900) : randomBetween(60, 240),
+    fatigue: severe ? 8 : 3
+  };
+}
+
+function updateBreakawayAfterSector(stage, sector, sectorLog) {
+  if (!Game.liveStage.breakawayIds.length) return;
+
+  const pullingPower = getTeamRiders(Game.selectedTeamId).reduce((sum, rider) => {
+    const tactic = getUserTacticForRider(rider);
+    const live = Game.liveStage.riderState[rider.id];
+
+    if (!live || live.energy < 15) return sum;
+
+    return sum + (tactic.pullsPeloton ? rider.stats.flat * 0.05 : 0);
+  }, 0);
+
+  const terrainEffect =
+    sector.type === "flat" ? -18 :
+    sector.type === "valley" ? -12 :
+    sector.type === "hilly" ? 4 :
+    sector.type === "climb" ? 8 :
+    sector.type === "cobbles" ? 6 :
+    sector.type === "final" ? -22 :
+    -8;
+
+  const orderEffect = Game.liveStage.orders.teamPull ? -35 - pullingPower : 0;
+  const natural = randomBetween(-15, 22);
+
+  Game.liveStage.breakawayGap = Math.max(0, Game.liveStage.breakawayGap + terrainEffect + orderEffect + natural);
+
+  if (Game.liveStage.breakawayGap <= 20) {
+    sectorLog.events.push("La fuga está prácticamente neutralizada.");
+  }
+
+  if (Game.liveStage.breakawayGap > 240) {
+    sectorLog.events.push("La fuga abre hueco peligroso.");
+  }
+}
+
+function updatePelotonState(sectorLog) {
+  const active = getAllActiveRiders().length;
+  const dropped = Object.values(Game.liveStage.riderState).filter(state => state.dropped).length;
+
+  Game.liveStage.droppedCount = dropped;
+  Game.liveStage.pelotonSize = Math.max(1, active - dropped);
+
+  if (dropped > 8) {
+    sectorLog.events.push(`El pelotón se rompe: ${dropped} corredores cortados.`);
+  }
+}
+
+function applySectorOrders(sector, sectorLog) {
+  if (Game.liveStage.orders.waitLeader) {
+    const leader = getRider(Game.protectedRiderId);
+    const leaderLive = leader ? Game.liveStage.riderState[leader.id] : null;
+
+    if (leaderLive && (leaderLive.incident || leaderLive.crisis || leaderLive.dropped)) {
+      const helpers = getTeamRiders(Game.selectedTeamId)
+        .filter(r => r.id !== leader.id)
+        .slice(0, 2);
+
+      helpers.forEach(helper => {
+        const live = Game.liveStage.riderState[helper.id];
+        if (!live) return;
+
+        live.stageTime += 25;
+        live.energy = clamp(live.energy - 12, 0, 100);
+        live.domestiqueBurned = true;
+      });
+
+      leaderLive.stageTime = Math.max(0, leaderLive.stageTime - 45);
+      sectorLog.events.push(`${helpers.map(h => h.name).join(" y ")} esperan al líder y reducen la pérdida.`);
+    }
+  }
+
+  Game.liveStage.orders.teamPull = false;
+  Game.liveStage.orders.waitLeader = false;
+}
+
+function getSectorTransitionHint(sector) {
+  if (sector.type === "climb") return "Radio: llega subida. Alimenta antes si el líder está bajo de energía.";
+  if (sector.type === "final") return "Radio: sector final. La cafeína y el posicionamiento pueden decidir.";
+  if (sector.type === "cobbles") return "Radio: sector peligroso. Evita ir all-in con corredores fatigados.";
+  if (sector.type === "flat") return "Radio: sector llano. Puedes tirar del pelotón o ahorrar fuerzas.";
+  return "Radio: revisa energía, hidratación y estrategia antes de seguir.";
+}
+
+function finishLiveStage() {
+  const stage = getCurrentStage();
+
+  let results = getAllActiveRiders().map(rider => {
+    const live = Game.liveStage.riderState[rider.id];
+
+    return {
+      riderId: rider.id,
+      riderName: rider.name,
+      teamId: rider.teamId,
+      teamName: getTeam(rider.teamId).name,
+      stageTime: live.stageTime,
+      performance: 0,
+      tacticName: getUserTacticForRider(rider).name,
+      tacticId: Game.riderTactics[rider.id] || "balanced",
+      fatigueGain: live.fatigueGain,
+      energyAfter: live.energy,
+      incident: live.incident,
+      crisis: live.crisis,
+      groupLabel: live.groupLabel,
+      inBreakaway: Game.liveStage.breakawayIds.includes(rider.id),
+      bonusSeconds: 0
+    };
+  });
+
+  if (Game.liveStage.breakawayIds.length && Game.liveStage.breakawayGap > 45) {
+    results.forEach(result => {
+      if (Game.liveStage.breakawayIds.includes(result.riderId)) {
+        result.stageTime -= Math.min(180, Game.liveStage.breakawayGap * 0.45);
+      }
+    });
+    addRadio("La fuga mantiene ventaja suficiente y condiciona el resultado.");
+  }
 
   results.sort((a, b) => a.stageTime - b.stageTime);
-
   applyTimeBonuses(stage, results);
-
   results.sort((a, b) => a.stageTime - b.stageTime);
-
-  applyEchelons(stage, results);
-  applyGroupFinish(stage, results);
-  applyCrisis(stage, results);
-
+  applyGroupFinishFromLive(stage, results);
   results.sort((a, b) => a.stageTime - b.stageTime);
-
   updateStagePositions(results);
+
+  applyTimeCut(stage, results);
+
   updateStageWinCounts(results[0]);
   updateRiderTotals(stage, results);
   updateTeamClassification(results);
   updatePointsClassification(stage, results);
-  updateMountainClassification(stage, results, breakawayInfo);
+  updateMountainClassification(stage, results);
   updateUciStagePoints(stage, results);
   assignLeaderOfRaceUciPoint();
   updateMoraleAndFormAfterStage(results);
@@ -985,398 +2111,118 @@ function simulateCurrentStage() {
   Game.lastStageResults = {
     stage,
     results,
-    breakawayInfo
+    breakawayInfo: {
+      riderIds: Game.liveStage.breakawayIds,
+      success: Game.liveStage.breakawayGap > 45,
+      narrative: Game.liveStage.breakawayIds.length
+        ? `Fuga de ${Game.liveStage.breakawayIds.length}. ${Game.liveStage.breakawayGap > 45 ? "La fuga llegó con ventaja." : "La fuga fue neutralizada."}`
+        : "Sin fuga relevante."
+    },
+    sectorLogs: Game.liveStage.sectorLogs
   };
 
   Game.stageHistory.push(Game.lastStageResults);
+  Game.liveStage = null;
 
   saveGame();
   renderStageResultScreen();
 }
 
-function simulateRoadStage(stage, breakawayInfo) {
-  const base = getBaseStageTime(stage);
-  const diff = getDifficulty();
+function applyGroupFinishFromLive(stage, results) {
+  if (!["flat", "hilly", "cobbles_hills"].includes(stage.type)) return;
 
-  return getAllActiveRiders().map(r => {
-    const tactic =
-      r.teamId === Game.selectedTeamId
-        ? getUserTacticForRider(r)
-        : chooseAITactic(r, stage);
+  let groupTime = results[0].stageTime;
+  let groupNo = 1;
 
-    let performance =
-      calculatePerformance(r, stage, tactic, breakawayInfo) +
-      (r.teamId === Game.selectedTeamId ? diff.userBonus : diff.aiBonus);
+  results.forEach((result, index) => {
+    const threshold = stage.type === "flat" ? 18 : stage.type === "hilly" ? 10 : 7;
 
-    const incident = calculateIncident(r, stage, tactic);
-
-    if (incident?.performancePenalty) {
-      performance -= incident.performancePenalty;
+    if (index > 0 && result.stageTime - groupTime > threshold) {
+      groupTime = result.stageTime;
+      groupNo++;
     }
 
-    const stageTime =
-      convertPerformanceToTime(performance, base, stage) +
-      (incident?.timeLoss || 0);
-
-    const fatigueGain =
-      calculateFatigueGain(r, stage, tactic, performance) +
-      (incident?.fatigue || 0);
-
-    const energyAfter = calculateEnergyAfter(r, stage, tactic, performance, incident);
-
-    return {
-      riderId: r.id,
-      riderName: r.name,
-      teamId: r.teamId,
-      teamName: getTeam(r.teamId).name,
-      stageTime,
-      performance,
-      tacticName: tactic.name,
-      tacticId: tactic.id,
-      fatigueGain,
-      energyAfter,
-      incident,
-      inBreakaway: breakawayInfo.riderIds.includes(r.id),
-      groupLabel: ""
-    };
+    if (!result.incident && !result.crisis) {
+      result.stageTime = groupTime;
+      result.groupLabel = groupNo === 1 ? "Grupo 1" : `Grupo ${groupNo}`;
+    }
   });
 }
 
-function simulateTeamTimeTrial(stage) {
-  const base = getBaseStageTime(stage);
-  const out = [];
+function applyTimeCut(stage, results) {
+  if (!isGrandTour()) return;
+  if (!["mountain", "hilly", "cobbles_hills"].includes(stage.type)) return;
 
-  TEAMS.forEach(team => {
-    const riders = getTeamRiders(team.id);
+  const winnerTime = results[0].stageTime;
+  const limit =
+    stage.type === "mountain" ? winnerTime * 1.18 :
+    stage.type === "hilly" ? winnerTime * 1.14 :
+    winnerTime * 1.16;
 
-    if (!riders.length) return;
-
-    const tactic =
-      team.id === Game.selectedTeamId
-        ? buildUserTeamTacticAggregate(riders)
-        : chooseAITeamTactic(team);
-
-    const score = calculateTeamTimeTrialScore(riders, tactic);
-    const teamTime = convertPerformanceToTime(score, base, stage);
-
-    riders.forEach((r, index) => {
-      const indTactic =
-        team.id === Game.selectedTeamId
-          ? getUserTacticForRider(r)
-          : tactic;
-
-      const gap =
-        index < 5 ? randomBetween(0, 5) :
-        index < 7 ? randomBetween(5, 18) :
-        randomBetween(15, 35);
-
-      const incident = calculateIncident(r, stage, indTactic, true);
-      const perf = score + randomBetween(-1.5, 1.5);
-
-      out.push({
-        riderId: r.id,
-        riderName: r.name,
-        teamId: r.teamId,
-        teamName: team.name,
-        stageTime: teamTime + gap + (incident?.timeLoss || 0),
-        performance: perf,
-        tacticName: indTactic.name,
-        tacticId: indTactic.id,
-        fatigueGain: calculateFatigueGain(r, stage, indTactic, perf),
-        energyAfter: calculateEnergyAfter(r, stage, indTactic, perf, incident),
-        incident,
-        inBreakaway: false,
-        groupLabel: ""
-      });
-    });
+  results.forEach(result => {
+    if (result.stageTime > limit) {
+      const rider = getRider(result.riderId);
+      if (rider && rider.teamId !== Game.selectedTeamId) {
+        rider.abandoned = true;
+        result.timeCut = true;
+      }
+    }
   });
-
-  return out;
 }
 
-function generateBreakaway(stage) {
-  if (["time_trial", "team_time_trial"].includes(stage.type)) {
-    return {
-      riderIds: [],
-      success: false,
-      narrative: "Sin fuga en cronos."
-    };
-  }
+/* ============================================================
+   CLASIFICACIONES Y RESULTADOS
+   ============================================================ */
 
-  const candidates = getAllActiveRiders().map(r => {
-    const tactic =
-      r.teamId === Game.selectedTeamId
-        ? getUserTacticForRider(r)
-        : chooseAITactic(r, stage);
+function applyTimeBonuses(stage, results) {
+  if (!stage.profile.finishBonuses?.length || ["time_trial", "team_time_trial"].includes(stage.type)) return;
 
-    const leader = getGCLeader();
-    const gap = leader ? r.totalTime - leader.totalTime : 0;
-
-    const score =
-      (gap > 8 * 60 ? 8 : 0) +
-      (["puncheur", "classics", "climber", "rouleur"].includes(r.roleKey) ? 6 : 0) +
-      (tactic.id === "aggressive" ? 10 : tactic.id === "all_in" ? 16 : 0) +
-      (stage.type === "hilly" ? 7 : stage.type === "mountain" ? 5 : stage.type === "cobbles_hills" ? 8 : -2) +
-      randomBetween(0, 8) -
-      r.fatigue * 0.15;
-
-    return { rider: r, score };
-  }).sort((a, b) => b.score - a.score);
-
-  const chosen = candidates
-    .slice(0, clamp(Math.round(randomBetween(3, 8)), 3, 8))
-    .filter(c => c.score > 7)
-    .map(c => c.rider);
-
-  const chanceBase =
-    { flat: 0.10, hilly: 0.36, mountain: 0.28, cobbles_hills: 0.32 }[stage.type] || 0.15;
-
-  const successChance = clamp(
-    chanceBase + chosen.length * 0.025 - stage.difficulty * 0.0015,
-    0.05,
-    0.55
-  );
-
-  const success = chosen.length >= 3 && Math.random() < successChance;
-
-  return {
-    riderIds: chosen.map(r => r.id),
-    success,
-    successChance,
-    narrative: chosen.length
-      ? `Fuga de ${chosen.length}: ${chosen.map(r => r.name).join(", ")}. ${success ? "La fuga llega." : "El pelotón neutraliza la fuga."}`
-      : "No se consolidó fuga relevante."
-  };
+  stage.profile.finishBonuses.forEach((bonus, index) => {
+    if (results[index]) {
+      results[index].stageTime = Math.max(0, results[index].stageTime - bonus);
+      results[index].bonusSeconds = bonus;
+    }
+  });
 }
 
-function calculatePerformance(r, stage, tactic, breakawayInfo) {
-  const s = r.stats;
-  let terrain = 0;
-
-  if (stage.type === "flat") {
-    terrain =
-      s.flat * 0.38 +
-      s.sprint * 0.24 +
-      s.stamina * 0.14 +
-      s.positioning * 0.10 +
-      r.form * 0.09 +
-      s.recovery * 0.05;
-  }
-
-  if (stage.type === "hilly") {
-    terrain =
-      s.hills * 0.36 +
-      s.acceleration * 0.18 +
-      s.stamina * 0.14 +
-      s.mountain * 0.10 +
-      s.positioning * 0.08 +
-      r.form * 0.09 +
-      s.recovery * 0.05;
-  }
-
-  if (stage.type === "time_trial") {
-    terrain =
-      s.timeTrial * 0.55 +
-      s.flat * 0.14 +
-      s.stamina * 0.14 +
-      r.form * 0.09 +
-      s.consistency * 0.08;
-  }
-
-  if (stage.type === "mountain") {
-    terrain =
-      s.mountain * 0.50 +
-      s.stamina * 0.18 +
-      s.recovery * 0.10 +
-      s.downhill * 0.06 +
-      r.form * 0.10 +
-      s.acceleration * 0.06;
-  }
-
-  if (stage.type === "cobbles_hills") {
-    terrain =
-      s.cobbles * 0.32 +
-      s.hills * 0.22 +
-      s.positioning * 0.15 +
-      s.acceleration * 0.13 +
-      s.stamina * 0.12 +
-      r.form * 0.06;
-  }
-
-  const support = r.teamId === Game.selectedTeamId ? calculateUserSupportBonus(r, stage) : 0;
-  const breakBonus =
-    breakawayInfo?.riderIds.includes(r.id)
-      ? breakawayInfo.success ? 7 : 2
-      : 0;
-
-  const moraleBonus = (r.morale - 75) * 0.06;
-  const noise = randomBetween(-5, 5) * (1.05 - r.stats.consistency / 200);
-
-  return (
-    terrain +
-    tactic.bonus +
-    support +
-    breakBonus +
-    moraleBonus +
-    noise -
-    getFatiguePenalty(r, stage) -
-    calculateLongRacePenalty(r, stage)
-  );
+function updateStagePositions(results) {
+  results.forEach((result, index) => {
+    result.position = index + 1;
+  });
 }
 
-function calculateUserSupportBonus(r, stage) {
-  const mates = getTeamRiders(Game.selectedTeamId).filter(m => m.id !== r.id);
+function updateStageWinCounts(winner) {
+  if (!winner) return;
 
-  const protectPool = mates.reduce((sum, m) => {
-    return sum + (getUserTacticForRider(m).supportBonus || 0) * (m.stats.stamina / 85);
-  }, 0);
+  Game.stageWinCounts[winner.riderId] = (Game.stageWinCounts[winner.riderId] || 0) + 1;
+  Game.teamStageWinCounts[winner.teamId] = (Game.teamStageWinCounts[winner.teamId] || 0) + 1;
 
-  const sprintPool = mates.reduce((sum, m) => {
-    return sum + (getUserTacticForRider(m).sprintTrainBonus || 0) * (m.stats.flat / 85);
-  }, 0);
-
-  let bonus = 0;
-
-  if (r.id === Game.protectedRiderId) {
-    bonus += protectPool * ({
-      flat: 0.35,
-      hilly: 0.75,
-      time_trial: 0.10,
-      team_time_trial: 0.25,
-      mountain: 0.95,
-      cobbles_hills: 0.75
-    }[stage.type] || 0.5);
-  }
-
-  if (r.roleKey === "sprinter" && stage.type === "flat") {
-    bonus += sprintPool * 0.90;
-  }
-
-  if (r.roleKey === "sprinter" && stage.type === "cobbles_hills") {
-    bonus += sprintPool * 0.35;
-  }
-
-  return clamp(bonus, 0, 9);
+  const rider = getRider(winner.riderId);
+  if (rider) rider.stageWins++;
 }
 
-function buildUserTeamTacticAggregate(riders) {
-  const tactics = riders.map(getUserTacticForRider);
+function updateRiderTotals(stage, results) {
+  results.forEach(result => {
+    const rider = getRider(result.riderId);
+    if (!rider || rider.abandoned) return;
 
-  return {
-    id: "mixed",
-    name: "Mixta",
-    bonus: average(tactics.map(t => t.bonus)),
-    risk: average(tactics.map(t => t.risk)),
-    fatigueMultiplier: average(tactics.map(t => t.fatigueMultiplier)),
-    supportBonus: average(tactics.map(t => t.supportBonus || 0)),
-    sprintTrainBonus: average(tactics.map(t => t.sprintTrainBonus || 0))
-  };
+    rider.totalTime += result.stageTime;
+    rider.raceDays = (rider.raceDays || 0) + 1;
+    rider.energy = result.energyAfter;
+    rider.recoveredToday = calculateDailyRecovery(rider, stage);
+    rider.fatigue = clamp(rider.fatigue + result.fatigueGain - rider.recoveredToday, 0, 100);
+
+    if (result.incident?.abandon || result.timeCut) {
+      rider.abandoned = true;
+    }
+  });
 }
 
-function calculateTeamTimeTrialScore(riders, tactic) {
-  const top6 = [...riders]
-    .sort((a, b) => b.stats.teamTimeTrial - a.stats.teamTimeTrial)
-    .slice(0, 6);
-
-  return (
-    average(top6.map(r => r.stats.teamTimeTrial)) * 0.50 +
-    average(top6.map(r => r.stats.flat)) * 0.18 +
-    average(top6.map(r => r.stats.stamina)) * 0.15 +
-    average(top6.map(r => r.form)) * 0.10 +
-    clamp(9 - standardDeviation(top6.map(r => r.stats.teamTimeTrial)), 0, 9) +
-    tactic.bonus -
-    average(riders.map(r => r.fatigue)) * 0.18 -
-    (Math.random() < tactic.risk ? randomBetween(2, 9) : 0) +
-    randomBetween(-2, 2)
-  );
-}
-
-function getBaseStageTime(stage) {
-  return (stage.distance / ({
-    flat: 44,
-    hilly: 40,
-    time_trial: 50,
-    team_time_trial: 52,
-    mountain: 34,
-    cobbles_hills: 38
-  }[stage.type] || 40)) * 3600;
-}
-
-function convertPerformanceToTime(perf, base, stage) {
-  return (
-    base +
-    (82 - clamp(perf, 35, 112)) * ({
-      flat: 3.0,
-      hilly: 6.2,
-      time_trial: 5.5,
-      team_time_trial: 4.7,
-      mountain: 9.0,
-      cobbles_hills: 8.2
-    }[stage.type] || 5) +
-    stage.difficulty * 0.18 +
-    randomBetween(-7, 7)
-  );
-}
-
-function getFatiguePenalty(r, stage) {
-  return r.fatigue * ({
-    flat: 0.12,
-    hilly: 0.24,
-    time_trial: 0.18,
-    team_time_trial: 0.16,
-    mountain: 0.34,
-    cobbles_hills: 0.30
-  }[stage.type] || 0.2);
-}
-
-function calculateLongRacePenalty(r, stage) {
-  if ((r.raceDays || 0) < 8) return 0;
-
-  return (
-    clamp(85 - r.stats.recovery, 0, 30) *
-    ({
-      flat: 0.10,
-      hilly: 0.22,
-      time_trial: 0.18,
-      team_time_trial: 0.14,
-      mountain: 0.32,
-      cobbles_hills: 0.30
-    }[stage.type] || 0.2) *
-    ((r.raceDays - 7) / 8)
-  );
-}
-
-function calculateFatigueGain(r, stage, tactic, perf) {
-  const base = {
-    flat: 4,
-    hilly: 8,
-    time_trial: 5,
-    team_time_trial: 5,
-    mountain: 11,
-    cobbles_hills: 12
-  }[stage.type] || 6;
-
-  const profileStress =
-    stage.profile.elevationGain / 1200 +
-    stage.profile.heat / 80 +
-    (stage.profile.roadSurface === "pavé" ? 2 : 0);
-
+function calculateDailyRecovery(rider, stage) {
   return clamp(
-    (base + stage.difficulty / 20 + profileStress + Math.max(0, (r.raceDays || 0) - 10) * 0.12) *
-      tactic.fatigueMultiplier *
-      (perf > 86 ? 1.15 : 1) -
-      r.stats.recovery / 65 -
-      r.stats.stamina / 90,
-    1,
-    36
-  );
-}
-
-function calculateDailyRecovery(r, stage) {
-  return clamp(
-    (r.stats.recovery * 0.085 +
-      r.stats.stamina * 0.025 +
-      (r.fatigue > 60 ? 0.8 : 0)) *
+    (rider.stats.recovery * 0.085 +
+      rider.stats.stamina * 0.025 +
+      (rider.fatigue > 60 ? 0.8 : 0)) *
       ({
         flat: 1.05,
         hilly: 0.80,
@@ -1390,226 +2236,23 @@ function calculateDailyRecovery(r, stage) {
   );
 }
 
-function calculateEnergyAfter(r, stage, tactic, perf, incident) {
-  const cost =
-    (({
-      flat: 18,
-      hilly: 28,
-      time_trial: 26,
-      team_time_trial: 24,
-      mountain: 38,
-      cobbles_hills: 36
-    }[stage.type] || 25) +
-      stage.difficulty * 0.10) *
-      tactic.fatigueMultiplier +
-    (incident?.fatigue || 0) -
-    r.stats.stamina * 0.08;
-
-  return clamp(100 - r.fatigue * 0.35 - cost, 0, 100);
-}
-
-function calculateIncident(r, stage, tactic, isTTT = false) {
-  const diff = getDifficulty();
-
-  const risk = clamp(
-    (
-      (stage.profile.roadSurface === "pavé" ? 0.055 : 0.010) +
-      stage.profile.rainRisk / 1000 +
-      stage.profile.technicalDescent / 1600 +
-      tactic.risk * 0.035 -
-      (r.stats.positioning + r.stats.downhill + r.stats.injuryResistance) / 6000 +
-      (isTTT ? -0.01 : 0)
-    ) * diff.incidentMultiplier,
-    0.005,
-    0.20
-  );
-
-  if (Math.random() > risk) return null;
-
-  const roll = Math.random();
-
-  if (roll < 0.48) {
-    return {
-      type: "Pinchazo",
-      timeLoss: randomBetween(20, 90),
-      fatigue: 1.5,
-      description: "Pinchazo"
-    };
-  }
-
-  if (roll < 0.78) {
-    return {
-      type: "Avería",
-      timeLoss: randomBetween(35, 150),
-      fatigue: 2,
-      description: "Avería mecánica"
-    };
-  }
-
-  if (roll < 0.96) {
-    return {
-      type: "Caída leve",
-      timeLoss: randomBetween(45, 180),
-      fatigue: 5,
-      performancePenalty: 4,
-      description: "Caída sin abandono"
-    };
-  }
-
-  return {
-    type: "Abandono",
-    timeLoss: 1800,
-    fatigue: 20,
-    performancePenalty: 15,
-    abandon: true,
-    description: "Caída grave y abandono"
-  };
-}
-
-function applyTimeBonuses(stage, results) {
-  if (!stage.profile.finishBonuses?.length || ["time_trial", "team_time_trial"].includes(stage.type)) return;
-
-  stage.profile.finishBonuses.forEach((b, i) => {
-    if (results[i]) {
-      results[i].stageTime = Math.max(0, results[i].stageTime - b);
-      results[i].bonusSeconds = b;
-    }
-  });
-}
-
-function applyEchelons(stage, results) {
-  if (stage.type !== "flat" || stage.profile.windExposure < 60) return;
-
-  results.forEach((res, index) => {
-    const r = getRider(res.riderId);
-    const tactic =
-      res.teamId === Game.selectedTeamId
-        ? getUserTacticForRider(r)
-        : getTactic("balanced");
-
-    const protection =
-      r.stats.positioning * 0.45 +
-      r.stats.flat * 0.30 +
-      r.stats.stamina * 0.15 +
-      (tactic.id === "protect_leader" ? 8 : 0);
-
-    const risk = clamp((stage.profile.windExposure - protection) / 120, 0, 0.55);
-
-    if (index > 15 && Math.random() < risk) {
-      const loss = randomBetween(25, 130);
-      res.stageTime += loss;
-      res.groupLabel = `Corte por viento +${Math.round(loss)}s`;
-    }
-  });
-}
-
-function applyGroupFinish(stage, results) {
-  if (!["flat", "hilly", "cobbles_hills"].includes(stage.type)) return;
-
-  results.sort((a, b) => a.stageTime - b.stageTime);
-
-  let groupTime = results[0].stageTime;
-  let groupNo = 1;
-
-  results.forEach((res, i) => {
-    const threshold =
-      stage.type === "flat" ? 18 :
-      stage.type === "hilly" ? 10 :
-      7;
-
-    if (i > 0 && res.stageTime - groupTime > threshold) {
-      groupTime = res.stageTime;
-      groupNo++;
-    }
-
-    if (!res.incident && !res.groupLabel) {
-      res.stageTime = groupTime;
-      res.groupLabel = groupNo === 1 ? "Grupo 1" : `Grupo ${groupNo}`;
-    }
-  });
-}
-
-function applyCrisis(stage, results) {
-  const diff = getDifficulty();
-
-  if (!["hilly", "mountain", "cobbles_hills"].includes(stage.type)) return;
-
-  results.forEach(res => {
-    const r = getRider(res.riderId);
-
-    if (!r || r.abandoned) return;
-
-    const energy = res.energyAfter;
-
-    const risk = clamp(
-      ((25 - energy) / 70 + r.fatigue / 250 + stage.profile.heat / 500) * diff.crisisMultiplier,
-      0,
-      0.45
-    );
-
-    if (energy < 25 && Math.random() < risk) {
-      const loss = energy < 8 ? randomBetween(300, 900) : randomBetween(60, 240);
-
-      res.stageTime += loss;
-      res.crisis = true;
-      res.crisisTimeLoss = loss;
-      res.fatigueGain += energy < 8 ? 8 : 3;
-    }
-  });
-}
-
-function updateStagePositions(results) {
-  results.forEach((r, i) => {
-    r.position = i + 1;
-  });
-}
-
-function updateStageWinCounts(winner) {
-  if (!winner) return;
-
-  Game.stageWinCounts[winner.riderId] = (Game.stageWinCounts[winner.riderId] || 0) + 1;
-  Game.teamStageWinCounts[winner.teamId] = (Game.teamStageWinCounts[winner.teamId] || 0) + 1;
-
-  const rider = getRider(winner.riderId);
-
-  if (rider) rider.stageWins++;
-}
-
-function updateRiderTotals(stage, results) {
-  results.forEach(res => {
-    const r = getRider(res.riderId);
-
-    if (!r || r.abandoned) return;
-
-    r.totalTime += res.stageTime;
-    r.raceDays = (r.raceDays || 0) + 1;
-    r.energy = res.energyAfter;
-    r.recoveredToday = calculateDailyRecovery(r, stage);
-    r.fatigue = clamp(r.fatigue + res.fatigueGain - r.recoveredToday, 0, 100);
-
-    if (res.incident?.abandon) {
-      r.abandoned = true;
-    }
-  });
-}
-
 function updateTeamClassification(results) {
   TEAMS.forEach(team => {
     const top = results
-      .filter(r => r.teamId === team.id)
+      .filter(result => result.teamId === team.id)
       .sort((a, b) => a.stageTime - b.stageTime)
       .slice(0, CLASSIFICATION_RULES.teamClassificationBestRiders);
 
     if (top.length) {
-      Game.teamTimes[team.id] += top.reduce((s, r) => s + r.stageTime, 0);
+      Game.teamTimes[team.id] += top.reduce((sum, result) => sum + result.stageTime, 0);
     }
   });
 }
 
 function updatePointsClassification(stage, results) {
-  (CLASSIFICATION_RULES.pointsByStageType[stage.type] || []).forEach((pts, i) => {
-    const r = getRider(results[i]?.riderId);
-    if (r) r.points += pts;
+  (CLASSIFICATION_RULES.pointsByStageType[stage.type] || []).forEach((points, index) => {
+    const rider = getRider(results[index]?.riderId);
+    if (rider) rider.points += points;
   });
 
   const sprintRanking = [...results].sort((a, b) => {
@@ -1623,38 +2266,30 @@ function updatePointsClassification(stage, results) {
   });
 
   (stage.profile.intermediateSprints || []).forEach(() => {
-    CLASSIFICATION_RULES.intermediateSprintPoints.forEach((pts, i) => {
-      const r = getRider(sprintRanking[i]?.riderId);
-      if (r) r.points += pts;
+    CLASSIFICATION_RULES.intermediateSprintPoints.forEach((points, index) => {
+      const rider = getRider(sprintRanking[index]?.riderId);
+      if (rider) rider.points += points;
     });
   });
 }
 
-function updateMountainClassification(stage, results, breakawayInfo) {
-  (stage.profile.climbs || []).forEach(c => {
-    const scale = CLASSIFICATION_RULES.mountainPoints[String(c.category)] || [];
+function updateMountainClassification(stage, results) {
+  (stage.profile.climbs || []).forEach(climbItem => {
+    const scale = CLASSIFICATION_RULES.mountainPoints[String(climbItem.category)] || [];
 
     const ranking = [...results].sort((a, b) => {
       const ra = getRider(a.riderId);
       const rb = getRider(b.riderId);
 
       return (
-        rb.stats.mountain +
-        rb.stats.hills * 0.35 +
-        (breakawayInfo.riderIds.includes(rb.id) ? 7 : 0) +
-        randomBetween(0, 6) -
-        (
-          ra.stats.mountain +
-          ra.stats.hills * 0.35 +
-          (breakawayInfo.riderIds.includes(ra.id) ? 7 : 0) +
-          randomBetween(0, 6)
-        )
+        rb.stats.mountain + rb.stats.hills * 0.35 + (b.inBreakaway ? 7 : 0) + randomBetween(0, 6) -
+        (ra.stats.mountain + ra.stats.hills * 0.35 + (a.inBreakaway ? 7 : 0) + randomBetween(0, 6))
       );
     });
 
-    scale.forEach((pts, i) => {
-      const r = getRider(ranking[i]?.riderId);
-      if (r) r.mountainPoints += pts;
+    scale.forEach((points, index) => {
+      const rider = getRider(ranking[index]?.riderId);
+      if (rider) rider.mountainPoints += points;
     });
   });
 }
@@ -1664,9 +2299,9 @@ function updateUciStagePoints(stage, results) {
     ? CLASSIFICATION_RULES.uci.grandTourStage
     : CLASSIFICATION_RULES.uci.oneDay;
 
-  scale.forEach((pts, i) => {
-    const r = getRider(results[i]?.riderId);
-    if (r) r.uciPoints += pts;
+  scale.forEach((points, index) => {
+    const rider = getRider(results[index]?.riderId);
+    if (rider) rider.uciPoints += points;
   });
 }
 
@@ -1674,29 +2309,25 @@ function assignLeaderOfRaceUciPoint() {
   if (!isGrandTour()) return;
 
   const leader = getGCLeader();
-
-  if (leader) {
-    leader.uciPoints += CLASSIFICATION_RULES.uci.stageLeaderPerDay;
-  }
+  if (leader) leader.uciPoints += CLASSIFICATION_RULES.uci.stageLeaderPerDay;
 }
 
 function assignFinalUciPoints() {
-  const key = currentRaceDoneKey();
-
+  const key = Game.selectedRaceId;
   if (Game.finalUciAssignedForRace[key]) return;
 
   if (isGrandTour()) {
-    CLASSIFICATION_RULES.uci.grandTourFinalGC.forEach((pts, i) => {
-      const r = getGCStandings()[i];
-      if (r) r.uciPoints += pts;
+    CLASSIFICATION_RULES.uci.grandTourFinalGC.forEach((points, index) => {
+      const rider = getGCStandings()[index];
+      if (rider) rider.uciPoints += points;
     });
 
     [
       getPointsStandings()[0],
       getMountainStandings()[0],
       getYouthStandings()[0]
-    ].forEach(r => {
-      if (r) r.uciPoints += CLASSIFICATION_RULES.uci.secondaryFinal[0];
+    ].forEach(rider => {
+      if (rider) rider.uciPoints += CLASSIFICATION_RULES.uci.secondaryFinal[0];
     });
   }
 
@@ -1704,26 +2335,26 @@ function assignFinalUciPoints() {
 }
 
 function updateMoraleAndFormAfterStage(results) {
-  results.forEach(res => {
-    const r = getRider(res.riderId);
+  results.forEach(result => {
+    const rider = getRider(result.riderId);
+    if (!rider) return;
 
-    if (!r) return;
+    if (result.position === 1) rider.morale += 8;
+    else if (result.position <= 3) rider.morale += 4;
+    else if (result.position > 50) rider.morale -= 2;
 
-    if (res.position === 1) r.morale += 8;
-    else if (res.position <= 3) r.morale += 4;
-    else if (res.position > 50) r.morale -= 2;
+    if (result.incident) rider.morale -= 5;
+    if (result.crisis) rider.morale -= 6;
+    if (result.timeCut) rider.morale -= 12;
+    if (result.tacticId === "protect_leader") rider.morale += 1;
 
-    if (res.incident) r.morale -= 5;
-    if (res.crisis) r.morale -= 6;
-    if (res.tacticId === "protect_leader") r.morale += 1;
+    rider.morale = clamp(rider.morale, 30, 100);
 
-    r.morale = clamp(r.morale, 30, 100);
+    const recoveryEffect = (rider.stats.recovery - 80) * 0.02;
+    const fatigueEffect = rider.fatigue > 55 ? -0.7 : 0.2;
+    const moraleEffect = (rider.morale - 75) * 0.015;
 
-    const recoveryEffect = (r.stats.recovery - 80) * 0.02;
-    const fatigueEffect = r.fatigue > 55 ? -0.7 : 0.2;
-    const moraleEffect = (r.morale - 75) * 0.015;
-
-    r.form = clamp(r.form + recoveryEffect + fatigueEffect + moraleEffect, 55, 99);
+    rider.form = clamp(rider.form + recoveryEffect + fatigueEffect + moraleEffect, 55, 99);
   });
 }
 
@@ -1741,59 +2372,37 @@ function recordJerseyHistory(stage) {
 
 function recordIncidents(stage, results) {
   results
-    .filter(r => r.incident || r.crisis || r.groupLabel?.includes("Corte"))
-    .forEach(r => {
+    .filter(result => result.incident || result.crisis || result.timeCut)
+    .forEach(result => {
       Game.incidentHistory.push({
         raceId: Game.selectedRaceId,
         stage: stage.number,
-        riderId: r.riderId,
-        riderName: r.riderName,
-        type: r.incident?.type || (r.crisis ? "Pájara/Crisis" : "Corte por viento"),
-        timeLoss: r.incident?.timeLoss || r.crisisTimeLoss || 0
+        riderId: result.riderId,
+        riderName: result.riderName,
+        type: result.incident?.type || (result.crisis ? "Pájara/Crisis" : "Fuera de control"),
+        timeLoss: result.incident?.timeLoss || result.crisisTimeLoss || 0
       });
     });
 }
 
-function chooseAITactic(r, stage) {
-  const team = getTeam(r.teamId);
+function chooseAITactic(rider, stage) {
+  const team = getTeam(rider.teamId);
+  const ai = team.aiProfile || {};
 
-  if (r.fatigue > 65) return getTactic("conservative");
+  if (rider.fatigue > 65) return getTactic("conservative");
 
-  if (stage.type === "mountain" && (team.archetype.includes("GC") || team.archetype.includes("Montaña"))) {
-    return getTactic("aggressive");
-  }
-
-  if (stage.type === "hilly" && (team.archetype.includes("Clásicas") || team.archetype.includes("Etapas"))) {
-    return getTactic("aggressive");
-  }
-
-  if (stage.type === "cobbles_hills" && team.archetype.includes("Clásicas")) {
-    return getTactic("aggressive");
-  }
-
-  if (stage.type === "flat" && team.archetype.includes("Sprint")) {
-    return getTactic("sprint_train");
-  }
-
-  if (stage.type === "time_trial" && team.archetype.includes("Crono")) {
-    return getTactic("aggressive");
-  }
-
-  if (Math.random() < 0.06) return getTactic("all_in");
-
-  return getTactic("balanced");
-}
-
-function chooseAITeamTactic(team) {
-  if (team.archetype.includes("Crono")) return getTactic("aggressive");
-  if (team.archetype.includes("GC")) return getTactic("balanced");
-  if (Math.random() < 0.12) return getTactic("aggressive");
+  if (stage.type === "mountain" && (ai.gcFocus || 0) > 75) return getTactic("aggressive");
+  if (stage.type === "hilly" && (ai.breakawayFocus || 0) > 70) return getTactic("aggressive");
+  if (stage.type === "cobbles_hills" && (ai.aggression || 0) > 80) return getTactic("aggressive");
+  if (stage.type === "flat" && (ai.sprintFocus || 0) > 70) return getTactic("sprint_train");
+  if (stage.type === "time_trial" && team.archetype.includes("Crono")) return getTactic("aggressive");
+  if (Math.random() * 100 < (ai.aggression || 50) * 0.07) return getTactic("all_in");
 
   return getTactic("balanced");
 }
 
 /* ============================================================
-   CLASIFICACIONES / OBJETIVOS
+   CLASIFICACIONES
    ============================================================ */
 
 function getGCStandings() {
@@ -1814,7 +2423,7 @@ function getMountainStandings() {
 
 function getYouthStandings() {
   return getAllActiveRiders()
-    .filter(r => r.age <= CLASSIFICATION_RULES.youthMaxAge)
+    .filter(rider => rider.age <= CLASSIFICATION_RULES.youthMaxAge)
     .sort((a, b) => a.totalTime - b.totalTime);
 }
 
@@ -1826,17 +2435,21 @@ function getTeamStandings() {
   return TEAMS.map(team => ({
     team,
     time: Game.teamTimes[team.id] || 0,
-    uci: getTeamRiders(team.id).reduce((s, r) => s + r.uciPoints, 0)
+    uci: getTeamRiders(team.id).reduce((sum, rider) => sum + rider.uciPoints, 0)
   })).sort((a, b) => a.time - b.time);
 }
 
+/* ============================================================
+   OBJETIVOS
+   ============================================================ */
+
 function getStageWinnerIdsForUser() {
   return Game.stageHistory
-    .filter(h => h.results[0]?.teamId === Game.selectedTeamId)
-    .map(h => h.results[0].riderId);
+    .filter(item => item.results[0]?.teamId === Game.selectedTeamId)
+    .map(item => item.results[0].riderId);
 }
 
-function evaluateObjectives(final = false) {
+function evaluateObjectives() {
   const team = getTeam(Game.selectedTeamId);
   const gc = getGCStandings();
   const points = getPointsStandings();
@@ -1848,7 +2461,7 @@ function evaluateObjectives(final = false) {
 
   return team.objectives.map(id => {
     let ok = false;
-    const bestUserGCPos = gc.findIndex(r => r.teamId === Game.selectedTeamId) + 1;
+    const bestUserGCPos = gc.findIndex(rider => rider.teamId === Game.selectedTeamId) + 1;
 
     if (id === "gc_win") ok = gc[0]?.teamId === Game.selectedTeamId;
     if (id === "gc_top_3") ok = bestUserGCPos > 0 && bestUserGCPos <= 3;
@@ -1858,68 +2471,57 @@ function evaluateObjectives(final = false) {
     if (id === "stage_wins_2") ok = stageWins >= 2;
     if (id === "stage_wins_3") ok = stageWins >= 3;
     if (id === "points_win") ok = points[0]?.teamId === Game.selectedTeamId;
-    if (id === "points_top_3") ok = points.slice(0, 3).some(r => r.teamId === Game.selectedTeamId);
-    if (id === "mountain_top_3") ok = mountain.slice(0, 3).some(r => r.teamId === Game.selectedTeamId);
+    if (id === "points_top_3") ok = points.slice(0, 3).some(rider => rider.teamId === Game.selectedTeamId);
+    if (id === "mountain_top_3") ok = mountain.slice(0, 3).some(rider => rider.teamId === Game.selectedTeamId);
     if (id === "youth_win") ok = youth[0]?.teamId === Game.selectedTeamId;
     if (id === "teams_win") ok = teams[0]?.team.id === Game.selectedTeamId;
     if (id === "uci_top_1") ok = uci[0]?.teamId === Game.selectedTeamId;
-    if (id === "uci_top_3") ok = uci.slice(0, 3).some(r => r.teamId === Game.selectedTeamId);
-    if (id === "uci_top_5") ok = uci.slice(0, 5).some(r => r.teamId === Game.selectedTeamId);
+    if (id === "uci_top_3") ok = uci.slice(0, 3).some(rider => rider.teamId === Game.selectedTeamId);
+    if (id === "uci_top_5") ok = uci.slice(0, 5).some(rider => rider.teamId === Game.selectedTeamId);
     if (id === "time_trial_win") {
-      ok = Game.stageHistory.some(h => h.stage.type.includes("time_trial") && h.results[0]?.teamId === Game.selectedTeamId);
+      ok = Game.stageHistory.some(item => item.stage.type.includes("time_trial") && item.results[0]?.teamId === Game.selectedTeamId);
     }
     if (id === "monument_win") {
       ok = !isGrandTour() && Game.stageHistory[0]?.results[0]?.teamId === Game.selectedTeamId;
     }
 
-    return {
-      id,
-      ok,
-      ...OBJECTIVE_DEFINITIONS[id]
-    };
+    return { id, ok, ...OBJECTIVE_DEFINITIONS[id] };
   });
 }
 
 function applyObjectiveRewards() {
-  const results = evaluateObjectives(true);
+  const results = evaluateObjectives();
   const doneKey = `${Game.selectedRaceId}_objectives`;
 
-  if (Game.objectiveResults.some(x => x.doneKey === doneKey)) return;
+  if (Game.objectiveResults.some(item => item.doneKey === doneKey)) return;
 
   let prestige = 0;
   let budget = 0;
 
-  results.forEach(r => {
-    if (r.ok) {
-      prestige += r.prestige;
-      budget += r.budget;
+  results.forEach(item => {
+    if (item.ok) {
+      prestige += item.prestige;
+      budget += item.budget;
     }
   });
 
   const satisfactionDelta =
-    Math.round((results.filter(r => r.ok).length / Math.max(1, results.length)) * 35 - 12) *
+    Math.round((results.filter(item => item.ok).length / Math.max(1, results.length)) * 35 - 12) *
     getDifficulty().sponsorMultiplier;
 
   Game.prestige += prestige;
   Game.budget += budget;
   Game.sponsorSatisfaction = clamp(Game.sponsorSatisfaction + satisfactionDelta, 0, 100);
 
-  Game.objectiveResults.push({
-    doneKey,
-    raceId: Game.selectedRaceId,
-    results,
-    prestige,
-    budget,
-    satisfactionDelta
-  });
+  Game.objectiveResults.push({ doneKey, raceId: Game.selectedRaceId, results, prestige, budget, satisfactionDelta });
 }
 
 /* ============================================================
-   RESULTADOS / FINALES
+   RESULTADOS
    ============================================================ */
 
 function renderStageResultScreen() {
-  const { stage, results, breakawayInfo } = Game.lastStageResults;
+  const { stage, results, breakawayInfo, sectorLogs } = Game.lastStageResults;
   const leaderTime = results[0].stageTime;
 
   app.innerHTML = `
@@ -1937,8 +2539,9 @@ function renderStageResultScreen() {
     ${renderLeaderCards()}
 
     <div class="panel" style="margin-top:16px;">
-      <h2>Narrativa</h2>
+      <h2>Narrativa de carrera</h2>
       <p class="help">${escapeHtml(breakawayInfo.narrative)}</p>
+      ${renderSectorLogSummary(sectorLogs)}
       ${renderIncidentSummary(results)}
     </div>
 
@@ -1970,23 +2573,38 @@ function renderStageResultScreen() {
   `;
 }
 
+function renderSectorLogSummary(sectorLogs = []) {
+  return `
+    <div class="radio-list">
+      ${sectorLogs.map(log => `
+        <div class="radio-message">
+          <span>${escapeHtml(log.sectorName)}</span>
+          <p>${log.events.length ? escapeHtml(log.events.join(" · ")) : "Sector sin incidencias destacadas."}</p>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
 function renderIncidentSummary(results) {
   const incidents = results
-    .filter(r => r.incident || r.crisis || r.groupLabel?.includes("Corte"))
+    .filter(result => result.incident || result.crisis || result.timeCut)
     .slice(0, 10);
 
-  return incidents.length
-    ? `
-      <div class="incident-list">
-        ${incidents.map(r => `
-          <span class="incident-chip">
-            ${escapeHtml(r.riderName)}: ${escapeHtml(r.incident?.type || (r.crisis ? "Pájara" : "Corte"))}
-            ${r.incident?.timeLoss || r.crisisTimeLoss ? `(+${Math.round(r.incident?.timeLoss || r.crisisTimeLoss)}s)` : ""}
-          </span>
-        `).join("")}
-      </div>
-    `
-    : `<p class="muted small">Sin incidentes importantes.</p>`;
+  if (!incidents.length) {
+    return `<p class="muted small">Sin incidentes importantes.</p>`;
+  }
+
+  return `
+    <div class="incident-list">
+      ${incidents.map(result => `
+        <span class="incident-chip">
+          ${escapeHtml(result.riderName)}:
+          ${escapeHtml(result.incident?.type || (result.crisis ? "Pájara" : "Fuera de control"))}
+        </span>
+      `).join("")}
+    </div>
+  `;
 }
 
 function renderStageResultsTable(results, leaderTime) {
@@ -2000,25 +2618,23 @@ function renderStageResultsTable(results, leaderTime) {
           <th>Tiempo</th>
           <th>Dif.</th>
           <th>Grupo</th>
-          <th>Estrategia</th>
           <th>Bonus</th>
           <th>UCI</th>
           <th>Inc.</th>
         </tr>
       </thead>
       <tbody>
-        ${results.map(r => `
-          <tr class="${r.teamId === Game.selectedTeamId ? "user-team" : ""}">
-            <td>${r.position}</td>
-            <td>${escapeHtml(r.riderName)}${r.inBreakaway ? " ⚡" : ""}</td>
-            <td>${escapeHtml(r.teamName)}</td>
-            <td>${secondsToTime(r.stageTime)}</td>
-            <td>${gapToLeader(r.stageTime, leaderTime)}</td>
-            <td>${escapeHtml(r.groupLabel || "—")}</td>
-            <td>${escapeHtml(r.tacticName)}</td>
-            <td>${r.bonusSeconds ? `-${r.bonusSeconds}s` : "—"}</td>
-            <td>${(isGrandTour() ? CLASSIFICATION_RULES.uci.grandTourStage : CLASSIFICATION_RULES.uci.oneDay)[r.position - 1] || 0}</td>
-            <td>${r.incident ? escapeHtml(r.incident.type) : (r.crisis ? "Pájara" : "—")}</td>
+        ${results.map(result => `
+          <tr class="${result.teamId === Game.selectedTeamId ? "user-team" : ""}">
+            <td>${result.position}</td>
+            <td>${escapeHtml(result.riderName)}${result.inBreakaway ? " ⚡" : ""}</td>
+            <td>${escapeHtml(result.teamName)}</td>
+            <td>${secondsToTime(result.stageTime)}</td>
+            <td>${gapToLeader(result.stageTime, leaderTime)}</td>
+            <td>${escapeHtml(result.groupLabel || "—")}</td>
+            <td>${result.bonusSeconds ? `-${result.bonusSeconds}s` : "—"}</td>
+            <td>${(isGrandTour() ? CLASSIFICATION_RULES.uci.grandTourStage : CLASSIFICATION_RULES.uci.oneDay)[result.position - 1] || 0}</td>
+            <td>${result.incident ? escapeHtml(result.incident.type) : (result.crisis ? "Pájara" : result.timeCut ? "F.C." : "—")}</td>
           </tr>
         `).join("")}
       </tbody>
@@ -2028,8 +2644,8 @@ function renderStageResultsTable(results, leaderTime) {
 
 function renderGeneralClassificationTable(limit = 25) {
   const race = getRace();
-  const st = getGCStandings().slice(0, limit);
-  const leader = st[0];
+  const standings = getGCStandings().slice(0, limit);
+  const leader = standings[0];
   const leaderTime = leader ? leader.totalTime : 0;
 
   if (!Game.stageHistory.length) {
@@ -2045,12 +2661,12 @@ function renderGeneralClassificationTable(limit = 25) {
           </tr>
         </thead>
         <tbody>
-          ${Game.riders.slice(0, limit).map(r => `
-            <tr class="${r.teamId === Game.selectedTeamId ? "user-team" : ""}">
-              <td>${escapeHtml(r.name)}</td>
-              <td>${escapeHtml(getTeam(r.teamId).name)}</td>
-              <td>${escapeHtml(r.role)}</td>
-              <td>${r.age}</td>
+          ${Game.riders.slice(0, limit).map(rider => `
+            <tr class="${rider.teamId === Game.selectedTeamId ? "user-team" : ""}">
+              <td>${escapeHtml(rider.name)}</td>
+              <td>${escapeHtml(getTeam(rider.teamId).name)}</td>
+              <td>${escapeHtml(rider.role)}</td>
+              <td>${rider.age}</td>
             </tr>
           `).join("")}
         </tbody>
@@ -2075,18 +2691,18 @@ function renderGeneralClassificationTable(limit = 25) {
         </tr>
       </thead>
       <tbody>
-        ${st.map((r, i) => `
-          <tr class="${r.teamId === Game.selectedTeamId ? "user-team" : ""} ${i === 0 ? `race-leader ${race.leaderJerseyClass}` : ""}">
-            <td>${i + 1}</td>
-            <td>${escapeHtml(r.name)}${r.abandoned ? " ❌" : ""}</td>
-            <td>${escapeHtml(getTeam(r.teamId).name)}</td>
-            <td>${secondsToTime(r.totalTime)}</td>
-            <td>${gapToLeader(r.totalTime, leaderTime)}</td>
-            <td>${Math.round(r.fatigue)}</td>
-            <td>${Math.round(r.morale)}</td>
-            <td>${r.points}</td>
-            <td>${r.mountainPoints}</td>
-            <td>${r.uciPoints}</td>
+        ${standings.map((rider, index) => `
+          <tr class="${rider.teamId === Game.selectedTeamId ? "user-team" : ""} ${index === 0 ? `race-leader ${race.leaderJerseyClass}` : ""}">
+            <td>${index + 1}</td>
+            <td>${escapeHtml(rider.name)}${rider.abandoned ? " ❌" : ""}</td>
+            <td>${escapeHtml(getTeam(rider.teamId).name)}</td>
+            <td>${secondsToTime(rider.totalTime)}</td>
+            <td>${gapToLeader(rider.totalTime, leaderTime)}</td>
+            <td>${Math.round(rider.fatigue)}</td>
+            <td>${Math.round(rider.morale)}</td>
+            <td>${rider.points}</td>
+            <td>${rider.mountainPoints}</td>
+            <td>${rider.uciPoints}</td>
           </tr>
         `).join("")}
       </tbody>
@@ -2113,11 +2729,11 @@ function renderSmallTable(title, riders, key, mode) {
       <h3>${escapeHtml(title)}</h3>
       <table>
         <tbody>
-          ${riders.slice(0, 5).map((r, i) => `
-            <tr class="${r.teamId === Game.selectedTeamId ? "user-team" : ""}">
-              <td>${i + 1}</td>
-              <td>${escapeHtml(r.name)}</td>
-              <td>${mode === "time" ? secondsToTime(r[key]) : r[key]}</td>
+          ${riders.slice(0, 5).map((rider, index) => `
+            <tr class="${rider.teamId === Game.selectedTeamId ? "user-team" : ""}">
+              <td>${index + 1}</td>
+              <td>${escapeHtml(rider.name)}</td>
+              <td>${mode === "time" ? secondsToTime(rider[key]) : rider[key]}</td>
             </tr>
           `).join("")}
         </tbody>
@@ -2128,18 +2744,18 @@ function renderSmallTable(title, riders, key, mode) {
 
 function renderTeamTable() {
   const teams = getTeamStandings();
-  const lead = teams[0]?.time || 0;
+  const leaderTime = teams[0]?.time || 0;
 
   return `
     <div class="mini-classification">
       <h3>Equipos</h3>
       <table>
         <tbody>
-          ${teams.slice(0, 5).map((x, i) => `
-            <tr class="${x.team.id === Game.selectedTeamId ? "user-team" : ""}">
-              <td>${i + 1}</td>
-              <td>${escapeHtml(x.team.name)}</td>
-              <td>${gapToLeader(x.time, lead)}</td>
+          ${teams.slice(0, 5).map((item, index) => `
+            <tr class="${item.team.id === Game.selectedTeamId ? "user-team" : ""}">
+              <td>${index + 1}</td>
+              <td>${escapeHtml(item.team.name)}</td>
+              <td>${gapToLeader(item.time, leaderTime)}</td>
             </tr>
           `).join("")}
         </tbody>
@@ -2150,20 +2766,20 @@ function renderTeamTable() {
 
 function renderStageWinsTable() {
   const items = Object.entries(Game.stageWinCounts)
-    .map(([id, n]) => ({ r: getRider(id), n }))
-    .filter(x => x.r)
-    .sort((a, b) => b.n - a.n);
+    .map(([id, count]) => ({ rider: getRider(id), count }))
+    .filter(item => item.rider)
+    .sort((a, b) => b.count - a.count);
 
   return `
     <div class="mini-classification">
       <h3>Victorias</h3>
       <table>
         <tbody>
-          ${items.slice(0, 5).map((x, i) => `
-            <tr class="${x.r.teamId === Game.selectedTeamId ? "user-team" : ""}">
-              <td>${i + 1}</td>
-              <td>${escapeHtml(x.r.name)}</td>
-              <td>${x.n}</td>
+          ${items.slice(0, 5).map((item, index) => `
+            <tr class="${item.rider.teamId === Game.selectedTeamId ? "user-team" : ""}">
+              <td>${index + 1}</td>
+              <td>${escapeHtml(item.rider.name)}</td>
+              <td>${item.count}</td>
             </tr>
           `).join("") || `<tr><td>—</td><td>Sin victorias</td><td>0</td></tr>`}
         </tbody>
@@ -2173,34 +2789,34 @@ function renderStageWinsTable() {
 }
 
 function renderObjectivePanel() {
-  const evals = evaluateObjectives(false);
+  const evaluations = evaluateObjectives();
 
   return `
     <div class="objectives-panel">
-      ${evals.map(o => `
-        <div class="objective-row ${o.ok ? "ok" : "bad"}">
-          <span>${o.ok ? "✅" : "❌"}</span>
-          <strong>${escapeHtml(o.label)}</strong>
-          <small>Prestigio ${o.prestige} · ${money(o.budget)}</small>
+      ${evaluations.map(item => `
+        <div class="objective-row ${item.ok ? "ok" : "bad"}">
+          <span>${item.ok ? "✅" : "❌"}</span>
+          <strong>${escapeHtml(item.label)}</strong>
+          <small>Prestigio ${item.prestige} · ${money(item.budget)}</small>
         </div>
       `).join("")}
       <hr>
       <p class="muted small">
-        Presupuesto: ${money(Game.budget)} · Prestigio: ${Math.round(Game.prestige)} · Satisfacción sponsor: ${Math.round(Game.sponsorSatisfaction)}/100
+        Presupuesto: ${money(Game.budget)} · Prestigio: ${Math.round(Game.prestige)} · Sponsor: ${Math.round(Game.sponsorSatisfaction)}/100
       </p>
     </div>
   `;
 }
 
 function renderStageAnalysis(stage, results) {
-  const user = results
-    .filter(r => r.teamId === Game.selectedTeamId)
+  const userResult = results
+    .filter(result => result.teamId === Game.selectedTeamId)
     .sort((a, b) => a.stageTime - b.stageTime)[0];
 
   const winner = results[0];
   const gc = getGCStandings();
-  const best = gc.find(r => r.teamId === Game.selectedTeamId);
-  const pos = gc.findIndex(r => r.id === best?.id) + 1;
+  const bestUser = gc.find(rider => rider.teamId === Game.selectedTeamId);
+  const bestUserPosition = gc.findIndex(rider => rider.id === bestUser?.id) + 1;
 
   return `
     <div class="grid three">
@@ -2212,14 +2828,14 @@ function renderStageAnalysis(stage, results) {
 
       <div class="stage-card">
         <span class="muted">Mejor equipo</span>
-        <div class="big-number">${user.position}</div>
-        <strong>${escapeHtml(user.riderName)}</strong>
+        <div class="big-number">${userResult.position}</div>
+        <strong>${escapeHtml(userResult.riderName)}</strong>
       </div>
 
       <div class="stage-card">
         <span class="muted">Tu mejor GC</span>
-        <div class="big-number">${pos}</div>
-        <strong>${best ? escapeHtml(best.name) : "—"}</strong>
+        <div class="big-number">${bestUserPosition}</div>
+        <strong>${bestUser ? escapeHtml(bestUser.name) : "—"}</strong>
       </div>
     </div>
 
@@ -2228,29 +2844,12 @@ function renderStageAnalysis(stage, results) {
 }
 
 function getStageComment(stage) {
-  if (stage.type === "mountain") {
-    return "Montaña: proteger líder, gestionar energía y evitar pájaras es decisivo.";
-  }
-
-  if (stage.type === "hilly") {
-    return "Media montaña: terreno ideal para fugas, puncheurs y bonificaciones.";
-  }
-
-  if (stage.type === "flat") {
-    return stage.profile.windExposure > 60
-      ? "Llano con viento: atención a cortes y colocación."
-      : "Llano: sprint, tren de lanzamiento y puntos.";
-  }
-
-  if (stage.type === "cobbles_hills") {
-    return "Pavés/muros: colocación, consistencia e incidentes pesan muchísimo.";
-  }
-
-  if (stage.type === "time_trial") {
-    return "CRI: timeTrial, forma y fatiga deciden.";
-  }
-
-  return "CRE: bloque y homogeneidad del equipo.";
+  if (stage.type === "mountain") return "Montaña: la nutrición, energía y gregarios quemados deciden la etapa.";
+  if (stage.type === "hilly") return "Media montaña: fugas, cambios tácticos y geles antes del final son claves.";
+  if (stage.type === "flat") return stage.profile.windExposure > 60 ? "Llano con viento: los cortes pueden mover la general." : "Llano: tren de sprint y colocación.";
+  if (stage.type === "cobbles_hills") return "Pavés/muros: material y posicionamiento reducen mucho el riesgo.";
+  if (stage.type === "time_trial") return "Crono: material TT y gestión de energía desde el primer sector.";
+  return "CRE: bloque, homogeneidad y material de crono.";
 }
 
 function goToNextStage() {
@@ -2263,13 +2862,20 @@ function goToNextStage() {
     return;
   }
 
-  Game.currentStageIndex++;
-  resetUserRiderTactics("balanced");
+  Game.currentStageIndex += 1;
   Game.activeTab = "strategy";
+  Game.liveStage = null;
+  resetUserRiderTactics("balanced");
+  applyEquipmentPreset("auto");
+  setNutritionPlan(Game.nutritionPlanId, false);
 
   saveGame();
   renderRaceScreen();
 }
+
+/* ============================================================
+   FINALES / TEMPORADA
+   ============================================================ */
 
 function renderFinalScreen() {
   assignFinalUciPoints();
@@ -2277,7 +2883,7 @@ function renderFinalScreen() {
 
   const race = getRace();
 
-  return app.innerHTML = `
+  app.innerHTML = `
     <div class="header">
       <div>
         <h1>Final · ${escapeHtml(race.name)} 🏆</h1>
@@ -2297,11 +2903,11 @@ function renderFinalScreen() {
     <div class="grid two" style="margin-top:16px;">
       <section class="panel">
         <h2>Podio</h2>
-        ${getGCStandings().slice(0, 3).map((r, i) => `
-          <div class="stage-card ${i === 0 ? race.leaderJerseyClass : ""}">
-            <span class="badge green">#${i + 1}</span>
-            <h3>${escapeHtml(r.name)}</h3>
-            <p class="muted">${escapeHtml(getTeam(r.teamId).name)} · ${secondsToTime(r.totalTime)} · UCI ${r.uciPoints}</p>
+        ${getGCStandings().slice(0, 3).map((rider, index) => `
+          <div class="stage-card ${index === 0 ? race.leaderJerseyClass : ""}">
+            <span class="badge green">#${index + 1}</span>
+            <h3>${escapeHtml(rider.name)}</h3>
+            <p class="muted">${escapeHtml(getTeam(rider.teamId).name)} · ${secondsToTime(rider.totalTime)} · UCI ${rider.uciPoints}</p>
           </div>
         `).join("")}
 
@@ -2359,10 +2965,10 @@ function renderTrainingScreen() {
       </p>
 
       <div class="race-grid">
-        ${TRAINING_OPTIONS.map(o => `
-          <button class="race-card" onclick="applyTrainingAndNextRace('${o.id}')">
-            <span class="race-title">${escapeHtml(o.name)}</span>
-            <span class="muted small">${escapeHtml(o.description)}</span>
+        ${TRAINING_OPTIONS.map(option => `
+          <button class="race-card" onclick="applyTrainingAndNextRace('${option.id}')">
+            <span class="race-title">${escapeHtml(option.name)}</span>
+            <span class="muted small">${escapeHtml(option.description)}</span>
           </button>
         `).join("")}
       </div>
@@ -2378,25 +2984,25 @@ function renderTrainingScreen() {
 }
 
 function applyTrainingAndNextRace(optionId) {
-  const opt = TRAINING_OPTIONS.find(o => o.id === optionId);
+  const option = TRAINING_OPTIONS.find(item => item.id === optionId);
 
-  if (!opt) return;
+  if (!option) return;
 
   Game.riders
-    .filter(r => r.teamId === Game.selectedTeamId)
-    .forEach(r => {
-      r.fatigue = clamp(r.fatigue + (opt.effects.fatigue || 0), 0, 100);
-      r.form = clamp(r.form + (opt.effects.form || 0), 55, 99);
-      r.morale = clamp(r.morale + (opt.effects.morale || 0), 30, 100);
+    .filter(rider => rider.teamId === Game.selectedTeamId)
+    .forEach(rider => {
+      rider.fatigue = clamp(rider.fatigue + (option.effects.fatigue || 0), 0, 100);
+      rider.form = clamp(rider.form + (option.effects.form || 0), 55, 99);
+      rider.morale = clamp(rider.morale + (option.effects.morale || 0), 30, 100);
 
-      ["mountain", "stamina", "timeTrial", "teamTimeTrial", "sprint", "positioning", "acceleration"].forEach(k => {
-        if (opt.effects[k]) {
-          r.stats[k] = clamp(r.stats[k] + opt.effects[k], 42, 99);
+      ["mountain", "stamina", "timeTrial", "teamTimeTrial", "sprint", "positioning", "acceleration"].forEach(key => {
+        if (option.effects[key]) {
+          rider.stats[key] = clamp(rider.stats[key] + option.effects[key], 42, 99);
         }
       });
     });
 
-  Game.seasonRaceIndex++;
+  Game.seasonRaceIndex += 1;
   Game.selectedRaceId = Game.seasonRaceIds[Game.seasonRaceIndex];
 
   startRaceState(false);
@@ -2436,13 +3042,17 @@ function renderSeasonFinalScreen() {
   `;
 }
 
+/* ============================================================
+   HISTORIAL
+   ============================================================ */
+
 function renderRivalComparison() {
   const gc = getGCStandings();
-  const userBest = gc.find(r => r.teamId === Game.selectedTeamId);
-  const userPos = gc.findIndex(r => r.id === userBest?.id);
+  const userBest = gc.find(rider => rider.teamId === Game.selectedTeamId);
+  const userPosition = gc.findIndex(rider => rider.id === userBest?.id);
   const rival =
-    gc.find((r, i) => r.teamId !== Game.selectedTeamId && Math.abs(i - userPos) <= 2) ||
-    gc.find(r => r.teamId !== Game.selectedTeamId);
+    gc.find((rider, index) => rider.teamId !== Game.selectedTeamId && Math.abs(index - userPosition) <= 2) ||
+    gc.find(rider => rider.teamId !== Game.selectedTeamId);
 
   return `
     <div class="rival-card">
@@ -2473,13 +3083,13 @@ function renderStageHistorySummary() {
         </tr>
       </thead>
       <tbody>
-        ${Game.stageHistory.map(h => `
-          <tr class="${h.results[0]?.teamId === Game.selectedTeamId ? "user-team" : ""}">
-            <td>${escapeHtml(h.stage.name)}</td>
-            <td>${escapeHtml(h.stage.label)}</td>
-            <td>${escapeHtml(h.results[0]?.riderName || "—")}</td>
-            <td>${escapeHtml(h.results[0]?.teamName || "—")}</td>
-            <td>${h.breakawayInfo?.success ? "Llegó" : "Neutralizada"}</td>
+        ${Game.stageHistory.map(item => `
+          <tr class="${item.results[0]?.teamId === Game.selectedTeamId ? "user-team" : ""}">
+            <td>${escapeHtml(item.stage.name)}</td>
+            <td>${escapeHtml(item.stage.label)}</td>
+            <td>${escapeHtml(item.results[0]?.riderName || "—")}</td>
+            <td>${escapeHtml(item.results[0]?.teamName || "—")}</td>
+            <td>${item.breakawayInfo?.success ? "Llegó" : "Neutralizada"}</td>
           </tr>
         `).join("") || `<tr><td>—</td><td colspan="4">Sin etapas disputadas</td></tr>`}
       </tbody>
@@ -2501,14 +3111,14 @@ function renderJerseyHistoryTable() {
         </tr>
       </thead>
       <tbody>
-        ${Game.jerseyHistory.map(j => `
+        ${Game.jerseyHistory.map(item => `
           <tr>
-            <td>${j.stage}</td>
-            <td>${escapeHtml(getRider(j.gc)?.name || "—")}</td>
-            <td>${escapeHtml(getRider(j.points)?.name || "—")}</td>
-            <td>${escapeHtml(getRider(j.mountain)?.name || "—")}</td>
-            <td>${escapeHtml(getRider(j.youth)?.name || "—")}</td>
-            <td>${escapeHtml(getTeam(j.teams)?.name || "—")}</td>
+            <td>${item.stage}</td>
+            <td>${escapeHtml(getRider(item.gc)?.name || "—")}</td>
+            <td>${escapeHtml(getRider(item.points)?.name || "—")}</td>
+            <td>${escapeHtml(getRider(item.mountain)?.name || "—")}</td>
+            <td>${escapeHtml(getRider(item.youth)?.name || "—")}</td>
+            <td>${escapeHtml(getTeam(item.teams)?.name || "—")}</td>
           </tr>
         `).join("") || `<tr><td>—</td><td colspan="5">Sin historial</td></tr>`}
       </tbody>
@@ -2519,10 +3129,10 @@ function renderJerseyHistoryTable() {
 function renderIncidentHistory() {
   return `
     <div class="incident-list">
-      ${Game.incidentHistory.slice(-20).map(i => `
+      ${Game.incidentHistory.slice(-20).map(item => `
         <span class="incident-chip">
-          Et. ${i.stage} · ${escapeHtml(i.riderName)} · ${escapeHtml(i.type)}
-          ${i.timeLoss ? `+${Math.round(i.timeLoss)}s` : ""}
+          Et. ${item.stage} · ${escapeHtml(item.riderName)} · ${escapeHtml(item.type)}
+          ${item.timeLoss ? `+${Math.round(item.timeLoss)}s` : ""}
         </span>
       `).join("") || `<span class="muted small">Sin incidencias.</span>`}
     </div>
