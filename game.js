@@ -1,11 +1,12 @@
 /* ============================================================
    CYCLING MANAGER TOUR - game.js
-   v0.6: etapa viva por sectores, nutrición, material,
-   radio, pelotón, órdenes en carrera y sistemas manager.
+   v0.7: etapa viva por sectores, mapa visual de grupos,
+   rivales por grupo, nutrición automática inteligente,
+   material, radio, pelotón, órdenes en carrera y manager.
    ============================================================ */
 
 const app = document.getElementById("app");
-const SAVE_KEY = "cyclingManagerTour_v06";
+const SAVE_KEY = "cyclingManagerTour_v07";
 
 const Game = {
   selectedRaceId: DEFAULT_RACE_ID,
@@ -22,6 +23,7 @@ const Game = {
   riderTactics: {},
   riderEquipment: {},
   nutritionPlanId: "auto_balanced",
+  autoNutritionMode: "auto_smart",
   teamNutritionStock: {},
 
   riders: [],
@@ -145,6 +147,10 @@ function getNutritionPlan() {
   return NUTRITION_PLANS.find(plan => plan.id === Game.nutritionPlanId) || NUTRITION_PLANS[0];
 }
 
+function getAutoNutritionMode() {
+  return AUTO_NUTRITION_MODES.find(mode => mode.id === Game.autoNutritionMode) || AUTO_NUTRITION_MODES[0];
+}
+
 function getDifficulty() {
   return DIFFICULTY_LEVELS[Game.difficulty] || DIFFICULTY_LEVELS.normal;
 }
@@ -190,6 +196,11 @@ function loadGame() {
   }
 
   Object.assign(Game, JSON.parse(raw));
+
+  if (!Game.autoNutritionMode) {
+    Game.autoNutritionMode = "auto_smart";
+  }
+
   renderRaceScreen();
 }
 
@@ -217,6 +228,7 @@ function initGame() {
   Game.riderTactics = {};
   Game.riderEquipment = {};
   Game.nutritionPlanId = "auto_balanced";
+  Game.autoNutritionMode = "auto_smart";
   Game.teamNutritionStock = {};
 
   Game.riders = deepClone(RIDERS);
@@ -293,6 +305,7 @@ function startRaceState(resetRidersForNewGame = false) {
   Game.riderTactics = {};
   Game.riderEquipment = {};
   Game.teamNutritionStock = {};
+  Game.autoNutritionMode = "auto_smart";
 
   Game.teamTimes = Object.fromEntries(TEAMS.map(team => [team.id, 0]));
   Game.stageHistory = [];
@@ -329,7 +342,7 @@ function startRaceState(resetRidersForNewGame = false) {
   Game.protectedRiderId = getTeamRiders(Game.selectedTeamId)[0]?.id || null;
 
   resetUserRiderTactics("balanced");
-  applyEquipmentPreset("auto");
+  applyEquipmentPreset("auto", false);
   setNutritionPlan("auto_balanced", false);
 }
 
@@ -438,7 +451,7 @@ function autoEquipmentForStage(stage) {
   return { bike: "aero", wheels: "deep_60" };
 }
 
-function applyEquipmentPreset(presetId) {
+function applyEquipmentPreset(presetId, rerender = true) {
   const stage = getCurrentStage();
 
   getTeamRiders(Game.selectedTeamId).forEach(rider => {
@@ -454,7 +467,9 @@ function applyEquipmentPreset(presetId) {
     Game.riderEquipment[rider.id] = setup;
   });
 
-  renderRaceScreen();
+  if (rerender) {
+    renderRaceScreen();
+  }
 }
 
 function setRiderBike(riderId, bikeId) {
@@ -487,6 +502,25 @@ function setNutritionPlan(planId, rerender = true) {
   }
 }
 
+function setAutoNutritionMode(modeId) {
+  Game.autoNutritionMode = modeId;
+  renderRaceScreen();
+}
+
+function renderAutoNutritionModeControls() {
+  return `
+    <h2>Modo de alimentación</h2>
+    <div class="race-grid">
+      ${AUTO_NUTRITION_MODES.map(mode => `
+        <button class="race-card ${Game.autoNutritionMode === mode.id ? "active" : ""}" onclick="setAutoNutritionMode('${mode.id}')">
+          <span class="race-title">${escapeHtml(mode.name)}</span>
+          <span class="muted small">${escapeHtml(mode.description)}</span>
+        </button>
+      `).join("")}
+    </div>
+  `;
+}
+
 /* ============================================================
    RENDER HOME
    ============================================================ */
@@ -498,7 +532,7 @@ function renderHome() {
     <div class="header">
       <div>
         <h1>Cycling Manager Tour 🚴‍♂️</h1>
-        <p>v0.6 · etapa por sectores · nutrición · material · radio · órdenes en carrera</p>
+        <p>v0.7 · mapa vivo · grupos · rivales · nutrición automática · sectores</p>
       </div>
       <div class="top-actions">
         ${saved ? `<button class="secondary" onclick="loadGame()">Cargar partida</button><button class="danger" onclick="clearSave()">Borrar guardado</button>` : ""}
@@ -834,8 +868,16 @@ function renderNutritionTab() {
   return `
     <section class="panel">
       <h2>Nutrición de carrera</h2>
-      <p class="help">La alimentación influye en energía, hidratación, riesgo de pájara y rendimiento en el final.</p>
+      <p class="help">
+        La alimentación influye en energía, hidratación, riesgo de pájara y rendimiento final.
+        Con el modo automático inteligente, los corredores comen solos según el sector y su estado.
+      </p>
 
+      ${renderAutoNutritionModeControls()}
+
+      <hr>
+
+      <h2>Plan base de stock</h2>
       <div class="race-grid">
         ${NUTRITION_PLANS.map(item => `
           <button class="race-card ${Game.nutritionPlanId === item.id ? "active" : ""}" onclick="setNutritionPlan('${item.id}')">
@@ -1245,7 +1287,7 @@ function startLiveStage() {
       crisis: false,
       incident: null,
       dropped: false,
-      groupLabel: "Pelotón",
+      groupLabel: "Pelotón principal",
       domestiqueBurned: false,
       usedCaffeine: false,
       nutritionUsed: []
@@ -1254,6 +1296,8 @@ function startLiveStage() {
 
   Game.liveStage.breakawayIds = generateLiveBreakaway(stage);
   Game.liveStage.breakawayGap = Game.liveStage.breakawayIds.length ? Math.round(randomBetween(80, 190)) : 0;
+
+  recomputeLiveGroupLabels();
 
   addRadio(`Salida lanzada. ${Game.liveStage.breakawayIds.length ? `Se forma una fuga de ${Game.liveStage.breakawayIds.length} corredores.` : "No se consolida fuga inicial."}`);
   addRadio(getStageRadioHint(stage));
@@ -1319,6 +1363,8 @@ function renderLiveStageScreen() {
   const sector = stage.sectors[Game.liveStage.currentSectorIndex];
   const progress = Math.round((sector.kmStart / stage.distance) * 100);
 
+  recomputeLiveGroupLabels();
+
   app.innerHTML = `
     <div class="header">
       <div>
@@ -1336,6 +1382,7 @@ function renderLiveStageScreen() {
       <div class="progress-bar">
         <div class="progress-fill" style="width:${progress}%"></div>
       </div>
+
       <div class="sector-timeline live">
         ${stage.sectors.map((s, i) => `
           <div class="sector-chip ${i === Game.liveStage.currentSectorIndex ? "active" : ""} ${i < Game.liveStage.currentSectorIndex ? "done" : ""}">
@@ -1345,6 +1392,11 @@ function renderLiveStageScreen() {
           </div>
         `).join("")}
       </div>
+    </section>
+
+    <section class="panel" style="margin-top:16px;">
+      <h2>Mapa vivo de carrera</h2>
+      ${renderLiveRaceMap(stage, sector)}
     </section>
 
     <div class="grid two" style="margin-top:16px;">
@@ -1359,7 +1411,10 @@ function renderLiveStageScreen() {
         <h2>Radio del director</h2>
         ${renderRadioMessages()}
         <hr>
-        <h2>Nutrición coche</h2>
+        <h2>Alimentación</h2>
+        <p class="muted small">
+          Modo actual: <strong>${escapeHtml(getAutoNutritionMode().name)}</strong>
+        </p>
         ${renderNutritionStock(Game.teamNutritionStock)}
       </section>
     </div>
@@ -1379,10 +1434,11 @@ function renderLiveStageScreen() {
 }
 
 function renderLiveSituation(sector) {
-  const stage = getCurrentStage();
   const breakawayNames = Game.liveStage.breakawayIds
     .map(id => getRider(id)?.name)
     .filter(Boolean);
+
+  const groups = buildLiveGroups(getCurrentStage(), sector);
 
   return `
     <div class="live-situation">
@@ -1399,13 +1455,290 @@ function renderLiveSituation(sector) {
           ? `Fuga: ${escapeHtml(breakawayNames.join(", "))}. Ventaja: ${secondsToTime(Game.liveStage.breakawayGap)}.`
           : "No hay fuga consolidada."}
         <br>
-        Pelotón principal: ${Game.liveStage.pelotonSize} corredores · Cortados: ${Game.liveStage.droppedCount}.
+        Grupos en carrera: ${groups.length} · Pelotón principal: ${Game.liveStage.pelotonSize} corredores · Cortados: ${Game.liveStage.droppedCount}.
       </p>
 
-      ${renderStageProfile(stage)}
+      <div class="compact-groups">
+        ${groups.map(group => `
+          <div class="compact-group ${group.className}">
+            <strong>${escapeHtml(group.label)}</strong>
+            <span>${group.riders.length} corredores</span>
+            <small>${escapeHtml(group.gapText)} · Tus corredores: ${group.userRiders.length} · Rivales: ${group.rivals.length}</small>
+          </div>
+        `).join("")}
+      </div>
     </div>
   `;
 }
+
+/* ============================================================
+   MAPA VIVO / GRUPOS
+   ============================================================ */
+
+function recomputeLiveGroupLabels() {
+  if (!Game.liveStage) return;
+
+  const activeRiders = getAllActiveRiders();
+  const states = activeRiders
+    .map(rider => ({
+      rider,
+      state: Game.liveStage.riderState[rider.id]
+    }))
+    .filter(item => item.state);
+
+  if (!states.length) return;
+
+  const bestTime = Math.min(...states.map(item => item.state.stageTime));
+
+  states.forEach(item => {
+    const rider = item.rider;
+    const state = item.state;
+
+    if (Game.liveStage.breakawayIds.includes(rider.id) && Game.liveStage.breakawayGap > 20) {
+      state.groupLabel = "Fuga";
+      return;
+    }
+
+    const gap = state.stageTime - bestTime;
+
+    if (state.dropped || gap > 240) {
+      state.groupLabel = "Cortados";
+    } else if (gap > 90) {
+      state.groupLabel = "Grupo 2";
+    } else if (gap > 25) {
+      state.groupLabel = "Pelotón principal";
+    } else {
+      state.groupLabel = "Grupo líder";
+    }
+  });
+}
+
+function getImportantRivalIds() {
+  const standings = getGCStandings();
+  const userBest = standings.find(rider => rider.teamId === Game.selectedTeamId);
+  const userIndex = standings.findIndex(rider => rider.id === userBest?.id);
+
+  const directRivals = standings
+    .filter((rider, index) => rider.teamId !== Game.selectedTeamId && Math.abs(index - userIndex) <= 5)
+    .slice(0, 5)
+    .map(rider => rider.id);
+
+  const gcRivals = standings
+    .filter(rider => rider.teamId !== Game.selectedTeamId && ["gc", "co_leader"].includes(rider.roleKey))
+    .slice(0, 5)
+    .map(rider => rider.id);
+
+  return [...new Set([...directRivals, ...gcRivals])];
+}
+
+function buildLiveGroups(stage, sector) {
+  recomputeLiveGroupLabels();
+
+  const currentKm = sector.kmStart;
+  const rivalIds = getImportantRivalIds();
+  const groupsMap = {};
+
+  getAllActiveRiders().forEach(rider => {
+    const state = Game.liveStage.riderState[rider.id];
+    if (!state) return;
+
+    const label = state.groupLabel || "Pelotón principal";
+
+    if (!groupsMap[label]) {
+      groupsMap[label] = {
+        label,
+        riders: [],
+        userRiders: [],
+        rivals: [],
+        avgTime: 0,
+        km: currentKm
+      };
+    }
+
+    groupsMap[label].riders.push(rider);
+
+    if (rider.teamId === Game.selectedTeamId) {
+      groupsMap[label].userRiders.push(rider);
+    }
+
+    if (rivalIds.includes(rider.id)) {
+      groupsMap[label].rivals.push(rider);
+    }
+  });
+
+  const groups = Object.values(groupsMap).map(group => {
+    const times = group.riders.map(rider => Game.liveStage.riderState[rider.id]?.stageTime || 0);
+    group.avgTime = average(times);
+    return group;
+  });
+
+  if (!groups.length) return [];
+
+  const leaderTime = Math.min(...groups.map(group => group.avgTime));
+
+  groups.forEach(group => {
+    const gap = Math.max(0, group.avgTime - leaderTime);
+
+    if (group.label === "Fuga") {
+      group.km = clamp(currentKm + Game.liveStage.breakawayGap / 35, 0, stage.distance);
+      group.gapText = `+${secondsToTime(Game.liveStage.breakawayGap)} sobre pelotón`;
+      group.className = "group-breakaway";
+    } else {
+      group.km = clamp(currentKm - gap / 45, 0, stage.distance);
+      group.gapText = gap <= 3 ? "m.t." : `+${secondsToTime(gap)}`;
+      group.className =
+        group.label === "Grupo líder" ? "group-leader" :
+        group.label === "Pelotón principal" ? "group-peloton" :
+        group.label === "Grupo 2" ? "group-second" :
+        "group-dropped";
+    }
+  });
+
+  const order = {
+    Fuga: 0,
+    "Grupo líder": 1,
+    "Pelotón principal": 2,
+    "Grupo 2": 3,
+    Cortados: 4
+  };
+
+  return groups.sort((a, b) => (order[a.label] ?? 9) - (order[b.label] ?? 9));
+}
+
+function renderLiveRaceMap(stage, sector) {
+  const groups = buildLiveGroups(stage, sector);
+
+  return `
+    <div class="live-map-layout">
+      <div>
+        ${renderLivePositionProfile(stage, groups)}
+      </div>
+
+      <div class="group-panel">
+        ${groups.map(group => renderGroupCard(group)).join("")}
+      </div>
+    </div>
+  `;
+}
+
+function renderLivePositionProfile(stage, groups) {
+  const points = buildProfilePoints(stage);
+  const maxAlt = Math.max(...points.map(p => p.alt), 1000);
+  const minAlt = Math.min(...points.map(p => p.alt), 0);
+  const width = 920;
+  const height = 220;
+  const pad = 24;
+
+  const path = points.map((p, index) => {
+    const x = pad + (p.km / stage.distance) * (width - pad * 2);
+    const y = height - pad - ((p.alt - minAlt) / Math.max(1, maxAlt - minAlt)) * (height - pad * 2);
+    return `${index === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(" ");
+
+  const markers = groups.map((group, index) => {
+    const x = pad + (group.km / stage.distance) * (width - pad * 2);
+    const y = getProfileYAtKm(points, group.km, minAlt, maxAlt, height, pad) - 10 - index * 4;
+
+    return `
+      <g class="group-marker ${group.className}">
+        <line x1="${x}" y1="${y + 10}" x2="${x}" y2="${height - pad}" class="group-marker-line"/>
+        <circle cx="${x}" cy="${y}" r="9" class="group-dot"/>
+        <text x="${x + 13}" y="${y + 4}" class="group-marker-text">${escapeHtml(group.label)} · ${group.riders.length}</text>
+      </g>
+    `;
+  }).join("");
+
+  const currentKm = groups.length ? Math.max(...groups.map(group => group.km)) : 0;
+  const currentX = pad + (currentKm / stage.distance) * (width - pad * 2);
+
+  return `
+    <div class="live-profile-box">
+      <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Mapa vivo de carrera">
+        <path d="M${pad},${height - pad} L${width - pad},${height - pad}" class="profile-axis"/>
+        <path d="${path} L${width - pad},${height - pad} L${pad},${height - pad} Z" class="profile-area"/>
+        <path d="${path}" class="profile-line"/>
+
+        <line x1="${currentX}" y1="18" x2="${currentX}" y2="${height - pad}" class="current-km-line"/>
+        <text x="${currentX + 8}" y="18" class="current-km-text">km ${Math.round(currentKm)}</text>
+
+        ${markers}
+      </svg>
+
+      <div class="map-legend">
+        <span><b class="legend-dot breakaway"></b> Fuga</span>
+        <span><b class="legend-dot leader"></b> Grupo líder</span>
+        <span><b class="legend-dot peloton"></b> Pelotón</span>
+        <span><b class="legend-dot dropped"></b> Cortados</span>
+      </div>
+    </div>
+  `;
+}
+
+function getProfileYAtKm(points, km, minAlt, maxAlt, height, pad) {
+  let previous = points[0];
+  let next = points[points.length - 1];
+
+  for (let i = 1; i < points.length; i++) {
+    if (points[i].km >= km) {
+      next = points[i];
+      previous = points[i - 1];
+      break;
+    }
+  }
+
+  const ratio = (km - previous.km) / Math.max(1, next.km - previous.km);
+  const alt = previous.alt + (next.alt - previous.alt) * ratio;
+
+  return height - pad - ((alt - minAlt) / Math.max(1, maxAlt - minAlt)) * (height - pad * 2);
+}
+
+function renderGroupCard(group) {
+  const visibleRiders = group.riders.slice(0, 8);
+  const hidden = Math.max(0, group.riders.length - visibleRiders.length);
+
+  return `
+    <div class="group-card ${group.className}">
+      <div class="group-card-header">
+        <strong>${escapeHtml(group.label)}</strong>
+        <span>${group.riders.length} corredores</span>
+      </div>
+
+      <div class="badge-row">
+        <span class="badge">${escapeHtml(group.gapText)}</span>
+        <span class="badge green">Tus corredores: ${group.userRiders.length}</span>
+        <span class="badge red">Rivales: ${group.rivals.length}</span>
+      </div>
+
+      ${group.userRiders.length ? `
+        <p class="group-subtitle">Tus corredores</p>
+        <div class="group-rider-list">
+          ${group.userRiders.map(rider => `<span class="group-rider user">${escapeHtml(rider.name)}</span>`).join("")}
+        </div>
+      ` : ""}
+
+      ${group.rivals.length ? `
+        <p class="group-subtitle">Rivales directos</p>
+        <div class="group-rider-list">
+          ${group.rivals.map(rider => `<span class="group-rider rival">${escapeHtml(rider.name)}</span>`).join("")}
+        </div>
+      ` : ""}
+
+      <p class="group-subtitle">Grupo</p>
+      <div class="group-rider-list">
+        ${visibleRiders.map(rider => `
+          <span class="group-rider ${rider.teamId === Game.selectedTeamId ? "user" : ""} ${group.rivals.some(r => r.id === rider.id) ? "rival" : ""}">
+            ${escapeHtml(rider.name)}
+          </span>
+        `).join("")}
+        ${hidden ? `<span class="group-rider">+${hidden} más</span>` : ""}
+      </div>
+    </div>
+  `;
+}
+
+/* ============================================================
+   LIVE CONTROLS
+   ============================================================ */
 
 function renderLiveOrders() {
   return `
@@ -1489,13 +1822,14 @@ function renderLiveRiderCard(rider) {
         <span class="badge">E ${Math.round(live.energy)}</span>
         <span class="badge blue">H ${Math.round(live.hydration)}</span>
         <span class="badge orange">Est ${Math.round(live.stomachLoad)}</span>
+        <span class="badge">${escapeHtml(live.groupLabel || "Pelotón")}</span>
         ${live.domestiqueBurned ? `<span class="badge red">Quemado</span>` : ""}
         ${live.crisis ? `<span class="badge red">Crisis</span>` : ""}
       </div>
 
       <h3>${escapeHtml(rider.name)}</h3>
       <p class="muted small">
-        Tiempo acumulado sector: ${secondsToTime(live.stageTime)} · ${escapeHtml(getBike(setup.bike).name)} + ${escapeHtml(getWheels(setup.wheels).name)}
+        Tiempo sector: ${secondsToTime(live.stageTime)} · ${escapeHtml(getBike(setup.bike).name)} + ${escapeHtml(getWheels(setup.wheels).name)}
       </p>
 
       <select onchange="setRiderTacticLive('${rider.id}', this.value)">
@@ -1616,6 +1950,7 @@ function simulateCurrentSector() {
   updateBreakawayAfterSector(stage, sector, sectorLog);
   updatePelotonState(sectorLog);
   applySectorOrders(sector, sectorLog);
+  recomputeLiveGroupLabels();
 
   Game.liveStage.sectorLogs.push(sectorLog);
   Game.liveStage.currentSectorIndex += 1;
@@ -1633,32 +1968,99 @@ function simulateCurrentSector() {
 }
 
 function applyAutoNutritionForSector(sector) {
-  const plan = getNutritionPlan();
-  const rule = plan.rules.find(item => item.sectorType === sector.type);
-
-  if (!rule) return;
+  if (Game.autoNutritionMode === "manual") return;
 
   getTeamRiders(Game.selectedTeamId).forEach(rider => {
     const live = Game.liveStage.riderState[rider.id];
 
-    if (!live || live.energy > 62) return;
+    if (!live || rider.abandoned) return;
 
-    if ((Game.teamNutritionStock[rule.item] || 0) <= 0) return;
+    const itemId = chooseAutoNutritionItem(rider, live, sector);
 
-    const item = getNutritionItem(rule.item);
+    if (!itemId) return;
+    if ((Game.teamNutritionStock[itemId] || 0) <= 0) return;
+
+    const item = getNutritionItem(itemId);
     const effectiveness = getNutritionEffectiveness(item, sector, live);
 
-    Game.teamNutritionStock[rule.item] -= 1;
+    Game.teamNutritionStock[itemId] -= 1;
 
     live.energy = clamp(live.energy + item.energy * effectiveness, 0, 115);
     live.hydration = clamp(live.hydration + item.hydration, 0, 120);
-    live.stomachLoad = clamp(live.stomachLoad + item.stomachLoad, 0, 100);
+    live.stomachLoad = clamp(live.stomachLoad + item.stomachLoad * (sector.difficulty > 85 ? 1.15 : 1), 0, 100);
     live.finalBonus += sector.type === "final" ? item.finalBonus || 0 : 0;
 
-    if (item.id === "caffeine_gel") live.usedCaffeine = true;
+    if (item.id === "caffeine_gel") {
+      live.usedCaffeine = true;
+    }
 
     live.nutritionUsed.push(item.id);
+
+    if (rider.id === Game.protectedRiderId || live.energy < 35 || live.hydration < 35 || sector.type === "final") {
+      addRadio(`${rider.name} toma ${item.name} automáticamente.`);
+    }
   });
+}
+
+function chooseAutoNutritionItem(rider, live, sector) {
+  const mode = Game.autoNutritionMode;
+
+  if (live.stomachLoad > 88) {
+    if (live.hydration < 55 && hasNutritionStock("water")) return "water";
+    return null;
+  }
+
+  if (live.hydration < 32) {
+    if (hasNutritionStock("isotonic")) return "isotonic";
+    if (hasNutritionStock("water")) return "water";
+  }
+
+  if (live.hydration < 48 && sector.difficulty >= 70) {
+    if (hasNutritionStock("isotonic")) return "isotonic";
+    if (hasNutritionStock("water")) return "water";
+  }
+
+  if (sector.type === "final") {
+    if (!live.usedCaffeine && live.energy < 82 && hasNutritionStock("caffeine_gel")) return "caffeine_gel";
+    if (live.energy < 68 && hasNutritionStock("gel")) return "gel";
+    return null;
+  }
+
+  if (sector.type === "climb") {
+    if (live.energy < 72 && hasNutritionStock("gel")) return "gel";
+    if (live.energy < 52 && hasNutritionStock("caffeine_gel") && mode === "auto_conservative") return "caffeine_gel";
+    if (live.hydration < 62 && hasNutritionStock("isotonic")) return "isotonic";
+    return null;
+  }
+
+  if (sector.type === "hilly" || sector.type === "cobbles") {
+    if (live.energy < 64 && hasNutritionStock("gel")) return "gel";
+    if (live.hydration < 60 && hasNutritionStock("isotonic")) return "isotonic";
+    return null;
+  }
+
+  if (sector.type === "flat" || sector.type === "valley") {
+    if (mode === "auto_aggressive") {
+      if (live.energy < 58 && hasNutritionStock("rice_cake")) return "rice_cake";
+      if (live.hydration < 58 && hasNutritionStock("isotonic")) return "isotonic";
+      return null;
+    }
+
+    if (live.energy < 78 && live.stomachLoad < 58 && hasNutritionStock("bar")) return "bar";
+    if (live.energy < 68 && hasNutritionStock("rice_cake")) return "rice_cake";
+    if (live.hydration < 68 && hasNutritionStock("isotonic")) return "isotonic";
+  }
+
+  if (mode === "auto_conservative") {
+    if (live.energy < 62 && hasNutritionStock("gel")) return "gel";
+    if (live.hydration < 68 && hasNutritionStock("isotonic")) return "isotonic";
+  }
+
+  return null;
+}
+
+function hasNutritionStock(itemId) {
+  return (Game.teamNutritionStock[itemId] || 0) > 0;
 }
 
 function simulateRiderSector(rider, stage, sector, sectorLog) {
@@ -1725,7 +2127,7 @@ function simulateRiderSector(rider, stage, sector, sectorLog) {
 
   if (live.energy < 20 && !live.dropped) {
     live.dropped = true;
-    live.groupLabel = "Grupo cortado";
+    live.groupLabel = "Cortados";
     Game.liveStage.droppedCount += 1;
   }
 }
@@ -2025,7 +2427,7 @@ function applySectorOrders(sector, sectorLog) {
 
     if (leaderLive && (leaderLive.incident || leaderLive.crisis || leaderLive.dropped)) {
       const helpers = getTeamRiders(Game.selectedTeamId)
-        .filter(r => r.id !== leader.id)
+        .filter(rider => rider.id !== leader.id)
         .slice(0, 2);
 
       helpers.forEach(helper => {
@@ -2038,7 +2440,7 @@ function applySectorOrders(sector, sectorLog) {
       });
 
       leaderLive.stageTime = Math.max(0, leaderLive.stageTime - 45);
-      sectorLog.events.push(`${helpers.map(h => h.name).join(" y ")} esperan al líder y reducen la pérdida.`);
+      sectorLog.events.push(`${helpers.map(helper => helper.name).join(" y ")} esperan al líder y reducen la pérdida.`);
     }
   }
 
@@ -2047,11 +2449,11 @@ function applySectorOrders(sector, sectorLog) {
 }
 
 function getSectorTransitionHint(sector) {
-  if (sector.type === "climb") return "Radio: llega subida. Alimenta antes si el líder está bajo de energía.";
-  if (sector.type === "final") return "Radio: sector final. La cafeína y el posicionamiento pueden decidir.";
+  if (sector.type === "climb") return "Radio: llega subida. Alimentación automática activa; revisa que el líder no esté bajo de energía.";
+  if (sector.type === "final") return "Radio: sector final. La cafeína, energía y grupo donde va tu líder pueden decidir.";
   if (sector.type === "cobbles") return "Radio: sector peligroso. Evita ir all-in con corredores fatigados.";
   if (sector.type === "flat") return "Radio: sector llano. Puedes tirar del pelotón o ahorrar fuerzas.";
-  return "Radio: revisa energía, hidratación y estrategia antes de seguir.";
+  return "Radio: revisa grupos, rivales y estrategia antes de seguir.";
 }
 
 function finishLiveStage() {
@@ -2866,7 +3268,7 @@ function goToNextStage() {
   Game.activeTab = "strategy";
   Game.liveStage = null;
   resetUserRiderTactics("balanced");
-  applyEquipmentPreset("auto");
+  applyEquipmentPreset("auto", false);
   setNutritionPlan(Game.nutritionPlanId, false);
 
   saveGame();
