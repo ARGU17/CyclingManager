@@ -1,212 +1,212 @@
 /* ============================================================
    CYCLING MANAGER TOUR - data.js
-   10 equipos x 8 corredores = 80 corredores
-   21 etapas tipo Tour / Gran Vuelta
+   Equipos reales + corredores reales + 21 etapas tipo Tour
+   Versión con estrategia individual por corredor
    ============================================================ */
 
 /* ============================================================
-   EQUIPOS
+   EQUIPOS REALES
    ============================================================ */
 
 const TEAM_BLUEPRINTS = [
   {
-    id: "atlas_gc",
-    name: "Atlas Grand Tour",
-    archetype: "GC",
-    description: "Superestructura de gran vuelta: líder completo, escaladores, croners y gregarios de lujo.",
+    id: "uae",
+    name: "UAE Team Emirates XRG",
+    archetype: "GC / Superteam",
+    description: "Equipo dominante de grandes vueltas, montaña, cronos y clásicas.",
     color: "green",
     modifiers: {
+      flat: 3,
+      sprint: 1,
+      timeTrial: 5,
+      teamTimeTrial: 5,
+      mountain: 7,
+      cobbles: 1,
+      hills: 5,
+      stamina: 6,
+      recovery: 6,
+      acceleration: 5,
+      form: 4
+    }
+  },
+  {
+    id: "visma",
+    name: "Team Visma | Lease a Bike",
+    archetype: "GC / Bloque",
+    description: "Bloque de gran vuelta muy fuerte en montaña, recuperación y trabajo colectivo.",
+    color: "yellow",
+    modifiers: {
       flat: 2,
-      sprint: 0,
+      sprint: 1,
       timeTrial: 4,
-      teamTimeTrial: 4,
-      mountain: 4,
-      cobbles: 0,
-      hills: 2,
-      stamina: 4,
-      recovery: 4,
-      acceleration: 1,
+      teamTimeTrial: 6,
+      mountain: 6,
+      cobbles: 2,
+      hills: 4,
+      stamina: 6,
+      recovery: 7,
+      acceleration: 3,
       form: 3
     }
   },
   {
-    id: "basque_mountain",
-    name: "Basque Climbing Project",
-    archetype: "Escalador",
-    description: "Equipo de montaña pura. Muy fuerte en puertos largos y etapas encadenadas.",
-    color: "green",
+    id: "ineos",
+    name: "Netcompany INEOS",
+    archetype: "Crono / GC",
+    description: "Equipo orientado a cronos, rodadores, ciencia deportiva y líderes de general.",
+    color: "blue",
     modifiers: {
-      flat: -2,
-      sprint: -4,
-      timeTrial: -1,
-      teamTimeTrial: -1,
-      mountain: 7,
-      cobbles: -4,
-      hills: 5,
+      flat: 4,
+      sprint: -1,
+      timeTrial: 8,
+      teamTimeTrial: 8,
+      mountain: 3,
+      cobbles: 1,
+      hills: 2,
+      stamina: 5,
+      recovery: 4,
+      acceleration: 0,
+      form: 2
+    }
+  },
+  {
+    id: "movistar",
+    name: "Movistar Team",
+    archetype: "Montaña / Etapas",
+    description: "Equipo español con foco en montaña, fugas, general y etapas selectivas.",
+    color: "blue",
+    modifiers: {
+      flat: 0,
+      sprint: -2,
+      timeTrial: 1,
+      teamTimeTrial: 1,
+      mountain: 5,
+      cobbles: -2,
+      hills: 4,
+      stamina: 4,
+      recovery: 4,
+      acceleration: 2,
+      form: 2
+    }
+  },
+  {
+    id: "redbull",
+    name: "Red Bull - BORA - hansgrohe",
+    archetype: "GC / Potencia",
+    description: "Equipo muy fuerte en líderes de general, montaña y potencia sostenida.",
+    color: "orange",
+    modifiers: {
+      flat: 2,
+      sprint: 1,
+      timeTrial: 4,
+      teamTimeTrial: 4,
+      mountain: 6,
+      cobbles: 0,
+      hills: 3,
       stamina: 5,
       recovery: 5,
       acceleration: 3,
-      form: 2
+      form: 3
     }
   },
   {
-    id: "aerolab",
-    name: "AeroLab Racing",
-    archetype: "Contrarreloj",
-    description: "Bloque aerodinámico. Superior en cronos individuales y crono por equipos.",
+    id: "soudal",
+    name: "Soudal Quick-Step",
+    archetype: "Crono / Sprint",
+    description: "Equipo muy fuerte en cronos, velocidad, etapas llanas y talento ofensivo.",
     color: "blue",
     modifiers: {
-      flat: 5,
-      sprint: -1,
-      timeTrial: 8,
-      teamTimeTrial: 9,
-      mountain: -2,
-      cobbles: 0,
-      hills: -1,
+      flat: 4,
+      sprint: 5,
+      timeTrial: 7,
+      teamTimeTrial: 5,
+      mountain: 1,
+      cobbles: 3,
+      hills: 3,
       stamina: 3,
-      recovery: 1,
-      acceleration: -2,
+      recovery: 2,
+      acceleration: 5,
       form: 2
     }
   },
   {
-    id: "flandria",
-    name: "Flandria Stone Works",
-    archetype: "Clásicas",
-    description: "Especialistas en pavés, muros, viento, colocación y esfuerzos explosivos.",
+    id: "lidl",
+    name: "Lidl - Trek",
+    archetype: "Clásicas / Sprint / GC",
+    description: "Equipo muy completo: clásicas, sprint, montaña y corredores de general.",
+    color: "red",
+    modifiers: {
+      flat: 4,
+      sprint: 6,
+      timeTrial: 3,
+      teamTimeTrial: 3,
+      mountain: 4,
+      cobbles: 5,
+      hills: 5,
+      stamina: 4,
+      recovery: 3,
+      acceleration: 5,
+      form: 3
+    }
+  },
+  {
+    id: "alpecin",
+    name: "Alpecin - Premier Tech",
+    archetype: "Clásicas / Sprint",
+    description: "Equipo de clasicómanos y velocistas, brutal en pavés, muros y finales explosivos.",
     color: "orange",
     modifiers: {
       flat: 5,
-      sprint: 4,
+      sprint: 8,
       timeTrial: 0,
       teamTimeTrial: 1,
-      mountain: -5,
+      mountain: -4,
       cobbles: 9,
       hills: 7,
-      stamina: 5,
+      stamina: 4,
       recovery: 0,
-      acceleration: 7,
-      form: 2
-    }
-  },
-  {
-    id: "veloce",
-    name: "Veloce Sprint Union",
-    archetype: "Sprint",
-    description: "Equipo orientado a etapas llanas, tren de lanzamiento y llegadas masivas.",
-    color: "blue",
-    modifiers: {
-      flat: 6,
-      sprint: 9,
-      timeTrial: -3,
-      teamTimeTrial: 0,
-      mountain: -8,
-      cobbles: 1,
-      hills: -2,
-      stamina: 0,
-      recovery: -2,
       acceleration: 8,
-      form: 2
+      form: 3
     }
   },
   {
-    id: "equilibrium",
-    name: "Equilibrium Cycling",
-    archetype: "Equilibrado",
-    description: "Plantilla compensada. No domina ningún terreno, pero no se hunde casi nunca.",
-    color: "green",
+    id: "bahrain",
+    name: "Bahrain Victorious",
+    archetype: "Montaña / Clásicas",
+    description: "Equipo equilibrado con buenos escaladores, clasicómanos y cazadores de etapa.",
+    color: "red",
     modifiers: {
       flat: 2,
       sprint: 2,
       timeTrial: 2,
       teamTimeTrial: 2,
-      mountain: 2,
-      cobbles: 2,
-      hills: 2,
-      stamina: 2,
-      recovery: 2,
-      acceleration: 2,
-      form: 1
-    }
-  },
-  {
-    id: "breakaway",
-    name: "Breakaway Hunters",
-    archetype: "Cazador",
-    description: "Equipo ofensivo de fugas, media montaña y etapas imprevisibles.",
-    color: "orange",
-    modifiers: {
-      flat: 1,
-      sprint: 2,
-      timeTrial: -1,
-      teamTimeTrial: -1,
-      mountain: 2,
+      mountain: 4,
       cobbles: 3,
-      hills: 7,
+      hills: 5,
       stamina: 4,
-      recovery: -1,
-      acceleration: 8,
-      form: 3
-    }
-  },
-  {
-    id: "youth",
-    name: "NeoPro Development",
-    archetype: "Jóvenes",
-    description: "Talento emergente: muy buena aceleración y proyección, menor recuperación.",
-    color: "blue",
-    modifiers: {
-      flat: 0,
-      sprint: 2,
-      timeTrial: 1,
-      teamTimeTrial: 0,
-      mountain: 3,
-      cobbles: -1,
-      hills: 4,
-      stamina: -1,
-      recovery: -4,
-      acceleration: 7,
+      recovery: 3,
+      acceleration: 4,
       form: 2
     }
   },
   {
-    id: "alpine",
-    name: "Alpine Domestiques",
-    archetype: "Montaña + Gregarios",
-    description: "Bloque de escaladores gregarios. Muy sólido en alta montaña, menos explosivo.",
+    id: "decathlon",
+    name: "Decathlon CMA CGM Team",
+    archetype: "Montaña / Desarrollo",
+    description: "Equipo con escaladores, jóvenes talentos y buen rendimiento en media montaña.",
     color: "green",
     modifiers: {
-      flat: -1,
-      sprint: -5,
-      timeTrial: 0,
-      teamTimeTrial: 1,
-      mountain: 6,
-      cobbles: -3,
-      hills: 4,
-      stamina: 6,
-      recovery: 5,
-      acceleration: 0,
-      form: 1
-    }
-  },
-  {
-    id: "outsider",
-    name: "Wildcard Outsiders",
-    archetype: "Outsider",
-    description: "Equipo irregular pero peligroso. Puede ganar etapas si asume riesgo.",
-    color: "orange",
-    modifiers: {
-      flat: 1,
+      flat: 0,
       sprint: 1,
       timeTrial: 1,
-      teamTimeTrial: 0,
-      mountain: 2,
-      cobbles: 2,
-      hills: 3,
-      stamina: 1,
-      recovery: 0,
+      teamTimeTrial: 1,
+      mountain: 5,
+      cobbles: 0,
+      hills: 5,
+      stamina: 4,
+      recovery: 3,
       acceleration: 4,
-      form: 4
+      form: 3
     }
   }
 ];
@@ -220,13 +220,11 @@ const TEAMS = TEAM_BLUEPRINTS.map(team => ({
 }));
 
 /* ============================================================
-   PLANTILLAS DE ROLES
-   Cada equipo tendrá exactamente estos 8 corredores.
+   ROLES BASE
    ============================================================ */
 
-const ROLE_TEMPLATES = [
-  {
-    key: "leader_gc",
+const ROLE_TEMPLATES = {
+  gc: {
     role: "Líder GC",
     abandonRisk: 0.016,
     stats: {
@@ -243,8 +241,7 @@ const ROLE_TEMPLATES = [
     },
     form: 84
   },
-  {
-    key: "co_leader",
+  co_leader: {
     role: "Co-líder",
     abandonRisk: 0.018,
     stats: {
@@ -261,8 +258,7 @@ const ROLE_TEMPLATES = [
     },
     form: 82
   },
-  {
-    key: "climber",
+  climber: {
     role: "Escalador",
     abandonRisk: 0.021,
     stats: {
@@ -279,8 +275,7 @@ const ROLE_TEMPLATES = [
     },
     form: 81
   },
-  {
-    key: "time_trialist",
+  time_trialist: {
     role: "Croner",
     abandonRisk: 0.017,
     stats: {
@@ -297,8 +292,7 @@ const ROLE_TEMPLATES = [
     },
     form: 81
   },
-  {
-    key: "sprinter",
+  sprinter: {
     role: "Sprinter",
     abandonRisk: 0.026,
     stats: {
@@ -315,8 +309,7 @@ const ROLE_TEMPLATES = [
     },
     form: 81
   },
-  {
-    key: "classics",
+  classics: {
     role: "Clasicómano",
     abandonRisk: 0.024,
     stats: {
@@ -333,8 +326,7 @@ const ROLE_TEMPLATES = [
     },
     form: 81
   },
-  {
-    key: "rouleur",
+  rouleur: {
     role: "Rodador",
     abandonRisk: 0.018,
     stats: {
@@ -351,8 +343,7 @@ const ROLE_TEMPLATES = [
     },
     form: 79
   },
-  {
-    key: "domestique",
+  domestique: {
     role: "Gregario",
     abandonRisk: 0.019,
     stats: {
@@ -368,119 +359,145 @@ const ROLE_TEMPLATES = [
       acceleration: 73
     },
     form: 78
+  },
+  puncheur: {
+    role: "Puncheur",
+    abandonRisk: 0.023,
+    stats: {
+      flat: 78,
+      sprint: 76,
+      timeTrial: 74,
+      teamTimeTrial: 76,
+      mountain: 78,
+      cobbles: 72,
+      hills: 86,
+      stamina: 83,
+      recovery: 80,
+      acceleration: 86
+    },
+    form: 81
   }
-];
+};
 
 /* ============================================================
-   NOMBRES DE CORREDORES
-   10 equipos x 8 nombres = 80 corredores.
+   CORREDORES REALES POR EQUIPO
+   Plantilla jugable: 10 equipos x 8 corredores.
    ============================================================ */
 
-const TEAM_RIDER_NAMES = {
-  atlas_gc: [
-    "Adrian Soler",
-    "Mateo Keller",
-    "Julien Moreau",
-    "Nico Vermeer",
-    "Tomas Greipel",
-    "Diego Arana",
-    "Victor Lemoine",
-    "Samuele Costa"
+const TEAM_RIDER_BLUEPRINTS = {
+  uae: [
+    { name: "Tadej Pogačar", roleKey: "gc" },
+    { name: "João Almeida", roleKey: "co_leader" },
+    { name: "Adam Yates", roleKey: "climber" },
+    { name: "Isaac del Toro", roleKey: "puncheur" },
+    { name: "Brandon McNulty", roleKey: "time_trialist" },
+    { name: "Tim Wellens", roleKey: "classics" },
+    { name: "Pavel Sivakov", roleKey: "domestique" },
+    { name: "Nils Politt", roleKey: "rouleur" }
   ],
-  basque_mountain: [
-    "Iker Mendia",
-    "Aitor Larrañaga",
-    "Mikel Aranburu",
-    "Unai Etxeberria",
-    "Jon Beitia",
-    "Peio Astigarraga",
-    "Xabier Irizar",
-    "Ander Zubeldia"
+
+  visma: [
+    { name: "Jonas Vingegaard", roleKey: "gc" },
+    { name: "Matteo Jorgenson", roleKey: "co_leader" },
+    { name: "Sepp Kuss", roleKey: "climber" },
+    { name: "Wilco Kelderman", roleKey: "domestique" },
+    { name: "Dylan van Baarle", roleKey: "rouleur" },
+    { name: "Christophe Laporte", roleKey: "classics" },
+    { name: "Olav Kooij", roleKey: "sprinter" },
+    { name: "Tiesj Benoot", roleKey: "puncheur" }
   ],
-  aerolab: [
-    "Maximilian Stahl",
-    "Luca Vento",
-    "Theo Martin",
-    "Bruno Keller",
-    "Nils Hoffmann",
-    "Soren Bjerre",
-    "Rafa Ortega",
-    "Ivan Novak"
+
+  ineos: [
+    { name: "Egan Bernal", roleKey: "gc" },
+    { name: "Carlos Rodríguez", roleKey: "co_leader" },
+    { name: "Thymen Arensman", roleKey: "climber" },
+    { name: "Filippo Ganna", roleKey: "time_trialist" },
+    { name: "Joshua Tarling", roleKey: "time_trialist" },
+    { name: "Magnus Sheffield", roleKey: "rouleur" },
+    { name: "Laurens De Plus", roleKey: "domestique" },
+    { name: "Ben Turner", roleKey: "classics" }
   ],
-  flandria: [
-    "Wout De Smet",
-    "Mathis Van Acker",
-    "Jules Verbrugge",
-    "Kasper Holm",
-    "Ruben Claeys",
-    "Seppe Maes",
-    "Arne Vandenberg",
-    "Mads Egholm"
+
+  movistar: [
+    { name: "Enric Mas", roleKey: "gc" },
+    { name: "Nairo Quintana", roleKey: "climber" },
+    { name: "Einer Rubio", roleKey: "climber" },
+    { name: "Iván Romeo", roleKey: "time_trialist" },
+    { name: "Alex Aranburu", roleKey: "classics" },
+    { name: "Fernando Gaviria", roleKey: "sprinter" },
+    { name: "Davide Formolo", roleKey: "domestique" },
+    { name: "Pelayo Sánchez", roleKey: "puncheur" }
   ],
-  veloce: [
-    "Marco Bellini",
-    "Dylan Brooks",
-    "Pavel Novak",
-    "Hugo Lefevre",
-    "Alexei Petrov",
-    "Jan Riedel",
-    "Sergio Molina",
-    "Frederik Nielsen"
+
+  redbull: [
+    { name: "Primož Roglič", roleKey: "gc" },
+    { name: "Jai Hindley", roleKey: "climber" },
+    { name: "Aleksandr Vlasov", roleKey: "co_leader" },
+    { name: "Daniel Martínez", roleKey: "climber" },
+    { name: "Florian Lipowitz", roleKey: "climber" },
+    { name: "Roger Adrià", roleKey: "puncheur" },
+    { name: "Sam Welsford", roleKey: "sprinter" },
+    { name: "Bob Jungels", roleKey: "rouleur" }
   ],
-  equilibrium: [
-    "Carlos Ibáñez",
-    "Enzo Ricci",
-    "Oscar Lind",
-    "Pieter Janssen",
-    "Hugo Pereira",
-    "Liam Murphy",
-    "Marius Vogt",
-    "Leo Caruso"
+
+  soudal: [
+    { name: "Remco Evenepoel", roleKey: "gc" },
+    { name: "Mikel Landa", roleKey: "climber" },
+    { name: "Ilan Van Wilder", roleKey: "co_leader" },
+    { name: "Tim Merlier", roleKey: "sprinter" },
+    { name: "Kasper Asgreen", roleKey: "rouleur" },
+    { name: "Yves Lampaert", roleKey: "time_trialist" },
+    { name: "Mauri Vansevenant", roleKey: "puncheur" },
+    { name: "Bert Van Lerberghe", roleKey: "domestique" }
   ],
-  breakaway: [
-    "Nino Costa",
-    "Tom Alvarez",
-    "Romain Hardy",
-    "Felix Andersen",
-    "Gorka Salazar",
-    "Emil Novak",
-    "Sacha Bernard",
-    "Noah Fischer"
+
+  lidl: [
+    { name: "Juan Ayuso", roleKey: "gc" },
+    { name: "Mattias Skjelmose", roleKey: "co_leader" },
+    { name: "Giulio Ciccone", roleKey: "climber" },
+    { name: "Mads Pedersen", roleKey: "classics" },
+    { name: "Jonathan Milan", roleKey: "sprinter" },
+    { name: "Tao Geoghegan Hart", roleKey: "climber" },
+    { name: "Simone Consonni", roleKey: "rouleur" },
+    { name: "Jasper Stuyven", roleKey: "classics" }
   ],
-  youth: [
-    "Ethan Ward",
-    "Lucien Petit",
-    "Pablo Ferrer",
-    "Jonas Weber",
-    "Miro Kral",
-    "Leo Brandt",
-    "Andreas Dahl",
-    "Ivan Sokolov"
+
+  alpecin: [
+    { name: "Mathieu van der Poel", roleKey: "classics" },
+    { name: "Jasper Philipsen", roleKey: "sprinter" },
+    { name: "Kaden Groves", roleKey: "sprinter" },
+    { name: "Søren Kragh Andersen", roleKey: "rouleur" },
+    { name: "Quinten Hermans", roleKey: "puncheur" },
+    { name: "Gianni Vermeersch", roleKey: "classics" },
+    { name: "Tibor Del Grosso", roleKey: "puncheur" },
+    { name: "Silvan Dillier", roleKey: "domestique" }
   ],
-  alpine: [
-    "Rafael Monteiro",
-    "Dario Fontana",
-    "Miguel Torres",
-    "Simon Gruber",
-    "Louis Chabert",
-    "Andrea Pellegrini",
-    "Marco Sousa",
-    "Jan Barta"
+
+  bahrain: [
+    { name: "Pello Bilbao", roleKey: "gc" },
+    { name: "Santiago Buitrago", roleKey: "climber" },
+    { name: "Antonio Tiberi", roleKey: "co_leader" },
+    { name: "Matej Mohorič", roleKey: "classics" },
+    { name: "Phil Bauhaus", roleKey: "sprinter" },
+    { name: "Jack Haig", roleKey: "climber" },
+    { name: "Fred Wright", roleKey: "rouleur" },
+    { name: "Kamil Gradek", roleKey: "time_trialist" }
   ],
-  outsider: [
-    "Milan Horvat",
-    "Baptiste Rolland",
-    "Santiago Rojas",
-    "Erik Lund",
-    "Thomas Green",
-    "Lorenzo Bassi",
-    "Nikolai Ivanov",
-    "Joao Almeida Jr."
+
+  decathlon: [
+    { name: "Felix Gall", roleKey: "gc" },
+    { name: "Paul Seixas", roleKey: "climber" },
+    { name: "Paul Lapeira", roleKey: "puncheur" },
+    { name: "Dorian Godon", roleKey: "classics" },
+    { name: "Bruno Armirail", roleKey: "time_trialist" },
+    { name: "Oliver Naesen", roleKey: "rouleur" },
+    { name: "Sam Bennett", roleKey: "sprinter" },
+    { name: "Aurélien Paret-Peintre", roleKey: "climber" }
   ]
 };
 
 /* ============================================================
-   GENERADOR DE CORREDORES
+   GENERADOR DE STATS
    ============================================================ */
 
 function dataClamp(value, min, max) {
@@ -507,7 +524,7 @@ function buildStats(baseStats, modifiers, teamIndex, riderIndex) {
     const modifier = modifiers[statName] || 0;
     const noise = deterministicNoise(teamIndex, riderIndex, statName);
 
-    stats[statName] = dataClamp(base + modifier + noise, 45, 98);
+    stats[statName] = dataClamp(base + modifier + noise, 45, 99);
   });
 
   return stats;
@@ -517,21 +534,23 @@ function generateRiders() {
   const riders = [];
 
   TEAM_BLUEPRINTS.forEach((team, teamIndex) => {
-    const names = TEAM_RIDER_NAMES[team.id];
+    const riderBlueprints = TEAM_RIDER_BLUEPRINTS[team.id];
 
-    ROLE_TEMPLATES.forEach((template, riderIndex) => {
+    riderBlueprints.forEach((riderData, riderIndex) => {
+      const template = ROLE_TEMPLATES[riderData.roleKey];
       const id = `${team.id}_${String(riderIndex + 1).padStart(2, "0")}`;
 
       riders.push({
         id,
-        name: names[riderIndex],
+        name: riderData.name,
         teamId: team.id,
         role: template.role,
+        roleKey: riderData.roleKey,
         stats: buildStats(template.stats, team.modifiers, teamIndex, riderIndex),
         form: dataClamp(
           template.form + team.modifiers.form + deterministicNoise(teamIndex, riderIndex, "form"),
-          70,
-          94
+          68,
+          96
         ),
         fatigue: 0,
         totalTime: 0,
@@ -764,40 +783,68 @@ const STAGES = [
 ];
 
 /* ============================================================
-   TÁCTICAS
+   TÁCTICAS INDIVIDUALES
    ============================================================ */
 
 const TACTICS = [
   {
     id: "conservative",
     name: "Conservar",
-    description: "Menor riesgo y menor fatiga. Ideal cuando quieres proteger la general.",
+    description: "Menor riesgo y menor fatiga. Ideal para proteger a un corredor tocado.",
     bonus: -2,
-    risk: 0.08,
-    fatigueMultiplier: 0.65
+    risk: 0.06,
+    fatigueMultiplier: 0.62,
+    supportBonus: 0,
+    sprintTrainBonus: 0
   },
   {
     id: "balanced",
     name: "Equilibrado",
     description: "Estrategia neutra. Buen compromiso entre rendimiento y desgaste.",
     bonus: 0,
-    risk: 0.18,
-    fatigueMultiplier: 1.0
+    risk: 0.16,
+    fatigueMultiplier: 1.0,
+    supportBonus: 0,
+    sprintTrainBonus: 0
+  },
+  {
+    id: "protect_leader",
+    name: "Proteger líder",
+    description: "El corredor sacrifica algo de rendimiento para ayudar al líder GC.",
+    bonus: -1,
+    risk: 0.12,
+    fatigueMultiplier: 1.20,
+    supportBonus: 2.4,
+    sprintTrainBonus: 0
   },
   {
     id: "aggressive",
     name: "Atacar",
     description: "Mejor rendimiento potencial, más fatiga y más probabilidad de fallo.",
     bonus: 4,
-    risk: 0.38,
-    fatigueMultiplier: 1.45
+    risk: 0.36,
+    fatigueMultiplier: 1.45,
+    supportBonus: 0,
+    sprintTrainBonus: 0
   },
   {
     id: "all_in",
     name: "Todo o nada",
-    description: "Máximo riesgo. Puede romper la carrera o hundir a tus líderes.",
+    description: "Máximo riesgo. Puede romper la carrera o hundir al corredor.",
     bonus: 8,
     risk: 0.62,
-    fatigueMultiplier: 2.0
+    fatigueMultiplier: 2.0,
+    supportBonus: 0,
+    sprintTrainBonus: 0
+  },
+  {
+    id: "sprint_train",
+    name: "Tren de sprint",
+    description: "Útil en etapas llanas. Ayuda al sprinter del equipo en el final.",
+    bonus: -1,
+    risk: 0.22,
+    fatigueMultiplier: 1.30,
+    supportBonus: 0,
+    sprintTrainBonus: 2.6
   }
 ];
