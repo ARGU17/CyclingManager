@@ -726,6 +726,29 @@ const NUTRITION_PLANS = [
   }
 ];
 
+const AUTO_NUTRITION_MODES = [
+  {
+    id: "auto_smart",
+    name: "Automático inteligente",
+    description: "El ciclista toma geles, bidones o comida según energía, hidratación, sector y momento de carrera."
+  },
+  {
+    id: "auto_conservative",
+    name: "Automático conservador",
+    description: "Prioriza evitar pájaras y deshidratación aunque gaste más stock."
+  },
+  {
+    id: "auto_aggressive",
+    name: "Automático agresivo",
+    description: "Reserva cafeína y geles para ataques, puertos y finales."
+  },
+  {
+    id: "manual",
+    name: "Manual",
+    description: "Tú decides cuándo come cada corredor."
+  }
+];
+
 /* ============================================================
    MATERIAL
    ============================================================ */
