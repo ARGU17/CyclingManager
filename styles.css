@@ -1,6 +1,6 @@
 /* ============================================================
    CYCLING MANAGER TOUR - styles.css
-   v0.5: tabs, perfiles, maillots, objetivos, entrenamiento.
+   v0.6: sectores, nutrición, material, radio y etapa viva.
    ============================================================ */
 
 :root {
@@ -108,6 +108,15 @@ button.danger {
   color: #fff;
 }
 
+button.mini-button {
+  padding: 7px 9px;
+  font-size: 11px;
+  box-shadow: none;
+  background: rgba(34, 197, 94, .16);
+  color: #bbf7d0;
+  border: 1px solid rgba(34, 197, 94, .35);
+}
+
 .active-soft {
   outline: 2px solid var(--accent);
 }
@@ -130,7 +139,7 @@ select:focus {
 }
 
 #app {
-  width: min(100%, 1540px);
+  width: min(100%, 1580px);
   margin: 0 auto;
   padding: 22px;
 }
@@ -201,12 +210,13 @@ select:focus {
 .team-card,
 .rider-card,
 .stage-card,
-.tactic-card,
 .strategy-card,
 .leader-card,
 .mini-classification,
 .race-card,
-.rival-card {
+.rival-card,
+.nutrition-card,
+.live-rider-card {
   background:
     linear-gradient(180deg, rgba(38, 50, 68, .96), rgba(31, 41, 55, .96));
   border: 1px solid var(--border);
@@ -223,7 +233,9 @@ select:focus {
 .team-card h3,
 .stage-card h3,
 .rider-card h4,
-.strategy-card h3 {
+.strategy-card h3,
+.live-rider-card h3,
+.nutrition-card h3 {
   margin: 0 0 7px;
 }
 
@@ -378,6 +390,10 @@ hr {
   border-color: rgba(255, 255, 255, .45) !important;
 }
 
+/* ============================================================
+   SELECTORES / TABS
+   ============================================================ */
+
 .race-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -416,6 +432,10 @@ hr {
   color: #052e16;
 }
 
+/* ============================================================
+   LEADERS
+   ============================================================ */
+
 .leader-strip {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -448,6 +468,10 @@ hr {
 .team-leader {
   border-left: 4px solid var(--blue);
 }
+
+/* ============================================================
+   PERFIL / SECTORES
+   ============================================================ */
 
 .profile-box {
   margin-top: 14px;
@@ -550,6 +574,75 @@ hr {
   border-color: rgba(56, 189, 248, .38);
 }
 
+.sector-timeline {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.sector-timeline.live {
+  margin-top: 10px;
+}
+
+.sector-chip {
+  display: grid;
+  gap: 3px;
+  padding: 8px;
+  border-radius: 12px;
+  background: rgba(75, 85, 99, .35);
+  border: 1px solid var(--border);
+}
+
+.sector-chip strong {
+  color: #86efac;
+}
+
+.sector-chip span {
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.sector-chip small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.sector-chip.active {
+  border-color: rgba(34, 197, 94, .65);
+  background: rgba(34, 197, 94, .13);
+}
+
+.sector-chip.done {
+  opacity: .62;
+}
+
+.live-progress {
+  background: rgba(31, 41, 55, .9);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 14px;
+  box-shadow: 0 14px 30px var(--shadow);
+}
+
+.progress-bar {
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, .85);
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, .18);
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--blue));
+  border-radius: 999px;
+}
+
+/* ============================================================
+   LISTAS
+   ============================================================ */
+
 .stage-list {
   display: grid;
   gap: 10px;
@@ -562,7 +655,10 @@ hr {
   max-height: 420px;
 }
 
-.rider-grid {
+.rider-grid,
+.strategy-grid,
+.live-rider-grid,
+.nutrition-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
@@ -571,34 +667,41 @@ hr {
   padding-right: 6px;
 }
 
-.strategy-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  max-height: 640px;
-  overflow-y: auto;
-  padding-right: 6px;
+.live-rider-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  max-height: 720px;
+}
+
+.nutrition-grid {
+  max-height: none;
 }
 
 .stage-list,
 .rider-grid,
-.strategy-grid {
+.strategy-grid,
+.live-rider-grid {
   scrollbar-width: thin;
   scrollbar-color: var(--panel-lighter) transparent;
 }
 
 .stage-list::-webkit-scrollbar,
 .rider-grid::-webkit-scrollbar,
-.strategy-grid::-webkit-scrollbar {
+.strategy-grid::-webkit-scrollbar,
+.live-rider-grid::-webkit-scrollbar {
   width: 8px;
 }
 
 .stage-list::-webkit-scrollbar-thumb,
 .rider-grid::-webkit-scrollbar-thumb,
-.strategy-grid::-webkit-scrollbar-thumb {
+.strategy-grid::-webkit-scrollbar-thumb,
+.live-rider-grid::-webkit-scrollbar-thumb {
   background: var(--panel-lighter);
   border-radius: 999px;
 }
+
+/* ============================================================
+   ESTRATEGIA / LIVE
+   ============================================================ */
 
 .preset-row {
   display: flex;
@@ -616,12 +719,14 @@ hr {
   gap: 10px;
 }
 
-.strategy-card.protected {
+.strategy-card.protected,
+.live-rider-card.protected {
   border-color: rgba(250, 204, 21, .68);
   box-shadow: 0 0 0 1px rgba(250, 204, 21, .16);
 }
 
-.strategy-card h3 {
+.strategy-card h3,
+.live-rider-card h3 {
   font-size: 16px;
   letter-spacing: -.025em;
 }
@@ -629,6 +734,66 @@ hr {
 .strategy-card p {
   min-height: 32px;
 }
+
+.live-rider-card {
+  display: grid;
+  gap: 9px;
+}
+
+.nutrition-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.live-situation {
+  display: grid;
+  gap: 10px;
+}
+
+.radio-list {
+  display: grid;
+  gap: 8px;
+  max-height: 330px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.radio-message {
+  padding: 10px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, .55);
+  border: 1px solid var(--border);
+}
+
+.radio-message span {
+  display: block;
+  color: #7dd3fc;
+  font-size: 11px;
+  font-weight: 900;
+  margin-bottom: 4px;
+}
+
+.radio-message p {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.field-label {
+  display: block;
+  margin: 4px 0 -4px;
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+/* ============================================================
+   STATS
+   ============================================================ */
 
 .stat-row {
   display: grid;
@@ -653,6 +818,10 @@ hr {
   background: linear-gradient(90deg, var(--accent), var(--blue));
   border-radius: 999px;
 }
+
+/* ============================================================
+   CLASIFICACIONES / OBJETIVOS
+   ============================================================ */
 
 .classification-grid {
   display: grid;
@@ -724,6 +893,10 @@ hr {
   margin-top: 14px;
   border-left: 4px solid var(--orange);
 }
+
+/* ============================================================
+   TABLAS
+   ============================================================ */
 
 table {
   width: 100%;
@@ -801,9 +974,17 @@ tr.race-leader.jersey-red td {
   margin-top: 16px;
 }
 
-@media (max-width: 1300px) {
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 1400px) {
   .leader-strip {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .live-rider-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .grid.two,
@@ -811,16 +992,8 @@ tr.race-leader.jersey-red td {
     grid-template-columns: 1fr;
   }
 
-  .stage-list {
-    max-height: 560px;
-  }
-
-  .rider-grid {
-    max-height: 640px;
-  }
-
-  .strategy-grid {
-    max-height: 520px;
+  .sector-timeline {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
@@ -843,17 +1016,20 @@ tr.race-leader.jersey-red td {
   }
 
   .race-grid,
-  .leader-strip {
+  .leader-strip,
+  .rider-grid,
+  .strategy-grid,
+  .live-rider-grid,
+  .nutrition-grid {
     grid-template-columns: 1fr;
   }
 
-  .rider-grid,
-  .strategy-grid {
+  .sector-timeline {
     grid-template-columns: 1fr;
   }
 
   table {
-    min-width: 940px;
+    min-width: 980px;
   }
 }
 
@@ -895,6 +1071,10 @@ tr.race-leader.jersey-red td {
   }
 
   .objective-row {
+    grid-template-columns: 1fr;
+  }
+
+  .nutrition-actions {
     grid-template-columns: 1fr;
   }
 }
