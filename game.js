@@ -1,6 +1,6 @@
 /* ============================================================
-   CYCLING MANAGER MVP - game.js
-   Motor jugable completo en un único archivo
+   CYCLING MANAGER TOUR - game.js
+   Motor jugable para 10 equipos x 8 corredores x 21 etapas
    ============================================================ */
 
 const app = document.getElementById("app");
@@ -15,9 +15,9 @@ const Game = {
   finished: false
 };
 
-// ============================================================
-// UTILIDADES
-// ============================================================
+/* ============================================================
+   UTILIDADES
+   ============================================================ */
 
 function deepClone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -51,6 +51,18 @@ function randomBetween(min, max) {
   return min + Math.random() * (max - min);
 }
 
+function average(values) {
+  if (!values.length) return 0;
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function standardDeviation(values) {
+  if (!values.length) return 0;
+  const avg = average(values);
+  const variance = average(values.map(value => Math.pow(value - avg, 2)));
+  return Math.sqrt(variance);
+}
+
 function secondsToTime(seconds) {
   const total = Math.max(0, Math.round(seconds));
   const h = Math.floor(total / 3600);
@@ -79,9 +91,9 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
-// ============================================================
-// INICIALIZACIÓN
-// ============================================================
+/* ============================================================
+   INICIO
+   ============================================================ */
 
 function initGame() {
   Game.selectedTeamId = null;
@@ -105,37 +117,35 @@ function startWithTeam(teamId) {
   renderRaceScreen();
 }
 
-// ============================================================
-// RENDER PRINCIPAL
-// ============================================================
+/* ============================================================
+   PANTALLAS
+   ============================================================ */
 
 function renderHome() {
   app.innerHTML = `
     <div class="header">
       <div>
-        <h1>Cycling Manager MVP 🚴‍♂️</h1>
-        <p>Mini-vuelta de 5 etapas: llana, crono, crono por equipos, alta montaña y pavés con muros.</p>
+        <h1>Cycling Manager Tour 🚴‍♂️</h1>
+        <p>Gran vuelta de ${STAGES.length} etapas · ${TEAMS.length} equipos · ${RIDERS.length} corredores.</p>
       </div>
     </div>
 
     <div class="grid two">
       <section class="panel">
-        <h2>Objetivo de esta versión</h2>
+        <h2>Recorrido</h2>
         <p class="help">
-          Esta es una versión mínima jugable. No hay calendario, mercado, contratos ni temporada.
-          El núcleo es comprobar si la simulación produce resultados coherentes según:
-          atributos del corredor, tipo de etapa, táctica y fatiga acumulada.
+          Carrera larga tipo Tour. El motor simula perfiles, fatiga acumulada,
+          recuperación diaria, cronos, montaña, pavés y media montaña.
         </p>
 
         <hr />
 
-        <h3>Flujo jugable</h3>
         <div class="stage-list">
           ${STAGES.map(stage => `
             <div class="stage-card">
               <div class="badge-row">
                 <span class="badge green">Etapa ${stage.number}</span>
-                <span class="badge blue">${stage.label}</span>
+                <span class="badge blue">${escapeHtml(stage.label)}</span>
                 <span class="badge">${stage.distance} km</span>
                 <span class="badge orange">Dificultad ${stage.difficulty}</span>
               </div>
@@ -148,7 +158,7 @@ function renderHome() {
 
       <section class="panel">
         <h2>Elige equipo</h2>
-        <p class="muted">Cada equipo tiene una identidad clara para probar el motor.</p>
+        <p class="muted">Cada equipo tiene 8 corredores y una identidad competitiva diferente.</p>
 
         <div class="grid">
           ${TEAMS.map(team => renderTeamCard(team)).join("")}
@@ -168,6 +178,7 @@ function renderTeamCard(team) {
         <div class="badge-row">
           <span class="badge ${team.color}">${escapeHtml(team.archetype)}</span>
           <span class="badge">Líder: ${escapeHtml(leader.name)}</span>
+          <span class="badge">${riders.length} corredores</span>
         </div>
         <h3>${escapeHtml(team.name)}</h3>
         <p class="muted">${escapeHtml(team.description)}</p>
@@ -197,7 +208,7 @@ function renderRaceScreen() {
     <div class="header">
       <div>
         <h1>${escapeHtml(team.name)}</h1>
-        <p>Etapa ${Game.currentStageIndex + 1}/5 · ${escapeHtml(stage.name)}</p>
+        <p>Etapa ${Game.currentStageIndex + 1}/${STAGES.length} · ${escapeHtml(stage.name)}</p>
       </div>
 
       <div class="top-actions">
@@ -210,6 +221,7 @@ function renderRaceScreen() {
       <section class="panel">
         ${renderCurrentStage(stage)}
         ${renderTactics()}
+
         <div class="simulation-actions">
           <div>
             <strong>Táctica seleccionada:</strong> ${escapeHtml(tactic.name)}
@@ -221,7 +233,7 @@ function renderRaceScreen() {
 
       <section class="panel">
         <h2>Clasificación general</h2>
-        ${renderGeneralClassificationTable(10)}
+        ${renderGeneralClassificationTable(20)}
       </section>
     </div>
 
@@ -245,7 +257,7 @@ function renderCurrentStage(stage) {
   return `
     <div class="stage-card current">
       <div class="badge-row">
-        <span class="badge green">Etapa ${stage.number}/5</span>
+        <span class="badge green">Etapa ${stage.number}/${STAGES.length}</span>
         <span class="badge blue">${escapeHtml(stage.label)}</span>
         <span class="badge">${stage.distance} km</span>
         <span class="badge orange">Dificultad ${stage.difficulty}/100</span>
@@ -253,7 +265,7 @@ function renderCurrentStage(stage) {
       <h2>${escapeHtml(stage.name)}</h2>
       <p class="help">${escapeHtml(stage.description)}</p>
       <p class="muted small">
-        Nota: la fatiga penaliza más en alta montaña y pavés/muros que en una etapa llana.
+        Clave: fatiga acumulada - recuperación diaria. Los corredores con alta recuperación sobreviven mejor a las tres semanas.
       </p>
     </div>
   `;
@@ -287,11 +299,14 @@ function selectTactic(tacticId) {
 function renderRiderCard(rider) {
   const relevantStats = [
     ["flat", "Llano"],
+    ["sprint", "Sprint"],
     ["timeTrial", "CRI"],
     ["teamTimeTrial", "CRE"],
     ["mountain", "Montaña"],
     ["cobbles", "Pavés"],
-    ["hills", "Muros"]
+    ["hills", "Muros"],
+    ["stamina", "Stamina"],
+    ["recovery", "Recovery"]
   ];
 
   return `
@@ -300,7 +315,9 @@ function renderRiderCard(rider) {
         <span class="badge green">${escapeHtml(rider.role)}</span>
         <span class="badge orange">Fatiga ${Math.round(rider.fatigue)}</span>
         <span class="badge blue">Forma ${Math.round(rider.form)}</span>
+        <span class="badge">Días ${rider.raceDays || 0}</span>
       </div>
+
       <h4>${escapeHtml(rider.name)}</h4>
 
       ${relevantStats.map(([key, label]) => `
@@ -346,9 +363,9 @@ function renderStageProgress() {
   `;
 }
 
-// ============================================================
-// MOTOR DE SIMULACIÓN
-// ============================================================
+/* ============================================================
+   MOTOR DE SIMULACIÓN
+   ============================================================ */
 
 function simulateCurrentStage() {
   const stage = getCurrentStage();
@@ -366,9 +383,17 @@ function simulateCurrentStage() {
 
   results.forEach((result, index) => {
     result.position = index + 1;
+
     const rider = getRider(result.riderId);
+
     rider.totalTime += result.stageTime;
-    rider.fatigue = clamp(rider.fatigue + result.fatigueGain, 0, 100);
+    rider.raceDays = (rider.raceDays || 0) + 1;
+
+    const recoveryGain = calculateDailyRecovery(rider, stage);
+
+    rider.fatigueBeforeRecovery = rider.fatigue + result.fatigueGain;
+    rider.recoveredToday = recoveryGain;
+    rider.fatigue = clamp(rider.fatigue + result.fatigueGain - recoveryGain, 0, 100);
   });
 
   Game.lastStageResults = {
@@ -390,7 +415,7 @@ function simulateRoadStage(stage, userTactic) {
       : chooseAITactic(rider, stage);
 
     const performance = calculatePerformance(rider, stage, tactic);
-    const time = convertPerformanceToTime(performance, baseStageTime, stage);
+    const stageTime = convertPerformanceToTime(performance, baseStageTime, stage);
     const fatigueGain = calculateFatigueGain(rider, stage, tactic, performance);
 
     return {
@@ -398,7 +423,7 @@ function simulateRoadStage(stage, userTactic) {
       riderName: rider.name,
       teamId: rider.teamId,
       teamName: getTeam(rider.teamId).name,
-      stageTime: time,
+      stageTime,
       performance,
       tacticName: tactic.name,
       fatigueGain
@@ -420,8 +445,12 @@ function simulateTeamTimeTrial(stage, userTactic) {
     const teamTime = convertPerformanceToTime(teamScore, baseStageTime, stage);
 
     riders.forEach((rider, index) => {
-      const internalGap = index < 4 ? randomBetween(0, 4) : randomBetween(4, 18);
-      const performance = teamScore + randomBetween(-1, 1);
+      const internalGap =
+        index < 5 ? randomBetween(0, 5) :
+        index < 7 ? randomBetween(5, 18) :
+        randomBetween(15, 35);
+
+      const performance = teamScore + randomBetween(-1.5, 1.5);
       const fatigueGain = calculateFatigueGain(rider, stage, tactic, performance);
 
       teamResults.push({
@@ -443,6 +472,7 @@ function simulateTeamTimeTrial(stage, userTactic) {
 function getBaseStageTime(stage) {
   const speedByType = {
     flat: 44,
+    hilly: 40,
     time_trial: 50,
     team_time_trial: 52,
     mountain: 34,
@@ -459,11 +489,21 @@ function calculatePerformance(rider, stage, tactic) {
 
   if (stage.type === "flat") {
     terrainScore =
-      s.flat * 0.45 +
-      s.sprint * 0.20 +
+      s.flat * 0.42 +
+      s.sprint * 0.22 +
       s.stamina * 0.15 +
       rider.form * 0.10 +
-      s.acceleration * 0.05 +
+      s.acceleration * 0.06 +
+      s.recovery * 0.05;
+  }
+
+  if (stage.type === "hilly") {
+    terrainScore =
+      s.hills * 0.40 +
+      s.acceleration * 0.20 +
+      s.stamina * 0.15 +
+      s.mountain * 0.10 +
+      rider.form * 0.10 +
       s.recovery * 0.05;
   }
 
@@ -499,25 +539,26 @@ function calculatePerformance(rider, stage, tactic) {
   const tacticalBonus = tactic.bonus;
   const randomNoise = randomBetween(-4, 4);
   const riskPenalty = calculateRiskPenalty(tactic, rider, stage);
+  const longRacePenalty = calculateLongRacePenalty(rider, stage);
 
-  return terrainScore + tacticalBonus + randomNoise - fatiguePenalty - riskPenalty;
+  return terrainScore + tacticalBonus + randomNoise - fatiguePenalty - riskPenalty - longRacePenalty;
 }
 
 function calculateTeamTimeTrialScore(riders, tactic) {
   const ranked = [...riders].sort((a, b) => b.stats.teamTimeTrial - a.stats.teamTimeTrial);
-  const top4 = ranked.slice(0, 4);
+  const top6 = ranked.slice(0, 6);
 
-  const avgTTT = average(top4.map(r => r.stats.teamTimeTrial));
-  const avgFlat = average(top4.map(r => r.stats.flat));
-  const avgStamina = average(top4.map(r => r.stats.stamina));
-  const avgForm = average(top4.map(r => r.form));
+  const avgTTT = average(top6.map(r => r.stats.teamTimeTrial));
+  const avgFlat = average(top6.map(r => r.stats.flat));
+  const avgStamina = average(top6.map(r => r.stats.stamina));
+  const avgForm = average(top6.map(r => r.form));
   const avgFatigue = average(riders.map(r => r.fatigue));
 
-  const spread = standardDeviation(top4.map(r => r.stats.teamTimeTrial));
-  const cohesionBonus = clamp(8 - spread, 0, 8);
+  const spread = standardDeviation(top6.map(r => r.stats.teamTimeTrial));
+  const cohesionBonus = clamp(9 - spread, 0, 9);
 
   const riskPenalty = Math.random() < tactic.risk
-    ? randomBetween(2, 8)
+    ? randomBetween(2, 9)
     : 0;
 
   return (
@@ -533,19 +574,10 @@ function calculateTeamTimeTrialScore(riders, tactic) {
   );
 }
 
-function average(values) {
-  return values.reduce((sum, value) => sum + value, 0) / values.length;
-}
-
-function standardDeviation(values) {
-  const avg = average(values);
-  const variance = average(values.map(value => Math.pow(value - avg, 2)));
-  return Math.sqrt(variance);
-}
-
 function getFatiguePenalty(rider, stage) {
   const fatigueFactorByType = {
     flat: 0.12,
+    hilly: 0.24,
     time_trial: 0.18,
     team_time_trial: 0.16,
     mountain: 0.34,
@@ -553,6 +585,25 @@ function getFatiguePenalty(rider, stage) {
   };
 
   return rider.fatigue * (fatigueFactorByType[stage.type] || 0.2);
+}
+
+function calculateLongRacePenalty(rider, stage) {
+  const raceDays = rider.raceDays || 0;
+
+  if (raceDays < 8) return 0;
+
+  const recoveryWeakness = clamp(85 - rider.stats.recovery, 0, 30);
+
+  const stageStress = {
+    flat: 0.10,
+    hilly: 0.22,
+    time_trial: 0.18,
+    team_time_trial: 0.14,
+    mountain: 0.32,
+    cobbles_hills: 0.30
+  }[stage.type] || 0.2;
+
+  return recoveryWeakness * stageStress * ((raceDays - 7) / 8);
 }
 
 function calculateRiskPenalty(tactic, rider, stage) {
@@ -564,16 +615,16 @@ function calculateRiskPenalty(tactic, rider, stage) {
 
   const stageChaos = {
     flat: 0.8,
+    hilly: 1.0,
     time_trial: 0.4,
     team_time_trial: 0.6,
     mountain: 1.1,
     cobbles_hills: 1.45
   }[stage.type] || 1.0;
 
-  const riskRoll = Math.random();
   const adjustedRisk = tactic.risk * stageChaos * (1.05 - technicalProtection / 200);
 
-  if (riskRoll < adjustedRisk) {
+  if (Math.random() < adjustedRisk) {
     return randomBetween(3, 12) * stageChaos;
   }
 
@@ -583,6 +634,7 @@ function calculateRiskPenalty(tactic, rider, stage) {
 function convertPerformanceToTime(performance, baseStageTime, stage) {
   const separationByType = {
     flat: 3.0,
+    hilly: 6.2,
     time_trial: 5.5,
     team_time_trial: 4.7,
     mountain: 9.0,
@@ -590,7 +642,8 @@ function convertPerformanceToTime(performance, baseStageTime, stage) {
   };
 
   const separation = separationByType[stage.type] || 5;
-  const normalized = clamp(performance, 40, 105);
+  const normalized = clamp(performance, 35, 108);
+
   const delta = (82 - normalized) * separation;
   const difficultyEffect = stage.difficulty * 0.18;
 
@@ -600,6 +653,7 @@ function convertPerformanceToTime(performance, baseStageTime, stage) {
 function calculateFatigueGain(rider, stage, tactic, performance) {
   const baseFatigueByType = {
     flat: 4,
+    hilly: 8,
     time_trial: 5,
     team_time_trial: 5,
     mountain: 11,
@@ -608,20 +662,49 @@ function calculateFatigueGain(rider, stage, tactic, performance) {
 
   const base = baseFatigueByType[stage.type] || 6;
   const difficulty = stage.difficulty / 20;
-  const recoveryReduction = rider.stats.recovery / 55;
-  const performanceStress = performance > 86 ? 1.2 : 1.0;
+  const recoveryReduction = rider.stats.recovery / 65;
+  const staminaReduction = rider.stats.stamina / 90;
+  const performanceStress = performance > 86 ? 1.15 : 1.0;
+  const raceDayStress = Math.max(0, (rider.raceDays || 0) - 10) * 0.12;
 
   return clamp(
-    (base + difficulty) * tactic.fatigueMultiplier * performanceStress - recoveryReduction,
+    (base + difficulty + raceDayStress) * tactic.fatigueMultiplier * performanceStress - recoveryReduction - staminaReduction,
     1,
-    30
+    34
   );
+}
+
+function calculateDailyRecovery(rider, stage) {
+  const stageRecoveryModifier = {
+    flat: 1.05,
+    hilly: 0.80,
+    time_trial: 0.90,
+    team_time_trial: 0.92,
+    mountain: 0.62,
+    cobbles_hills: 0.58
+  }[stage.type] || 0.8;
+
+  const baseRecovery =
+    rider.stats.recovery * 0.085 +
+    rider.stats.stamina * 0.025;
+
+  const fatigueAssist = rider.fatigue > 60 ? 0.8 : 0;
+
+  return clamp((baseRecovery + fatigueAssist) * stageRecoveryModifier, 2, 10);
 }
 
 function chooseAITactic(rider, stage) {
   const team = getTeam(rider.teamId);
 
-  if (stage.type === "mountain" && team.archetype === "Escalador") {
+  if (rider.fatigue > 65) {
+    return TACTICS.find(t => t.id === "conservative");
+  }
+
+  if (stage.type === "mountain" && (team.archetype === "Escalador" || team.archetype === "Montaña + Gregarios")) {
+    return TACTICS.find(t => t.id === "aggressive");
+  }
+
+  if (stage.type === "hilly" && (team.archetype === "Clásicas" || team.archetype === "Cazador" || team.archetype === "Outsider")) {
     return TACTICS.find(t => t.id === "aggressive");
   }
 
@@ -629,12 +712,16 @@ function chooseAITactic(rider, stage) {
     return TACTICS.find(t => t.id === "aggressive");
   }
 
+  if (stage.type === "flat" && team.archetype === "Sprint") {
+    return TACTICS.find(t => t.id === "aggressive");
+  }
+
   if (stage.type === "time_trial" && team.archetype === "Contrarreloj") {
     return TACTICS.find(t => t.id === "aggressive");
   }
 
-  if (rider.fatigue > 45) {
-    return TACTICS.find(t => t.id === "conservative");
+  if (team.archetype === "Outsider" && Math.random() < 0.25) {
+    return TACTICS.find(t => t.id === "all_in");
   }
 
   return TACTICS.find(t => t.id === "balanced");
@@ -645,16 +732,20 @@ function chooseAITeamTactic(team, stage) {
     return TACTICS.find(t => t.id === "aggressive");
   }
 
-  if (team.archetype === "Escalador") {
+  if (team.archetype === "GC") {
     return TACTICS.find(t => t.id === "balanced");
+  }
+
+  if (team.archetype === "Outsider" && Math.random() < 0.15) {
+    return TACTICS.find(t => t.id === "aggressive");
   }
 
   return TACTICS.find(t => t.id === "balanced");
 }
 
-// ============================================================
-// RESULTADOS Y CLASIFICACIÓN
-// ============================================================
+/* ============================================================
+   RESULTADOS
+   ============================================================ */
 
 function renderStageResultScreen() {
   const { stage, results } = Game.lastStageResults;
@@ -664,7 +755,7 @@ function renderStageResultScreen() {
     <div class="header">
       <div>
         <h1>Resultado · ${escapeHtml(stage.name)}</h1>
-        <p>${escapeHtml(stage.label)} · ${stage.distance} km · dificultad ${stage.difficulty}</p>
+        <p>Etapa ${stage.number}/${STAGES.length} · ${escapeHtml(stage.label)} · ${stage.distance} km</p>
       </div>
       <div class="top-actions">
         <button class="danger" onclick="initGame()">Reiniciar</button>
@@ -679,7 +770,7 @@ function renderStageResultScreen() {
 
       <section class="panel">
         <h2>Clasificación general</h2>
-        ${renderGeneralClassificationTable(20)}
+        ${renderGeneralClassificationTable(25)}
       </section>
     </div>
 
@@ -708,27 +799,31 @@ function renderStageResultsTable(results, leaderTime) {
           <th>Tiempo</th>
           <th>Diferencia</th>
           <th>Táctica</th>
-          <th>Fatiga +</th>
+          <th>Fatiga</th>
         </tr>
       </thead>
       <tbody>
-        ${results.map(result => `
-          <tr class="${result.teamId === Game.selectedTeamId ? "user-team" : ""}">
-            <td>${result.position}</td>
-            <td>${escapeHtml(result.riderName)}</td>
-            <td>${escapeHtml(result.teamName)}</td>
-            <td>${secondsToTime(result.stageTime)}</td>
-            <td>${gapToLeader(result.stageTime, leaderTime)}</td>
-            <td>${escapeHtml(result.tacticName)}</td>
-            <td>${Math.round(result.fatigueGain)}</td>
-          </tr>
-        `).join("")}
+        ${results.map(result => {
+          const rider = getRider(result.riderId);
+
+          return `
+            <tr class="${result.teamId === Game.selectedTeamId ? "user-team" : ""}">
+              <td>${result.position}</td>
+              <td>${escapeHtml(result.riderName)}</td>
+              <td>${escapeHtml(result.teamName)}</td>
+              <td>${secondsToTime(result.stageTime)}</td>
+              <td>${gapToLeader(result.stageTime, leaderTime)}</td>
+              <td>${escapeHtml(result.tacticName)}</td>
+              <td>+${Math.round(result.fatigueGain)} / rec ${Math.round(rider.recoveredToday || 0)}</td>
+            </tr>
+          `;
+        }).join("")}
       </tbody>
     </table>
   `;
 }
 
-function renderGeneralClassificationTable(limit = 20) {
+function renderGeneralClassificationTable(limit = 25) {
   const standings = [...Game.riders]
     .sort((a, b) => a.totalTime - b.totalTime)
     .slice(0, limit);
@@ -798,6 +893,8 @@ function renderStageAnalysis(stage, results) {
   const bestUserGC = standings.find(rider => rider.teamId === Game.selectedTeamId);
   const bestUserGCPosition = standings.findIndex(rider => rider.id === bestUserGC.id) + 1;
 
+  const avgUserFatigue = average(getTeamRiders(Game.selectedTeamId).map(r => r.fatigue));
+
   return `
     <div class="grid three">
       <div class="stage-card">
@@ -821,7 +918,7 @@ function renderStageAnalysis(stage, results) {
         <div class="big-number">${bestUserGCPosition}</div>
         <strong>${escapeHtml(bestUserGC.name)}</strong>
         <p class="muted small">
-          Fatiga acumulada: ${Math.round(bestUserGC.fatigue)}
+          Fatiga líder: ${Math.round(bestUserGC.fatigue)} · Fatiga media equipo: ${Math.round(avgUserFatigue)}
         </p>
       </div>
     </div>
@@ -840,22 +937,30 @@ function getStageComment(stage, bestUser, winner) {
   const gap = bestUser.stageTime - winner.stageTime;
 
   if (gap < 20) {
-    return "Muy buen rendimiento. Tu mejor corredor ha estado cerca de la victoria. La general sigue completamente abierta.";
+    return "Muy buen rendimiento. Tu mejor corredor ha estado cerca de la victoria. La general sigue abierta.";
   }
 
   if (stage.type === "mountain") {
-    return "La montaña ha generado diferencias relevantes. Revisa la fatiga: un líder demasiado castigado perderá mucho en la última etapa.";
+    return "La montaña ha generado diferencias relevantes. En la tercera semana, la fatiga castigará muchísimo a los líderes con baja recuperación.";
+  }
+
+  if (stage.type === "hilly") {
+    return "La media montaña premia aceleración, hills y stamina. Buen terreno para cazadores, puncheurs y clasicómanos.";
   }
 
   if (stage.type === "cobbles_hills") {
-    return "El pavés y los muros han castigado mucho la colocación, la resistencia y la explosividad. Es una etapa de alta varianza.";
+    return "El pavés y los muros han castigado colocación, resistencia y explosividad. Etapa de alta varianza.";
   }
 
   if (stage.type === "team_time_trial") {
-    return "La crono por equipos depende del bloque, no solo del líder. Un equipo equilibrado puede limitar pérdidas aunque no tenga al mejor corredor individual.";
+    return "La crono por equipos depende del bloque. Con 8 corredores pesan especialmente los 6 mejores y la homogeneidad del equipo.";
   }
 
-  return "Resultado correcto, aunque tu equipo no ha estado en la pelea directa por la victoria. Puedes asumir más riesgo en próximas etapas.";
+  if (stage.type === "time_trial") {
+    return "La crono individual favorece a especialistas. La recuperación acumulada empieza a pesar en el rendimiento.";
+  }
+
+  return "Resultado correcto. Si necesitas recuperar tiempo, tendrás que asumir más riesgo en etapas selectivas.";
 }
 
 function goToNextStage() {
@@ -881,7 +986,7 @@ function renderFinalScreen() {
     <div class="header">
       <div>
         <h1>Clasificación final 🏆</h1>
-        <p>Mini-vuelta completada: 5 etapas disputadas.</p>
+        <p>Gran vuelta completada: ${STAGES.length} etapas disputadas.</p>
       </div>
 
       <div class="top-actions">
@@ -893,6 +998,7 @@ function renderFinalScreen() {
     <div class="grid two">
       <section class="panel">
         <h2>Podio final</h2>
+
         <div class="grid">
           ${standings.slice(0, 3).map((rider, index) => `
             <div class="stage-card ${rider.teamId === Game.selectedTeamId ? "current" : ""}">
@@ -920,7 +1026,7 @@ function renderFinalScreen() {
 
       <section class="panel">
         <h2>General completa</h2>
-        ${renderGeneralClassificationTable(20)}
+        ${renderGeneralClassificationTable(80)}
       </section>
     </div>
 
@@ -946,6 +1052,7 @@ function renderStageHistorySummary() {
       <tbody>
         ${Game.stageHistory.map(item => {
           const winner = item.results[0];
+
           return `
             <tr class="${winner.teamId === Game.selectedTeamId ? "user-team" : ""}">
               <td>${escapeHtml(item.stage.name)}</td>
