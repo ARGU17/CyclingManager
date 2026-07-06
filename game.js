@@ -1,12 +1,13 @@
 /* ============================================================
    CYCLING MANAGER TOUR - game.js
-   v0.7: etapa viva por sectores, mapa visual de grupos,
+   v0.7.1: etapa viva por sectores, mapa visual de grupos,
    rivales por grupo, nutrición automática inteligente,
-   material, radio, pelotón, órdenes en carrera y manager.
+   material, radio, pelotón, órdenes en carrera, manager
+   y corrección específica de CRONO POR EQUIPOS.
    ============================================================ */
 
 const app = document.getElementById("app");
-const SAVE_KEY = "cyclingManagerTour_v07";
+const SAVE_KEY = "cyclingManagerTour_v071";
 
 const Game = {
   selectedRaceId: DEFAULT_RACE_ID,
@@ -173,6 +174,10 @@ function isGrandTour() {
 
 function isLiveStageActive() {
   return Game.liveStage && Game.liveStage.active;
+}
+
+function isTeamTimeTrialStage(stage = getCurrentStage()) {
+  return stage && stage.type === "team_time_trial";
 }
 
 /* ============================================================
@@ -532,7 +537,7 @@ function renderHome() {
     <div class="header">
       <div>
         <h1>Cycling Manager Tour 🚴‍♂️</h1>
-        <p>v0.7 · mapa vivo · grupos · rivales · nutrición automática · sectores</p>
+        <p>v0.7.1 · mapa vivo · grupos · rivales · nutrición automática · CRE corregida</p>
       </div>
       <div class="top-actions">
         ${saved ? `<button class="secondary" onclick="loadGame()">Cargar partida</button><button class="danger" onclick="clearSave()">Borrar guardado</button>` : ""}
@@ -792,7 +797,11 @@ function renderStrategyTab() {
         <div class="simulation-actions">
           <div>
             <strong>Etapa por sectores</strong>
-            <div class="muted small">La etapa no se resuelve de golpe: podrás cambiar estrategia, comer y dar órdenes entre sectores.</div>
+            <div class="muted small">
+              ${isTeamTimeTrialStage(getCurrentStage())
+                ? "CRE: el equipo rueda agrupado; el tiempo lo marca el 4º corredor. No habrá fugas internas irreales."
+                : "La etapa no se resuelve de golpe: podrás cambiar estrategia, comer y dar órdenes entre sectores."}
+            </div>
           </div>
           <button onclick="startLiveStage()">Iniciar etapa</button>
         </div>
@@ -1287,7 +1296,7 @@ function startLiveStage() {
       crisis: false,
       incident: null,
       dropped: false,
-      groupLabel: "Pelotón principal",
+      groupLabel: isTeamTimeTrialStage(stage) ? `CRE ${getTeam(rider.teamId).name}` : "Pelotón principal",
       domestiqueBurned: false,
       usedCaffeine: false,
       nutritionUsed: []
@@ -1299,7 +1308,12 @@ function startLiveStage() {
 
   recomputeLiveGroupLabels();
 
-  addRadio(`Salida lanzada. ${Game.liveStage.breakawayIds.length ? `Se forma una fuga de ${Game.liveStage.breakawayIds.length} corredores.` : "No se consolida fuga inicial."}`);
+  if (isTeamTimeTrialStage(stage)) {
+    addRadio("Salida de CRE. Cada equipo rueda en bloque. El tiempo lo marca el 4º corredor.");
+  } else {
+    addRadio(`Salida lanzada. ${Game.liveStage.breakawayIds.length ? `Se forma una fuga de ${Game.liveStage.breakawayIds.length} corredores.` : "No se consolida fuga inicial."}`);
+  }
+
   addRadio(getStageRadioHint(stage));
 
   saveGame();
@@ -1340,6 +1354,7 @@ function generateLiveBreakaway(stage) {
 }
 
 function getStageRadioHint(stage) {
+  if (stage.type === "team_time_trial") return "Radio: en la CRE no hay ataques internos. Hay que mantener mínimo 4 corredores juntos hasta meta.";
   if (stage.type === "mountain") return "Radio: guarda geles para los últimos puertos. Alimentar tarde puede costar la general.";
   if (stage.type === "flat" && stage.profile.windExposure > 60) return "Radio: viento peligroso. Colocación y protección del líder serán críticas.";
   if (stage.type === "cobbles_hills") return "Radio: pavés peligroso. Material endurance y ruedas de pavés reducen mucho el riesgo.";
@@ -1395,7 +1410,7 @@ function renderLiveStageScreen() {
     </section>
 
     <section class="panel" style="margin-top:16px;">
-      <h2>Mapa vivo de carrera</h2>
+      <h2>${isTeamTimeTrialStage(stage) ? "Mapa vivo de CRE" : "Mapa vivo de carrera"}</h2>
       ${renderLiveRaceMap(stage, sector)}
     </section>
 
@@ -1434,11 +1449,12 @@ function renderLiveStageScreen() {
 }
 
 function renderLiveSituation(sector) {
+  const stage = getCurrentStage();
   const breakawayNames = Game.liveStage.breakawayIds
     .map(id => getRider(id)?.name)
     .filter(Boolean);
 
-  const groups = buildLiveGroups(getCurrentStage(), sector);
+  const groups = buildLiveGroups(stage, sector);
 
   return `
     <div class="live-situation">
@@ -1451,9 +1467,11 @@ function renderLiveSituation(sector) {
       </div>
 
       <p class="help">
-        ${breakawayNames.length
-          ? `Fuga: ${escapeHtml(breakawayNames.join(", "))}. Ventaja: ${secondsToTime(Game.liveStage.breakawayGap)}.`
-          : "No hay fuga consolidada."}
+        ${isTeamTimeTrialStage(stage)
+          ? "Crono por equipos: cada bloque debe rodar unido. El tiempo de equipo lo marca el 4º corredor."
+          : breakawayNames.length
+            ? `Fuga: ${escapeHtml(breakawayNames.join(", "))}. Ventaja: ${secondsToTime(Game.liveStage.breakawayGap)}.`
+            : "No hay fuga consolidada."}
         <br>
         Grupos en carrera: ${groups.length} · Pelotón principal: ${Game.liveStage.pelotonSize} corredores · Cortados: ${Game.liveStage.droppedCount}.
       </p>
@@ -1477,6 +1495,13 @@ function renderLiveSituation(sector) {
 
 function recomputeLiveGroupLabels() {
   if (!Game.liveStage) return;
+
+  const stage = getCurrentStage();
+
+  if (isTeamTimeTrialStage(stage)) {
+    recomputeTeamTimeTrialGroupLabels();
+    return;
+  }
 
   const activeRiders = getAllActiveRiders();
   const states = activeRiders
@@ -1513,6 +1538,35 @@ function recomputeLiveGroupLabels() {
   });
 }
 
+function recomputeTeamTimeTrialGroupLabels() {
+  if (!Game.liveStage) return;
+
+  TEAMS.forEach(team => {
+    const teamItems = getTeamRiders(team.id)
+      .map(rider => ({
+        rider,
+        state: Game.liveStage.riderState[rider.id]
+      }))
+      .filter(item => item.state)
+      .sort((a, b) => a.state.stageTime - b.state.stageTime);
+
+    if (!teamItems.length) return;
+
+    const markerIndex = Math.min(3, teamItems.length - 1);
+    const markerTime = teamItems[markerIndex].state.stageTime;
+
+    teamItems.forEach((item, index) => {
+      const gapToFourth = item.state.stageTime - markerTime;
+
+      if (index <= markerIndex || (!item.state.dropped && gapToFourth <= 40)) {
+        item.state.groupLabel = `CRE ${team.name}`;
+      } else {
+        item.state.groupLabel = `Descolgado ${team.name}`;
+      }
+    });
+  });
+}
+
 function getImportantRivalIds() {
   const standings = getGCStandings();
   const userBest = standings.find(rider => rider.teamId === Game.selectedTeamId);
@@ -1532,6 +1586,10 @@ function getImportantRivalIds() {
 }
 
 function buildLiveGroups(stage, sector) {
+  if (isTeamTimeTrialStage(stage)) {
+    return buildTeamTimeTrialLiveGroups(stage, sector);
+  }
+
   recomputeLiveGroupLabels();
 
   const currentKm = sector.kmStart;
@@ -1605,6 +1663,83 @@ function buildLiveGroups(stage, sector) {
   return groups.sort((a, b) => (order[a.label] ?? 9) - (order[b.label] ?? 9));
 }
 
+function buildTeamTimeTrialLiveGroups(stage, sector) {
+  recomputeTeamTimeTrialGroupLabels();
+
+  const currentKm = sector.kmStart;
+  const rivalIds = getImportantRivalIds();
+  const groups = [];
+
+  TEAMS.forEach(team => {
+    const items = getTeamRiders(team.id)
+      .map(rider => ({
+        rider,
+        state: Game.liveStage.riderState[rider.id]
+      }))
+      .filter(item => item.state);
+
+    if (!items.length) return;
+
+    const mainTrain = items.filter(item => item.state.groupLabel === `CRE ${team.name}`);
+    const dropped = items.filter(item => item.state.groupLabel === `Descolgado ${team.name}`);
+
+    if (mainTrain.length) {
+      const times = mainTrain.map(item => item.state.stageTime);
+      const avgTime = average(times);
+
+      groups.push({
+        label: `CRE ${team.name}`,
+        riders: mainTrain.map(item => item.rider),
+        userRiders: mainTrain.map(item => item.rider).filter(rider => rider.teamId === Game.selectedTeamId),
+        rivals: mainTrain.map(item => item.rider).filter(rider => rivalIds.includes(rider.id)),
+        avgTime,
+        km: currentKm,
+        isDroppedGroup: false
+      });
+    }
+
+    if (dropped.length) {
+      const times = dropped.map(item => item.state.stageTime);
+      const avgTime = average(times);
+
+      groups.push({
+        label: `Descolgados ${team.name}`,
+        riders: dropped.map(item => item.rider),
+        userRiders: dropped.map(item => item.rider).filter(rider => rider.teamId === Game.selectedTeamId),
+        rivals: dropped.map(item => item.rider).filter(rider => rivalIds.includes(rider.id)),
+        avgTime,
+        km: currentKm,
+        isDroppedGroup: true
+      });
+    }
+  });
+
+  if (!groups.length) return [];
+
+  const leaderTime = Math.min(...groups.map(group => group.avgTime));
+
+  groups.forEach(group => {
+    const gap = Math.max(0, group.avgTime - leaderTime);
+
+    group.km = clamp(currentKm - gap / 45, 0, stage.distance);
+    group.gapText = gap <= 3 ? "m.t." : `+${secondsToTime(gap)}`;
+
+    if (group.isDroppedGroup) {
+      group.className = "group-dropped";
+    } else if (group.userRiders.length) {
+      group.className = "group-leader";
+    } else if (gap <= 3) {
+      group.className = "group-breakaway";
+    } else if (gap < 60) {
+      group.className = "group-peloton";
+    } else {
+      group.className = "group-second";
+    }
+  });
+
+  return groups.sort((a, b) => a.avgTime - b.avgTime);
+}
+
 function renderLiveRaceMap(stage, sector) {
   const groups = buildLiveGroups(stage, sector);
 
@@ -1665,10 +1800,10 @@ function renderLivePositionProfile(stage, groups) {
       </svg>
 
       <div class="map-legend">
-        <span><b class="legend-dot breakaway"></b> Fuga</span>
-        <span><b class="legend-dot leader"></b> Grupo líder</span>
-        <span><b class="legend-dot peloton"></b> Pelotón</span>
-        <span><b class="legend-dot dropped"></b> Cortados</span>
+        <span><b class="legend-dot breakaway"></b> ${isTeamTimeTrialStage(stage) ? "Mejor CRE" : "Fuga"}</span>
+        <span><b class="legend-dot leader"></b> Tu equipo / grupo líder</span>
+        <span><b class="legend-dot peloton"></b> Bloque perseguidor</span>
+        <span><b class="legend-dot dropped"></b> Descolgados</span>
       </div>
     </div>
   `;
@@ -1741,6 +1876,18 @@ function renderGroupCard(group) {
    ============================================================ */
 
 function renderLiveOrders() {
+  const disabledTTT = isTeamTimeTrialStage(getCurrentStage());
+
+  if (disabledTTT) {
+    return `
+      <h2>Órdenes de coche</h2>
+      <p class="help">
+        En CRE las órdenes de pelotón, fuga o esperar líder no aplican igual.
+        La prioridad es mantener el bloque unido hasta que el 4º corredor marque el tiempo.
+      </p>
+    `;
+  }
+
   return `
     <h2>Órdenes de coche</h2>
     <div class="preset-row">
@@ -1758,6 +1905,12 @@ function renderLiveOrders() {
 }
 
 function toggleLiveOrder(orderId) {
+  if (isTeamTimeTrialStage(getCurrentStage())) {
+    addRadio("En CRE no se permiten órdenes de pelotón/fuga. Mantén el bloque cohesionado.");
+    renderLiveStageScreen();
+    return;
+  }
+
   Game.liveStage.orders[orderId] = !Game.liveStage.orders[orderId];
 
   if (orderId === "teamPull" && Game.liveStage.orders[orderId]) {
@@ -1947,9 +2100,14 @@ function simulateCurrentSector() {
     simulateRiderSector(rider, stage, sector, sectorLog);
   });
 
-  updateBreakawayAfterSector(stage, sector, sectorLog);
-  updatePelotonState(sectorLog);
-  applySectorOrders(sector, sectorLog);
+  if (isTeamTimeTrialStage(stage)) {
+    applyTeamTimeTrialCohesionToLive(stage, sector, sectorLog);
+  } else {
+    updateBreakawayAfterSector(stage, sector, sectorLog);
+    updatePelotonState(sectorLog);
+    applySectorOrders(sector, sectorLog);
+  }
+
   recomputeLiveGroupLabels();
 
   Game.liveStage.sectorLogs.push(sectorLog);
@@ -1965,6 +2123,124 @@ function simulateCurrentSector() {
   addRadio(getSectorTransitionHint(stage.sectors[Game.liveStage.currentSectorIndex]));
   saveGame();
   renderLiveStageScreen();
+}
+
+function applyTeamTimeTrialCohesionToLive(stage, sector, sectorLog) {
+  if (!isTeamTimeTrialStage(stage) || !Game.liveStage) return;
+
+  TEAMS.forEach(team => {
+    const teamItems = getTeamRiders(team.id)
+      .map(rider => ({
+        rider,
+        state: Game.liveStage.riderState[rider.id]
+      }))
+      .filter(item => item.state)
+      .sort((a, b) => a.state.stageTime - b.state.stageTime);
+
+    if (!teamItems.length) return;
+
+    const markerIndex = Math.min(3, teamItems.length - 1);
+    const markerTime = teamItems[markerIndex].state.stageTime;
+
+    const train = [];
+    const dropped = [];
+
+    teamItems.forEach((item, index) => {
+      const state = item.state;
+
+      const hasSeriousProblem =
+        state.incident ||
+        state.crisis ||
+        state.energy < 10 ||
+        state.hydration < 12;
+
+      const gapToFourth = state.stageTime - markerTime;
+
+      /*
+        Regla CRE:
+        - Los 4 primeros SIEMPRE forman el bloque principal.
+        - Nadie puede ir por delante del bloque.
+        - Los corredores 5-8 solo se descuelgan si pierden claramente contacto
+          o llegan muy tocados.
+      */
+      if (index <= markerIndex) {
+        train.push(item);
+        return;
+      }
+
+      if (!hasSeriousProblem && gapToFourth <= 40) {
+        train.push(item);
+      } else {
+        dropped.push(item);
+      }
+    });
+
+    train.forEach(item => {
+      item.state.stageTime = markerTime + randomBetween(0, 3);
+      item.state.groupLabel = `CRE ${team.name}`;
+      item.state.dropped = false;
+    });
+
+    dropped.forEach(item => {
+      item.state.groupLabel = `Descolgado ${team.name}`;
+      item.state.dropped = true;
+      item.state.stageTime = Math.max(item.state.stageTime, markerTime + randomBetween(25, 120));
+    });
+
+    if (dropped.length) {
+      sectorLog.events.push(
+        `${team.name}: ${dropped.map(item => item.rider.name).join(", ")} se descuelga${dropped.length > 1 ? "n" : ""} en la CRE.`
+      );
+    }
+  });
+
+  Game.liveStage.breakawayIds = [];
+  Game.liveStage.breakawayGap = 0;
+  Game.liveStage.pelotonSize = getAllActiveRiders().length;
+  Game.liveStage.droppedCount = Object.values(Game.liveStage.riderState)
+    .filter(state => state.dropped)
+    .length;
+}
+
+function applyTeamTimeTrialFinalRules(stage, results) {
+  if (!isTeamTimeTrialStage(stage)) return;
+
+  TEAMS.forEach(team => {
+    const teamResults = results
+      .filter(result => result.teamId === team.id)
+      .sort((a, b) => a.stageTime - b.stageTime);
+
+    if (!teamResults.length) return;
+
+    const markerIndex = Math.min(3, teamResults.length - 1);
+    const markerTime = teamResults[markerIndex].stageTime;
+
+    teamResults.forEach((result, index) => {
+      const hasSeriousProblem =
+        result.incident ||
+        result.crisis ||
+        result.timeCut;
+
+      const gapToFourth = result.stageTime - markerTime;
+
+      /*
+        Resultado CRE:
+        - El 4º corredor marca el tiempo del equipo.
+        - Los 4 primeros llegan juntos con ese tiempo.
+        - El resto conserva el mismo tiempo si ha aguantado el bloque.
+        - Si se descuelga, mantiene su pérdida individual.
+      */
+      if (index <= markerIndex || (!hasSeriousProblem && gapToFourth <= 5)) {
+        result.stageTime = markerTime;
+        result.groupLabel = `CRE ${team.name}`;
+      } else {
+        result.stageTime = Math.max(result.stageTime, markerTime + 6);
+        result.groupLabel = `Descolgado CRE +${secondsToTime(result.stageTime - markerTime)}`;
+      }
+    });
+  });
+
+  results.sort((a, b) => a.stageTime - b.stageTime);
 }
 
 function applyAutoNutritionForSector(sector) {
@@ -2127,7 +2403,7 @@ function simulateRiderSector(rider, stage, sector, sectorLog) {
 
   if (live.energy < 20 && !live.dropped) {
     live.dropped = true;
-    live.groupLabel = "Cortados";
+    live.groupLabel = isTeamTimeTrialStage(stage) ? `Descolgado ${getTeam(rider.teamId).name}` : "Cortados";
     Game.liveStage.droppedCount += 1;
   }
 }
@@ -2217,6 +2493,7 @@ function calculateNutritionBonus(live, sector) {
 }
 
 function calculateLiveSupportBonus(rider, sector) {
+  if (isTeamTimeTrialStage(getCurrentStage())) return 0;
   if (rider.id !== Game.protectedRiderId) return 0;
 
   const mates = getTeamRiders(Game.selectedTeamId).filter(mate => mate.id !== rider.id);
@@ -2449,6 +2726,7 @@ function applySectorOrders(sector, sectorLog) {
 }
 
 function getSectorTransitionHint(sector) {
+  if (isTeamTimeTrialStage(getCurrentStage())) return "Radio: sigue la CRE. Mantén mínimo 4 corredores unidos; los tocados pueden descolgarse.";
   if (sector.type === "climb") return "Radio: llega subida. Alimentación automática activa; revisa que el líder no esté bajo de energía.";
   if (sector.type === "final") return "Radio: sector final. La cafeína, energía y grupo donde va tu líder pueden decidir.";
   if (sector.type === "cobbles") return "Radio: sector peligroso. Evita ir all-in con corredores fatigados.";
@@ -2481,7 +2759,7 @@ function finishLiveStage() {
     };
   });
 
-  if (Game.liveStage.breakawayIds.length && Game.liveStage.breakawayGap > 45) {
+  if (!isTeamTimeTrialStage(stage) && Game.liveStage.breakawayIds.length && Game.liveStage.breakawayGap > 45) {
     results.forEach(result => {
       if (Game.liveStage.breakawayIds.includes(result.riderId)) {
         result.stageTime -= Math.min(180, Game.liveStage.breakawayGap * 0.45);
@@ -2491,9 +2769,15 @@ function finishLiveStage() {
   }
 
   results.sort((a, b) => a.stageTime - b.stageTime);
-  applyTimeBonuses(stage, results);
-  results.sort((a, b) => a.stageTime - b.stageTime);
-  applyGroupFinishFromLive(stage, results);
+
+  if (isTeamTimeTrialStage(stage)) {
+    applyTeamTimeTrialFinalRules(stage, results);
+  } else {
+    applyTimeBonuses(stage, results);
+    results.sort((a, b) => a.stageTime - b.stageTime);
+    applyGroupFinishFromLive(stage, results);
+  }
+
   results.sort((a, b) => a.stageTime - b.stageTime);
   updateStagePositions(results);
 
@@ -2515,10 +2799,12 @@ function finishLiveStage() {
     results,
     breakawayInfo: {
       riderIds: Game.liveStage.breakawayIds,
-      success: Game.liveStage.breakawayGap > 45,
-      narrative: Game.liveStage.breakawayIds.length
-        ? `Fuga de ${Game.liveStage.breakawayIds.length}. ${Game.liveStage.breakawayGap > 45 ? "La fuga llegó con ventaja." : "La fuga fue neutralizada."}`
-        : "Sin fuga relevante."
+      success: !isTeamTimeTrialStage(stage) && Game.liveStage.breakawayGap > 45,
+      narrative: isTeamTimeTrialStage(stage)
+        ? "Crono por equipos disputada por bloques. El tiempo de cada equipo lo marca el 4º corredor."
+        : Game.liveStage.breakawayIds.length
+          ? `Fuga de ${Game.liveStage.breakawayIds.length}. ${Game.liveStage.breakawayGap > 45 ? "La fuga llegó con ventaja." : "La fuga fue neutralizada."}`
+          : "Sin fuga relevante."
     },
     sectorLogs: Game.liveStage.sectorLogs
   };
@@ -2792,6 +3078,11 @@ function chooseAITactic(rider, stage) {
   const ai = team.aiProfile || {};
 
   if (rider.fatigue > 65) return getTactic("conservative");
+
+  if (stage.type === "team_time_trial") {
+    if (["gc", "co_leader", "time_trialist", "rouleur"].includes(rider.roleKey)) return getTactic("aggressive");
+    return getTactic("balanced");
+  }
 
   if (stage.type === "mountain" && (ai.gcFocus || 0) > 75) return getTactic("aggressive");
   if (stage.type === "hilly" && (ai.breakawayFocus || 0) > 70) return getTactic("aggressive");
@@ -3246,6 +3537,7 @@ function renderStageAnalysis(stage, results) {
 }
 
 function getStageComment(stage) {
+  if (stage.type === "team_time_trial") return "CRE: el bloque se ha corregido. El tiempo de equipo lo marca el 4º corredor y no hay escapadas internas irreales.";
   if (stage.type === "mountain") return "Montaña: la nutrición, energía y gregarios quemados deciden la etapa.";
   if (stage.type === "hilly") return "Media montaña: fugas, cambios tácticos y geles antes del final son claves.";
   if (stage.type === "flat") return stage.profile.windExposure > 60 ? "Llano con viento: los cortes pueden mover la general." : "Llano: tren de sprint y colocación.";
@@ -3481,7 +3773,7 @@ function renderStageHistorySummary() {
           <th>Tipo</th>
           <th>Ganador</th>
           <th>Equipo</th>
-          <th>Fuga</th>
+          <th>Fuga / CRE</th>
         </tr>
       </thead>
       <tbody>
@@ -3491,7 +3783,7 @@ function renderStageHistorySummary() {
             <td>${escapeHtml(item.stage.label)}</td>
             <td>${escapeHtml(item.results[0]?.riderName || "—")}</td>
             <td>${escapeHtml(item.results[0]?.teamName || "—")}</td>
-            <td>${item.breakawayInfo?.success ? "Llegó" : "Neutralizada"}</td>
+            <td>${item.stage.type === "team_time_trial" ? "CRE" : item.breakawayInfo?.success ? "Llegó" : "Neutralizada"}</td>
           </tr>
         `).join("") || `<tr><td>—</td><td colspan="4">Sin etapas disputadas</td></tr>`}
       </tbody>
