@@ -1,6 +1,6 @@
 /* ============================================================
    CYCLING MANAGER TOUR - styles.css
-   Ajustado para 10 equipos, 80 corredores y 21 etapas
+   Equipos reales + estrategia individual por corredor
    ============================================================ */
 
 :root {
@@ -23,6 +23,12 @@
 
   --orange: #f59e0b;
   --orange-soft: rgba(245, 158, 11, 0.14);
+
+  --red: #ef4444;
+  --red-soft: rgba(239, 68, 68, 0.14);
+
+  --yellow: #facc15;
+  --yellow-soft: rgba(250, 204, 21, 0.14);
 
   --danger: #ef4444;
 
@@ -116,6 +122,23 @@ button:disabled {
   box-shadow: none;
 }
 
+select {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: rgba(15, 23, 42, 0.88);
+  color: var(--text);
+  padding: 9px 10px;
+  font-size: 13px;
+  font-weight: 800;
+  outline: none;
+}
+
+select:focus {
+  border-color: rgba(34, 197, 94, 0.72);
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.12);
+}
+
 #app {
   width: min(100%, 1480px);
   margin: 0 auto;
@@ -188,7 +211,8 @@ button:disabled {
 .team-card,
 .rider-card,
 .stage-card,
-.tactic-card {
+.tactic-card,
+.strategy-card {
   background:
     linear-gradient(180deg, rgba(38, 50, 68, 0.96), rgba(31, 41, 55, 0.96));
   border: 1px solid var(--border);
@@ -205,7 +229,8 @@ button:disabled {
 .team-card h3,
 .stage-card h3,
 .rider-card h4,
-.tactic-card h3 {
+.tactic-card h3,
+.strategy-card h3 {
   margin: 0 0 7px;
 }
 
@@ -224,21 +249,6 @@ button:disabled {
 
 .stage-card.done strong {
   color: var(--muted);
-}
-
-.tactic-card {
-  text-align: left;
-}
-
-.tactic-card.selected {
-  outline: 2px solid var(--accent);
-  background:
-    linear-gradient(180deg, rgba(34, 197, 94, 0.18), rgba(31, 41, 55, 0.98));
-}
-
-.tactic-card button {
-  width: 100%;
-  margin-top: 10px;
 }
 
 .muted {
@@ -295,6 +305,18 @@ button:disabled {
   border-color: rgba(245, 158, 11, 0.38);
 }
 
+.badge.red {
+  background: var(--red-soft);
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.38);
+}
+
+.badge.yellow {
+  background: var(--yellow-soft);
+  color: #fde68a;
+  border-color: rgba(250, 204, 21, 0.38);
+}
+
 .big-number {
   font-size: 44px;
   line-height: 1;
@@ -329,27 +351,62 @@ hr {
   padding-right: 6px;
 }
 
-.tactic-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-}
-
 .stage-list,
-.rider-grid {
+.rider-grid,
+.strategy-grid {
   scrollbar-width: thin;
   scrollbar-color: var(--panel-lighter) transparent;
 }
 
 .stage-list::-webkit-scrollbar,
-.rider-grid::-webkit-scrollbar {
+.rider-grid::-webkit-scrollbar,
+.strategy-grid::-webkit-scrollbar {
   width: 8px;
 }
 
 .stage-list::-webkit-scrollbar-thumb,
-.rider-grid::-webkit-scrollbar-thumb {
+.rider-grid::-webkit-scrollbar-thumb,
+.strategy-grid::-webkit-scrollbar-thumb {
   background: var(--panel-lighter);
   border-radius: 999px;
+}
+
+/* ============================================================
+   ESTRATEGIA INDIVIDUAL
+   ============================================================ */
+
+.preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.preset-row button {
+  flex: 1 1 150px;
+}
+
+.strategy-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  max-height: 640px;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.strategy-card {
+  display: grid;
+  gap: 10px;
+}
+
+.strategy-card h3 {
+  font-size: 16px;
+  letter-spacing: -0.025em;
+}
+
+.strategy-card p {
+  min-height: 32px;
 }
 
 /* ============================================================
@@ -462,6 +519,10 @@ tr.user-team td {
   .rider-grid {
     max-height: 640px;
   }
+
+  .strategy-grid {
+    max-height: 520px;
+  }
 }
 
 @media (max-width: 900px) {
@@ -482,11 +543,8 @@ tr.user-team td {
     grid-template-columns: 1fr;
   }
 
-  .tactic-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .rider-grid {
+  .rider-grid,
+  .strategy-grid {
     grid-template-columns: 1fr;
   }
 
@@ -507,10 +565,6 @@ tr.user-team td {
 
   .header h1 {
     font-size: 30px;
-  }
-
-  .tactic-grid {
-    grid-template-columns: 1fr;
   }
 
   .badge {
