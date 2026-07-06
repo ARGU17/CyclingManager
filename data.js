@@ -1,11 +1,7 @@
 /* ============================================================
    CYCLING MANAGER TOUR - data.js
-   Equipos reales + corredores reales + 21 etapas tipo Tour
-   Versión con estrategia individual por corredor
-   ============================================================ */
-
-/* ============================================================
-   EQUIPOS REALES
+   v0.4: carreras múltiples, equipos/corredores reales, perfiles,
+   UCI points, puntos, montaña, jóvenes y equipos.
    ============================================================ */
 
 const TEAM_BLUEPRINTS = [
@@ -26,6 +22,8 @@ const TEAM_BLUEPRINTS = [
       stamina: 6,
       recovery: 6,
       acceleration: 5,
+      positioning: 5,
+      downhill: 3,
       form: 4
     }
   },
@@ -46,6 +44,8 @@ const TEAM_BLUEPRINTS = [
       stamina: 6,
       recovery: 7,
       acceleration: 3,
+      positioning: 6,
+      downhill: 4,
       form: 3
     }
   },
@@ -66,6 +66,8 @@ const TEAM_BLUEPRINTS = [
       stamina: 5,
       recovery: 4,
       acceleration: 0,
+      positioning: 4,
+      downhill: 2,
       form: 2
     }
   },
@@ -86,6 +88,8 @@ const TEAM_BLUEPRINTS = [
       stamina: 4,
       recovery: 4,
       acceleration: 2,
+      positioning: 2,
+      downhill: 3,
       form: 2
     }
   },
@@ -106,6 +110,8 @@ const TEAM_BLUEPRINTS = [
       stamina: 5,
       recovery: 5,
       acceleration: 3,
+      positioning: 3,
+      downhill: 2,
       form: 3
     }
   },
@@ -126,6 +132,8 @@ const TEAM_BLUEPRINTS = [
       stamina: 3,
       recovery: 2,
       acceleration: 5,
+      positioning: 4,
+      downhill: 1,
       form: 2
     }
   },
@@ -146,6 +154,8 @@ const TEAM_BLUEPRINTS = [
       stamina: 4,
       recovery: 3,
       acceleration: 5,
+      positioning: 4,
+      downhill: 3,
       form: 3
     }
   },
@@ -166,6 +176,8 @@ const TEAM_BLUEPRINTS = [
       stamina: 4,
       recovery: 0,
       acceleration: 8,
+      positioning: 7,
+      downhill: 3,
       form: 3
     }
   },
@@ -186,6 +198,8 @@ const TEAM_BLUEPRINTS = [
       stamina: 4,
       recovery: 3,
       acceleration: 4,
+      positioning: 3,
+      downhill: 4,
       form: 2
     }
   },
@@ -206,6 +220,8 @@ const TEAM_BLUEPRINTS = [
       stamina: 4,
       recovery: 3,
       acceleration: 4,
+      positioning: 2,
+      downhill: 3,
       form: 3
     }
   }
@@ -219,13 +235,10 @@ const TEAMS = TEAM_BLUEPRINTS.map(team => ({
   color: team.color
 }));
 
-/* ============================================================
-   ROLES BASE
-   ============================================================ */
-
 const ROLE_TEMPLATES = {
   gc: {
     role: "Líder GC",
+    ageBase: 28,
     abandonRisk: 0.016,
     stats: {
       flat: 80,
@@ -237,12 +250,17 @@ const ROLE_TEMPLATES = {
       hills: 84,
       stamina: 90,
       recovery: 89,
-      acceleration: 80
+      acceleration: 80,
+      positioning: 84,
+      downhill: 82,
+      consistency: 88,
+      injuryResistance: 82
     },
     form: 84
   },
   co_leader: {
     role: "Co-líder",
+    ageBase: 27,
     abandonRisk: 0.018,
     stats: {
       flat: 78,
@@ -254,12 +272,17 @@ const ROLE_TEMPLATES = {
       hills: 82,
       stamina: 87,
       recovery: 86,
-      acceleration: 78
+      acceleration: 78,
+      positioning: 80,
+      downhill: 80,
+      consistency: 84,
+      injuryResistance: 81
     },
     form: 82
   },
   climber: {
     role: "Escalador",
+    ageBase: 27,
     abandonRisk: 0.021,
     stats: {
       flat: 72,
@@ -271,12 +294,17 @@ const ROLE_TEMPLATES = {
       hills: 81,
       stamina: 86,
       recovery: 85,
-      acceleration: 78
+      acceleration: 78,
+      positioning: 76,
+      downhill: 80,
+      consistency: 82,
+      injuryResistance: 78
     },
     form: 81
   },
   time_trialist: {
     role: "Croner",
+    ageBase: 28,
     abandonRisk: 0.017,
     stats: {
       flat: 84,
@@ -288,12 +316,17 @@ const ROLE_TEMPLATES = {
       hills: 75,
       stamina: 84,
       recovery: 81,
-      acceleration: 70
+      acceleration: 70,
+      positioning: 78,
+      downhill: 76,
+      consistency: 84,
+      injuryResistance: 80
     },
     form: 81
   },
   sprinter: {
     role: "Sprinter",
+    ageBase: 29,
     abandonRisk: 0.026,
     stats: {
       flat: 84,
@@ -305,12 +338,17 @@ const ROLE_TEMPLATES = {
       hills: 72,
       stamina: 80,
       recovery: 76,
-      acceleration: 89
+      acceleration: 89,
+      positioning: 86,
+      downhill: 74,
+      consistency: 78,
+      injuryResistance: 75
     },
     form: 81
   },
   classics: {
     role: "Clasicómano",
+    ageBase: 29,
     abandonRisk: 0.024,
     stats: {
       flat: 82,
@@ -322,12 +360,17 @@ const ROLE_TEMPLATES = {
       hills: 84,
       stamina: 84,
       recovery: 80,
-      acceleration: 84
+      acceleration: 84,
+      positioning: 87,
+      downhill: 80,
+      consistency: 80,
+      injuryResistance: 77
     },
     form: 81
   },
   rouleur: {
     role: "Rodador",
+    ageBase: 29,
     abandonRisk: 0.018,
     stats: {
       flat: 85,
@@ -339,12 +382,17 @@ const ROLE_TEMPLATES = {
       hills: 75,
       stamina: 83,
       recovery: 80,
-      acceleration: 72
+      acceleration: 72,
+      positioning: 79,
+      downhill: 76,
+      consistency: 82,
+      injuryResistance: 82
     },
     form: 79
   },
   domestique: {
     role: "Gregario",
+    ageBase: 29,
     abandonRisk: 0.019,
     stats: {
       flat: 78,
@@ -356,12 +404,17 @@ const ROLE_TEMPLATES = {
       hills: 77,
       stamina: 82,
       recovery: 81,
-      acceleration: 73
+      acceleration: 73,
+      positioning: 78,
+      downhill: 76,
+      consistency: 80,
+      injuryResistance: 82
     },
     form: 78
   },
   puncheur: {
     role: "Puncheur",
+    ageBase: 26,
     abandonRisk: 0.023,
     stats: {
       flat: 78,
@@ -373,132 +426,118 @@ const ROLE_TEMPLATES = {
       hills: 86,
       stamina: 83,
       recovery: 80,
-      acceleration: 86
+      acceleration: 86,
+      positioning: 82,
+      downhill: 80,
+      consistency: 78,
+      injuryResistance: 77
     },
     form: 81
   }
 };
 
-/* ============================================================
-   CORREDORES REALES POR EQUIPO
-   Plantilla jugable: 10 equipos x 8 corredores.
-   ============================================================ */
-
 const TEAM_RIDER_BLUEPRINTS = {
   uae: [
-    { name: "Tadej Pogačar", roleKey: "gc" },
-    { name: "João Almeida", roleKey: "co_leader" },
-    { name: "Adam Yates", roleKey: "climber" },
-    { name: "Isaac del Toro", roleKey: "puncheur" },
-    { name: "Brandon McNulty", roleKey: "time_trialist" },
-    { name: "Tim Wellens", roleKey: "classics" },
-    { name: "Pavel Sivakov", roleKey: "domestique" },
-    { name: "Nils Politt", roleKey: "rouleur" }
+    { name: "Tadej Pogačar", nationality: "Slovenia", age: 27, roleKey: "gc" },
+    { name: "João Almeida", nationality: "Portugal", age: 27, roleKey: "co_leader" },
+    { name: "Adam Yates", nationality: "Great Britain", age: 33, roleKey: "climber" },
+    { name: "Isaac del Toro", nationality: "Mexico", age: 22, roleKey: "puncheur" },
+    { name: "Brandon McNulty", nationality: "United States", age: 28, roleKey: "time_trialist" },
+    { name: "Tim Wellens", nationality: "Belgium", age: 35, roleKey: "classics" },
+    { name: "Pavel Sivakov", nationality: "France", age: 29, roleKey: "domestique" },
+    { name: "Nils Politt", nationality: "Germany", age: 32, roleKey: "rouleur" }
   ],
-
   visma: [
-    { name: "Jonas Vingegaard", roleKey: "gc" },
-    { name: "Matteo Jorgenson", roleKey: "co_leader" },
-    { name: "Sepp Kuss", roleKey: "climber" },
-    { name: "Wilco Kelderman", roleKey: "domestique" },
-    { name: "Dylan van Baarle", roleKey: "rouleur" },
-    { name: "Christophe Laporte", roleKey: "classics" },
-    { name: "Olav Kooij", roleKey: "sprinter" },
-    { name: "Tiesj Benoot", roleKey: "puncheur" }
+    { name: "Jonas Vingegaard", nationality: "Denmark", age: 29, roleKey: "gc" },
+    { name: "Matteo Jorgenson", nationality: "United States", age: 27, roleKey: "co_leader" },
+    { name: "Sepp Kuss", nationality: "United States", age: 31, roleKey: "climber" },
+    { name: "Wilco Kelderman", nationality: "Netherlands", age: 35, roleKey: "domestique" },
+    { name: "Dylan van Baarle", nationality: "Netherlands", age: 34, roleKey: "rouleur" },
+    { name: "Christophe Laporte", nationality: "France", age: 33, roleKey: "classics" },
+    { name: "Olav Kooij", nationality: "Netherlands", age: 24, roleKey: "sprinter" },
+    { name: "Tiesj Benoot", nationality: "Belgium", age: 32, roleKey: "puncheur" }
   ],
-
   ineos: [
-    { name: "Egan Bernal", roleKey: "gc" },
-    { name: "Carlos Rodríguez", roleKey: "co_leader" },
-    { name: "Thymen Arensman", roleKey: "climber" },
-    { name: "Filippo Ganna", roleKey: "time_trialist" },
-    { name: "Joshua Tarling", roleKey: "time_trialist" },
-    { name: "Magnus Sheffield", roleKey: "rouleur" },
-    { name: "Laurens De Plus", roleKey: "domestique" },
-    { name: "Ben Turner", roleKey: "classics" }
+    { name: "Egan Bernal", nationality: "Colombia", age: 29, roleKey: "gc" },
+    { name: "Carlos Rodríguez", nationality: "Spain", age: 25, roleKey: "co_leader" },
+    { name: "Thymen Arensman", nationality: "Netherlands", age: 26, roleKey: "climber" },
+    { name: "Filippo Ganna", nationality: "Italy", age: 29, roleKey: "time_trialist" },
+    { name: "Joshua Tarling", nationality: "Great Britain", age: 22, roleKey: "time_trialist" },
+    { name: "Magnus Sheffield", nationality: "United States", age: 24, roleKey: "rouleur" },
+    { name: "Laurens De Plus", nationality: "Belgium", age: 30, roleKey: "domestique" },
+    { name: "Ben Turner", nationality: "Great Britain", age: 27, roleKey: "classics" }
   ],
-
   movistar: [
-    { name: "Enric Mas", roleKey: "gc" },
-    { name: "Nairo Quintana", roleKey: "climber" },
-    { name: "Einer Rubio", roleKey: "climber" },
-    { name: "Iván Romeo", roleKey: "time_trialist" },
-    { name: "Alex Aranburu", roleKey: "classics" },
-    { name: "Fernando Gaviria", roleKey: "sprinter" },
-    { name: "Davide Formolo", roleKey: "domestique" },
-    { name: "Pelayo Sánchez", roleKey: "puncheur" }
+    { name: "Enric Mas", nationality: "Spain", age: 31, roleKey: "gc" },
+    { name: "Nairo Quintana", nationality: "Colombia", age: 36, roleKey: "climber" },
+    { name: "Einer Rubio", nationality: "Colombia", age: 28, roleKey: "climber" },
+    { name: "Iván Romeo", nationality: "Spain", age: 23, roleKey: "time_trialist" },
+    { name: "Alex Aranburu", nationality: "Spain", age: 30, roleKey: "classics" },
+    { name: "Fernando Gaviria", nationality: "Colombia", age: 31, roleKey: "sprinter" },
+    { name: "Davide Formolo", nationality: "Italy", age: 33, roleKey: "domestique" },
+    { name: "Pelayo Sánchez", nationality: "Spain", age: 26, roleKey: "puncheur" }
   ],
-
   redbull: [
-    { name: "Primož Roglič", roleKey: "gc" },
-    { name: "Jai Hindley", roleKey: "climber" },
-    { name: "Aleksandr Vlasov", roleKey: "co_leader" },
-    { name: "Daniel Martínez", roleKey: "climber" },
-    { name: "Florian Lipowitz", roleKey: "climber" },
-    { name: "Roger Adrià", roleKey: "puncheur" },
-    { name: "Sam Welsford", roleKey: "sprinter" },
-    { name: "Bob Jungels", roleKey: "rouleur" }
+    { name: "Primož Roglič", nationality: "Slovenia", age: 36, roleKey: "gc" },
+    { name: "Jai Hindley", nationality: "Australia", age: 30, roleKey: "climber" },
+    { name: "Aleksandr Vlasov", nationality: "Russia", age: 30, roleKey: "co_leader" },
+    { name: "Daniel Martínez", nationality: "Colombia", age: 30, roleKey: "climber" },
+    { name: "Florian Lipowitz", nationality: "Germany", age: 25, roleKey: "climber" },
+    { name: "Roger Adrià", nationality: "Spain", age: 28, roleKey: "puncheur" },
+    { name: "Sam Welsford", nationality: "Australia", age: 30, roleKey: "sprinter" },
+    { name: "Bob Jungels", nationality: "Luxembourg", age: 33, roleKey: "rouleur" }
   ],
-
   soudal: [
-    { name: "Remco Evenepoel", roleKey: "gc" },
-    { name: "Mikel Landa", roleKey: "climber" },
-    { name: "Ilan Van Wilder", roleKey: "co_leader" },
-    { name: "Tim Merlier", roleKey: "sprinter" },
-    { name: "Kasper Asgreen", roleKey: "rouleur" },
-    { name: "Yves Lampaert", roleKey: "time_trialist" },
-    { name: "Mauri Vansevenant", roleKey: "puncheur" },
-    { name: "Bert Van Lerberghe", roleKey: "domestique" }
+    { name: "Remco Evenepoel", nationality: "Belgium", age: 26, roleKey: "gc" },
+    { name: "Mikel Landa", nationality: "Spain", age: 36, roleKey: "climber" },
+    { name: "Ilan Van Wilder", nationality: "Belgium", age: 26, roleKey: "co_leader" },
+    { name: "Tim Merlier", nationality: "Belgium", age: 33, roleKey: "sprinter" },
+    { name: "Kasper Asgreen", nationality: "Denmark", age: 31, roleKey: "rouleur" },
+    { name: "Yves Lampaert", nationality: "Belgium", age: 35, roleKey: "time_trialist" },
+    { name: "Mauri Vansevenant", nationality: "Belgium", age: 27, roleKey: "puncheur" },
+    { name: "Bert Van Lerberghe", nationality: "Belgium", age: 33, roleKey: "domestique" }
   ],
-
   lidl: [
-    { name: "Juan Ayuso", roleKey: "gc" },
-    { name: "Mattias Skjelmose", roleKey: "co_leader" },
-    { name: "Giulio Ciccone", roleKey: "climber" },
-    { name: "Mads Pedersen", roleKey: "classics" },
-    { name: "Jonathan Milan", roleKey: "sprinter" },
-    { name: "Tao Geoghegan Hart", roleKey: "climber" },
-    { name: "Simone Consonni", roleKey: "rouleur" },
-    { name: "Jasper Stuyven", roleKey: "classics" }
+    { name: "Juan Ayuso", nationality: "Spain", age: 24, roleKey: "gc" },
+    { name: "Mattias Skjelmose", nationality: "Denmark", age: 26, roleKey: "co_leader" },
+    { name: "Giulio Ciccone", nationality: "Italy", age: 31, roleKey: "climber" },
+    { name: "Mads Pedersen", nationality: "Denmark", age: 30, roleKey: "classics" },
+    { name: "Jonathan Milan", nationality: "Italy", age: 26, roleKey: "sprinter" },
+    { name: "Tao Geoghegan Hart", nationality: "Great Britain", age: 31, roleKey: "climber" },
+    { name: "Simone Consonni", nationality: "Italy", age: 31, roleKey: "rouleur" },
+    { name: "Jasper Stuyven", nationality: "Belgium", age: 34, roleKey: "classics" }
   ],
-
   alpecin: [
-    { name: "Mathieu van der Poel", roleKey: "classics" },
-    { name: "Jasper Philipsen", roleKey: "sprinter" },
-    { name: "Kaden Groves", roleKey: "sprinter" },
-    { name: "Søren Kragh Andersen", roleKey: "rouleur" },
-    { name: "Quinten Hermans", roleKey: "puncheur" },
-    { name: "Gianni Vermeersch", roleKey: "classics" },
-    { name: "Tibor Del Grosso", roleKey: "puncheur" },
-    { name: "Silvan Dillier", roleKey: "domestique" }
+    { name: "Mathieu van der Poel", nationality: "Netherlands", age: 31, roleKey: "classics" },
+    { name: "Jasper Philipsen", nationality: "Belgium", age: 28, roleKey: "sprinter" },
+    { name: "Kaden Groves", nationality: "Australia", age: 27, roleKey: "sprinter" },
+    { name: "Søren Kragh Andersen", nationality: "Denmark", age: 32, roleKey: "rouleur" },
+    { name: "Quinten Hermans", nationality: "Belgium", age: 31, roleKey: "puncheur" },
+    { name: "Gianni Vermeersch", nationality: "Belgium", age: 33, roleKey: "classics" },
+    { name: "Tibor Del Grosso", nationality: "Netherlands", age: 23, roleKey: "puncheur" },
+    { name: "Silvan Dillier", nationality: "Switzerland", age: 36, roleKey: "domestique" }
   ],
-
   bahrain: [
-    { name: "Pello Bilbao", roleKey: "gc" },
-    { name: "Santiago Buitrago", roleKey: "climber" },
-    { name: "Antonio Tiberi", roleKey: "co_leader" },
-    { name: "Matej Mohorič", roleKey: "classics" },
-    { name: "Phil Bauhaus", roleKey: "sprinter" },
-    { name: "Jack Haig", roleKey: "climber" },
-    { name: "Fred Wright", roleKey: "rouleur" },
-    { name: "Kamil Gradek", roleKey: "time_trialist" }
+    { name: "Pello Bilbao", nationality: "Spain", age: 36, roleKey: "gc" },
+    { name: "Santiago Buitrago", nationality: "Colombia", age: 26, roleKey: "climber" },
+    { name: "Antonio Tiberi", nationality: "Italy", age: 25, roleKey: "co_leader" },
+    { name: "Matej Mohorič", nationality: "Slovenia", age: 31, roleKey: "classics" },
+    { name: "Phil Bauhaus", nationality: "Germany", age: 32, roleKey: "sprinter" },
+    { name: "Jack Haig", nationality: "Australia", age: 33, roleKey: "climber" },
+    { name: "Fred Wright", nationality: "Great Britain", age: 27, roleKey: "rouleur" },
+    { name: "Kamil Gradek", nationality: "Poland", age: 36, roleKey: "time_trialist" }
   ],
-
   decathlon: [
-    { name: "Felix Gall", roleKey: "gc" },
-    { name: "Paul Seixas", roleKey: "climber" },
-    { name: "Paul Lapeira", roleKey: "puncheur" },
-    { name: "Dorian Godon", roleKey: "classics" },
-    { name: "Bruno Armirail", roleKey: "time_trialist" },
-    { name: "Oliver Naesen", roleKey: "rouleur" },
-    { name: "Sam Bennett", roleKey: "sprinter" },
-    { name: "Aurélien Paret-Peintre", roleKey: "climber" }
+    { name: "Felix Gall", nationality: "Austria", age: 28, roleKey: "gc" },
+    { name: "Paul Seixas", nationality: "France", age: 20, roleKey: "climber" },
+    { name: "Paul Lapeira", nationality: "France", age: 26, roleKey: "puncheur" },
+    { name: "Dorian Godon", nationality: "France", age: 30, roleKey: "classics" },
+    { name: "Bruno Armirail", nationality: "France", age: 32, roleKey: "time_trialist" },
+    { name: "Oliver Naesen", nationality: "Belgium", age: 35, roleKey: "rouleur" },
+    { name: "Sam Bennett", nationality: "Ireland", age: 35, roleKey: "sprinter" },
+    { name: "Aurélien Paret-Peintre", nationality: "France", age: 30, roleKey: "climber" }
   ]
 };
-
-/* ============================================================
-   GENERADOR DE STATS
-   ============================================================ */
 
 function dataClamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
@@ -524,7 +563,7 @@ function buildStats(baseStats, modifiers, teamIndex, riderIndex) {
     const modifier = modifiers[statName] || 0;
     const noise = deterministicNoise(teamIndex, riderIndex, statName);
 
-    stats[statName] = dataClamp(base + modifier + noise, 45, 99);
+    stats[statName] = dataClamp(base + modifier + noise, 42, 99);
   });
 
   return stats;
@@ -534,9 +573,7 @@ function generateRiders() {
   const riders = [];
 
   TEAM_BLUEPRINTS.forEach((team, teamIndex) => {
-    const riderBlueprints = TEAM_RIDER_BLUEPRINTS[team.id];
-
-    riderBlueprints.forEach((riderData, riderIndex) => {
+    TEAM_RIDER_BLUEPRINTS[team.id].forEach((riderData, riderIndex) => {
       const template = ROLE_TEMPLATES[riderData.roleKey];
       const id = `${team.id}_${String(riderIndex + 1).padStart(2, "0")}`;
 
@@ -546,16 +583,29 @@ function generateRiders() {
         teamId: team.id,
         role: template.role,
         roleKey: riderData.roleKey,
+        nationality: riderData.nationality,
+        age: riderData.age || template.ageBase,
+        speciality: template.role,
         stats: buildStats(template.stats, team.modifiers, teamIndex, riderIndex),
         form: dataClamp(
           template.form + team.modifiers.form + deterministicNoise(teamIndex, riderIndex, "form"),
           68,
+          98
+        ),
+        morale: dataClamp(
+          78 + team.modifiers.form + deterministicNoise(teamIndex, riderIndex, "morale"),
+          55,
           96
         ),
+        energy: 100,
         fatigue: 0,
         totalTime: 0,
         raceDays: 0,
-        abandonRisk: template.abandonRisk
+        points: 0,
+        mountainPoints: 0,
+        uciPoints: 0,
+        abandonRisk: template.abandonRisk,
+        abandoned: false
       });
     });
   });
@@ -565,226 +615,281 @@ function generateRiders() {
 
 const RIDERS = generateRiders();
 
-/* ============================================================
-   21 ETAPAS TIPO TOUR
-   ============================================================ */
+const CLASSIFICATION_RULES = {
+  youthMaxAge: 25,
+  teamClassificationBestRiders: 3,
 
-const STAGES = [
+  finishBonuses: [10, 6, 4],
+
+  pointsByStageType: {
+    flat: [50, 30, 20, 18, 16, 14, 12, 10, 8, 7, 6, 5, 4, 3, 2],
+    hilly: [35, 25, 20, 17, 15, 13, 11, 9, 7, 6, 5, 4, 3, 2, 1],
+    mountain: [25, 20, 16, 14, 12, 10, 8, 6, 4, 2],
+    cobbles_hills: [35, 25, 20, 17, 15, 13, 11, 9, 7, 6],
+    time_trial: [20, 17, 15, 13, 11, 9, 7, 5, 3, 1],
+    team_time_trial: [20, 17, 15, 13, 11, 9, 7, 5, 3, 1]
+  },
+
+  intermediateSprintPoints: [20, 17, 15, 13, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1],
+
+  mountainPoints: {
+    HC: [20, 15, 12, 10, 8, 6, 4, 2],
+    "1": [10, 8, 6, 4, 2, 1],
+    "2": [5, 3, 2, 1],
+    "3": [2, 1],
+    "4": [1]
+  },
+
+  uci: {
+    grandTourStage: [120, 50, 25, 15, 5],
+    grandTourFinalGC: [
+      1300, 1040, 880, 730, 620, 520, 425, 325, 275, 225,
+      175, 150, 125, 105, 85, 75, 70, 65, 60, 55,
+      50, 45, 40, 35, 30, 25, 20, 15, 10, 5
+    ],
+    stageLeaderPerDay: 25,
+    secondaryFinal: [120, 50, 25]
+  }
+};
+
+function climb(name, category, km, length, gradient) {
+  return { name, category, km, length, gradient };
+}
+
+function sprint(km) {
+  return { km, points: CLASSIFICATION_RULES.intermediateSprintPoints };
+}
+
+function stage(idPrefix, number, name, type, distance, difficulty, profile = {}) {
+  const labels = {
+    flat: "Llana",
+    hilly: "Media montaña",
+    mountain: "Alta montaña",
+    cobbles_hills: "Pavés + muros",
+    time_trial: "CRI",
+    team_time_trial: "CRE"
+  };
+
+  return {
+    id: `${idPrefix}_${String(number).padStart(2, "0")}`,
+    number,
+    name,
+    type,
+    label: labels[type] || type,
+    distance,
+    difficulty,
+    description: profile.description || "Etapa de gran vuelta.",
+    profile: {
+      elevationGain: profile.elevationGain || 800,
+      finalClimb: !!profile.finalClimb,
+      technicalDescent: profile.technicalDescent || 25,
+      windExposure: profile.windExposure || 25,
+      heat: profile.heat || 45,
+      rainRisk: profile.rainRisk || 20,
+      roadSurface: profile.roadSurface || "normal",
+      climbs: profile.climbs || [],
+      intermediateSprints: profile.intermediateSprints || [sprint(Math.round(distance * 0.45))],
+      finishBonuses: profile.finishBonuses === false ? [] : CLASSIFICATION_RULES.finishBonuses
+    }
+  };
+}
+
+const TOUR_STAGES = [
+  stage("tour", 1, "Tour 1 - Grand Départ Costero", "flat", 182, 34, {
+    elevationGain: 900,
+    windExposure: 55,
+    description: "Primera etapa favorable al sprint, con riesgo de abanicos."
+  }),
+  stage("tour", 2, "Tour 2 - Muros del Interior", "hilly", 171, 68, {
+    elevationGain: 2500,
+    climbs: [
+      climb("Côte de Saint-Romain", "3", 96, 3.8, 6.1),
+      climb("Mur final", "2", 168, 2.2, 9.4)
+    ],
+    description: "Final quebrado con repechos y bonificaciones decisivas."
+  }),
+  stage("tour", 3, "Tour 3 - Llanura del Norte", "flat", 198, 38, {
+    elevationGain: 700,
+    windExposure: 42,
+    description: "Día largo para sprinters y control de equipos rápidos."
+  }),
+  stage("tour", 4, "Tour 4 - Crono por Equipos", "team_time_trial", 41, 62, {
+    elevationGain: 400,
+    intermediateSprints: [],
+    finishBonuses: false,
+    description: "Test colectivo para bloques de GC."
+  }),
+  stage("tour", 5, "Tour 5 - Pavés y Muros", "cobbles_hills", 204, 88, {
+    elevationGain: 2100,
+    roadSurface: "pavé",
+    rainRisk: 35,
+    climbs: [
+      climb("Sector pavé 1", "4", 72, 2.0, 3.0),
+      climb("Mur de la Chapelle", "2", 187, 1.6, 10.2)
+    ],
+    description: "Etapa caótica con pavés, muros y riesgo alto."
+  }),
+  stage("tour", 6, "Tour 6 - Sprint del Valle", "flat", 176, 32, {
+    elevationGain: 650,
+    description: "Oportunidad clara para velocistas."
+  }),
+  stage("tour", 7, "Tour 7 - Primer Contacto Alpino", "mountain", 164, 84, {
+    elevationGain: 3900,
+    climbs: [
+      climb("Col de la Biche", "1", 88, 11.5, 7.1),
+      climb("Mont du Cerf", "1", 153, 9.6, 8.0)
+    ],
+    finalClimb: true,
+    description: "Primera etapa de montaña para testar líderes."
+  }),
+  stage("tour", 8, "Tour 8 - Etapa Trampa", "hilly", 186, 72, {
+    elevationGain: 3100,
+    climbs: [
+      climb("Côte des Vignes", "3", 44, 4.1, 5.8),
+      climb("Côte du Signal", "2", 176, 4.4, 7.5)
+    ],
+    description: "Ideal para fugas y clasicómanos."
+  }),
+  stage("tour", 9, "Tour 9 - Cima de los Lagos", "mountain", 152, 91, {
+    elevationGain: 4300,
+    climbs: [
+      climb("Port de Balès", "HC", 94, 18.6, 7.2),
+      climb("Lagos", "HC", 152, 13.7, 8.4)
+    ],
+    finalClimb: true,
+    description: "Final en alto muy selectivo."
+  }),
+  stage("tour", 10, "Tour 10 - Llanura de Recuperación", "flat", 188, 36, {
+    elevationGain: 800,
+    description: "Transición con sprint probable."
+  }),
+  stage("tour", 11, "Tour 11 - Crono Individual", "time_trial", 37, 70, {
+    elevationGain: 550,
+    intermediateSprints: [],
+    finishBonuses: false,
+    description: "Crono individual de media distancia."
+  }),
+  stage("tour", 12, "Tour 12 - Camino de los Viñedos", "flat", 211, 42, {
+    elevationGain: 1100,
+    heat: 65,
+    description: "Etapa larga: desgaste para sprinters resistentes."
+  }),
+  stage("tour", 13, "Tour 13 - Colinas Encadenadas", "hilly", 194, 76, {
+    elevationGain: 3400,
+    climbs: [
+      climb("Côte de la Croix", "2", 121, 6.2, 7.0),
+      climb("Côte du Château", "3", 181, 3.2, 8.2)
+    ],
+    description: "Jornada muy favorable a la fuga."
+  }),
+  stage("tour", 14, "Tour 14 - Etapa Reina", "mountain", 178, 98, {
+    elevationGain: 5200,
+    climbs: [
+      climb("Col de la Madeleine", "HC", 82, 19.2, 7.8),
+      climb("Col du Télégraphe", "1", 131, 11.8, 7.3),
+      climb("Final en alto", "HC", 178, 15.4, 8.1)
+    ],
+    finalClimb: true,
+    description: "Día más duro: grandes diferencias en GC."
+  }),
+  stage("tour", 15, "Tour 15 - Montaña Acumulada", "mountain", 183, 94, {
+    elevationGain: 4700,
+    climbs: [
+      climb("Col de Sarenne", "1", 96, 13.0, 7.0),
+      climb("La Toussuire", "HC", 183, 16.1, 7.3)
+    ],
+    finalClimb: true,
+    description: "Segundo día de montaña consecutivo."
+  }),
+  stage("tour", 16, "Tour 16 - Sprint Tardío", "flat", 169, 35, {
+    elevationGain: 650,
+    description: "Sprinters con piernas castigadas."
+  }),
+  stage("tour", 17, "Tour 17 - Alta Montaña Explosiva", "mountain", 136, 90, {
+    elevationGain: 3900,
+    climbs: [
+      climb("Col court", "2", 45, 6.5, 7.7),
+      climb("Final explosivo", "1", 136, 8.8, 9.1)
+    ],
+    finalClimb: true,
+    description: "Etapa corta para ataques lejanos."
+  }),
+  stage("tour", 18, "Tour 18 - Gran Fondo Alpino", "mountain", 201, 96, {
+    elevationGain: 5000,
+    climbs: [
+      climb("Col de Vars", "1", 73, 14.2, 6.8),
+      climb("Izoard", "HC", 141, 14.1, 7.3),
+      climb("Final alpino", "HC", 201, 12.9, 8.5)
+    ],
+    finalClimb: true,
+    description: "Última gran etapa de montaña."
+  }),
+  stage("tour", 19, "Tour 19 - Crono Final", "time_trial", 31, 74, {
+    elevationGain: 700,
+    intermediateSprints: [],
+    finishBonuses: false,
+    description: "Crono decisiva de tercera semana."
+  }),
+  stage("tour", 20, "Tour 20 - Muros Finales", "hilly", 143, 82, {
+    elevationGain: 2800,
+    climbs: [
+      climb("Mur du Signal", "2", 132, 2.4, 10.8),
+      climb("Côte Finale", "3", 140, 1.8, 9.0)
+    ],
+    description: "Última oportunidad ofensiva."
+  }),
+  stage("tour", 21, "Tour 21 - Paseo Final", "flat", 115, 25, {
+    elevationGain: 400,
+    description: "Etapa final: sprint probable y celebración del líder."
+  })
+];
+
+function cloneStagesForRace(stages, raceId, raceLabel, jerseyBias) {
+  return stages.map(stageItem => ({
+    ...JSON.parse(JSON.stringify(stageItem)),
+    id: `${raceId}_${String(stageItem.number).padStart(2, "0")}`,
+    name: stageItem.name.replace("Tour", raceLabel),
+    difficulty: dataClamp(stageItem.difficulty + (jerseyBias || 0), 20, 100),
+    profile: {
+      ...JSON.parse(JSON.stringify(stageItem.profile)),
+      heat: dataClamp((stageItem.profile.heat || 45) + (raceId === "vuelta" ? 12 : 0), 20, 95),
+      rainRisk: dataClamp((stageItem.profile.rainRisk || 20) + (raceId === "giro" ? 8 : 0), 5, 70)
+    }
+  }));
+}
+
+const RACES = [
   {
-    id: "stage_01",
-    number: 1,
-    name: "Etapa 1 - Grand Départ Costero",
-    type: "flat",
-    label: "Llana",
-    distance: 182,
-    difficulty: 34,
-    description: "Primera etapa favorable al sprint. El viento puede cortar el pelotón si hay táctica agresiva."
+    id: "tour",
+    name: "Tour de France",
+    country: "France",
+    leaderJerseyName: "Maillot amarillo",
+    leaderJerseyClass: "jersey-yellow",
+    uciClass: "grand_tour",
+    stages: TOUR_STAGES
   },
   {
-    id: "stage_02",
-    number: 2,
-    name: "Etapa 2 - Muros del Interior",
-    type: "hilly",
-    label: "Media montaña",
-    distance: 171,
-    difficulty: 68,
-    description: "Final quebrado con repechos. Puncheurs y líderes explosivos pueden arañar segundos."
+    id: "giro",
+    name: "Giro d'Italia",
+    country: "Italy",
+    leaderJerseyName: "Maglia rosa",
+    leaderJerseyClass: "jersey-pink",
+    uciClass: "grand_tour",
+    stages: cloneStagesForRace(TOUR_STAGES, "giro", "Giro", 2)
   },
   {
-    id: "stage_03",
-    number: 3,
-    name: "Etapa 3 - Llanura del Norte",
-    type: "flat",
-    label: "Llana",
-    distance: 198,
-    difficulty: 38,
-    description: "Etapa larga de transición. Sprint probable, pero la fatiga empieza a acumularse."
-  },
-  {
-    id: "stage_04",
-    number: 4,
-    name: "Etapa 4 - Crono por Equipos",
-    type: "team_time_trial",
-    label: "CRE",
-    distance: 41,
-    difficulty: 62,
-    description: "Primer test serio para bloques de GC. La cohesión del equipo importa mucho."
-  },
-  {
-    id: "stage_05",
-    number: 5,
-    name: "Etapa 5 - Pavés y Muros",
-    type: "cobbles_hills",
-    label: "Pavés + muros",
-    distance: 204,
-    difficulty: 88,
-    description: "Etapa caótica. Pavés, muros, colocación, riesgo y mucha varianza."
-  },
-  {
-    id: "stage_06",
-    number: 6,
-    name: "Etapa 6 - Sprint del Valle",
-    type: "flat",
-    label: "Llana",
-    distance: 176,
-    difficulty: 32,
-    description: "Nueva oportunidad para velocistas. Día de control para equipos de sprinters."
-  },
-  {
-    id: "stage_07",
-    number: 7,
-    name: "Etapa 7 - Primer Contacto Alpino",
-    type: "mountain",
-    label: "Alta montaña",
-    distance: 164,
-    difficulty: 84,
-    description: "Primera etapa de montaña. Los favoritos deberían mostrarse sin quemar todo."
-  },
-  {
-    id: "stage_08",
-    number: 8,
-    name: "Etapa 8 - Etapa Trampa",
-    type: "hilly",
-    label: "Media montaña",
-    distance: 186,
-    difficulty: 72,
-    description: "Terreno rompe-piernas. Fugas y clasicómanos tienen opciones reales."
-  },
-  {
-    id: "stage_09",
-    number: 9,
-    name: "Etapa 9 - Cima de los Lagos",
-    type: "mountain",
-    label: "Alta montaña",
-    distance: 152,
-    difficulty: 91,
-    description: "Final en alto. Día importante para escaladores puros."
-  },
-  {
-    id: "stage_10",
-    number: 10,
-    name: "Etapa 10 - Llanura de Recuperación",
-    type: "flat",
-    label: "Llana",
-    distance: 188,
-    difficulty: 36,
-    description: "Después de la montaña, el pelotón busca cierta estabilidad. Sprint probable."
-  },
-  {
-    id: "stage_11",
-    number: 11,
-    name: "Etapa 11 - Crono Individual",
-    type: "time_trial",
-    label: "CRI",
-    distance: 37,
-    difficulty: 70,
-    description: "Crono individual de media distancia. Los especialistas pueden abrir huecos."
-  },
-  {
-    id: "stage_12",
-    number: 12,
-    name: "Etapa 12 - Camino de los Viñedos",
-    type: "flat",
-    label: "Llana",
-    distance: 211,
-    difficulty: 42,
-    description: "Etapa larga para sprinters resistentes. Puede pesar el desgaste acumulado."
-  },
-  {
-    id: "stage_13",
-    number: 13,
-    name: "Etapa 13 - Colinas Encadenadas",
-    type: "hilly",
-    label: "Media montaña",
-    distance: 194,
-    difficulty: 76,
-    description: "Etapa muy buena para fugas. Ritmo alto, repechos y desgaste constante."
-  },
-  {
-    id: "stage_14",
-    number: 14,
-    name: "Etapa 14 - Etapa Reina",
-    type: "mountain",
-    label: "Alta montaña",
-    distance: 178,
-    difficulty: 98,
-    description: "Día más duro de la carrera. Encadenado de grandes puertos y final selectivo."
-  },
-  {
-    id: "stage_15",
-    number: 15,
-    name: "Etapa 15 - Montaña Acumulada",
-    type: "mountain",
-    label: "Alta montaña",
-    distance: 183,
-    difficulty: 94,
-    description: "Segunda jornada consecutiva muy dura. La recuperación se vuelve decisiva."
-  },
-  {
-    id: "stage_16",
-    number: 16,
-    name: "Etapa 16 - Sprint Tardío",
-    type: "flat",
-    label: "Llana",
-    distance: 169,
-    difficulty: 35,
-    description: "Últimas oportunidades de los velocistas, con piernas ya castigadas."
-  },
-  {
-    id: "stage_17",
-    number: 17,
-    name: "Etapa 17 - Alta Montaña Explosiva",
-    type: "mountain",
-    label: "Alta montaña",
-    distance: 136,
-    difficulty: 90,
-    description: "Etapa corta y agresiva. Los ataques pueden llegar desde lejos."
-  },
-  {
-    id: "stage_18",
-    number: 18,
-    name: "Etapa 18 - Gran Fondo Alpino",
-    type: "mountain",
-    label: "Alta montaña",
-    distance: 201,
-    difficulty: 96,
-    description: "Última gran etapa de montaña. La fatiga acumulada puede romper la general."
-  },
-  {
-    id: "stage_19",
-    number: 19,
-    name: "Etapa 19 - Crono Final",
-    type: "time_trial",
-    label: "CRI",
-    distance: 31,
-    difficulty: 74,
-    description: "Crono decisiva. Los líderes con buena recuperación y motor pueden remontar."
-  },
-  {
-    id: "stage_20",
-    number: 20,
-    name: "Etapa 20 - Muros Finales",
-    type: "hilly",
-    label: "Media montaña",
-    distance: 143,
-    difficulty: 82,
-    description: "Última oportunidad ofensiva. Muros cortos, aceleración y resistencia."
-  },
-  {
-    id: "stage_21",
-    number: 21,
-    name: "Etapa 21 - Paseo Final",
-    type: "flat",
-    label: "Llana final",
-    distance: 115,
-    difficulty: 25,
-    description: "Etapa final reducida. Sprint probable y menos diferencias en la general."
+    id: "vuelta",
+    name: "La Vuelta a España",
+    country: "Spain",
+    leaderJerseyName: "Maillot rojo",
+    leaderJerseyClass: "jersey-red",
+    uciClass: "grand_tour",
+    stages: cloneStagesForRace(TOUR_STAGES, "vuelta", "Vuelta", 1)
   }
 ];
 
-/* ============================================================
-   TÁCTICAS INDIVIDUALES
-   ============================================================ */
+const DEFAULT_RACE_ID = "tour";
+const STAGES = RACES.find(race => race.id === DEFAULT_RACE_ID).stages;
 
 const TACTICS = [
   {
@@ -810,7 +915,7 @@ const TACTICS = [
   {
     id: "protect_leader",
     name: "Proteger líder",
-    description: "El corredor sacrifica algo de rendimiento para ayudar al líder GC.",
+    description: "El corredor sacrifica rendimiento para ayudar al líder protegido.",
     bonus: -1,
     risk: 0.12,
     fatigueMultiplier: 1.20,
