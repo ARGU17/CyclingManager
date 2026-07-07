@@ -1,7 +1,7 @@
 /* ============================================================
    CYCLING MANAGER TOUR
    styles.css
-   v0.10 Race Director Pro
+   v0.11 Season + Race Director Pro
    ============================================================ */
 
 :root {
@@ -133,6 +133,10 @@ input[type="range"] {
   letter-spacing: -.04em;
 }
 
+.panel h3 {
+  margin: 18px 0 10px;
+}
+
 .grid {
   display: grid;
   gap: 16px;
@@ -193,6 +197,8 @@ input[type="range"] {
 .jersey-blue { background: rgba(56,189,248,.18) !important; color: #bae6fd !important; border-color: rgba(56,189,248,.48) !important; }
 .jersey-white { background: rgba(255,255,255,.16) !important; color: #fff !important; border-color: rgba(255,255,255,.48) !important; }
 .jersey-cobbles { background: rgba(168,162,158,.2) !important; color: #e7e5e4 !important; border-color: rgba(168,162,158,.5) !important; }
+.jersey-rainbow { background: linear-gradient(90deg, #38bdf8, #22c55e, #facc15, #ef4444, #a855f7) !important; color: #fff !important; }
+
 .jersey-polka {
   background:
     radial-gradient(circle at 20% 30%, #ef4444 0 10%, transparent 11%),
@@ -202,15 +208,21 @@ input[type="range"] {
 }
 
 /* ============================================================
-   HOME / TEAMS
+   HOME / MODOS
    ============================================================ */
 
+.mode-grid,
 .race-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
 
+.race-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.mode-card,
 .race-card,
 .team-card,
 .roster-card,
@@ -220,20 +232,26 @@ input[type="range"] {
 .role-card,
 .leader-card,
 .podium-card,
-.mini-class {
+.mini-class,
+.calendar-card,
+.nutrition-card,
+.live-rider-card {
   background: linear-gradient(180deg, rgba(38,50,68,.98), rgba(31,41,55,.98));
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: 15px;
 }
 
-.race-card {
+.mode-card,
+.race-card,
+.roster-card {
   display: grid;
   gap: 7px;
   text-align: left;
   color: var(--text);
 }
 
+.mode-card.active,
 .race-card.active {
   outline: 2px solid var(--green);
 }
@@ -249,8 +267,23 @@ input[type="range"] {
   border-color: color-mix(in srgb, var(--team-primary) 48%, rgba(148,163,184,.24));
 }
 
+.season-calendar {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.calendar-card {
+  display: grid;
+  gap: 6px;
+}
+
+.calendar-card.active {
+  outline: 2px solid var(--green);
+}
+
 /* ============================================================
-   MAILLOT 3D UNIFORME
+   MAILLOT 3D
    ============================================================ */
 
 .jersey-card {
@@ -395,12 +428,6 @@ input[type="range"] {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
-}
-
-.roster-card {
-  text-align: left;
-  color: var(--text);
-  box-shadow: none;
 }
 
 .roster-card.selected {
@@ -773,22 +800,26 @@ input[type="range"] {
   padding-right: 6px;
 }
 
-.rider-control.protected {
+.rider-control.protected,
+.live-rider-card.protected {
   border-color: rgba(250,204,21,.62);
   box-shadow: 0 0 0 1px rgba(250,204,21,.15);
 }
 
-.rider-control {
+.rider-control,
+.live-rider-card {
   display: grid;
   gap: 9px;
 }
 
-.rider-control h3 {
+.rider-control h3,
+.live-rider-card h3 {
   margin: 0;
 }
 
 .rider-control label,
-.material-card label {
+.material-card label,
+.live-rider-card label {
   color: var(--muted);
   font-size: 11px;
   font-weight: 900;
@@ -797,7 +828,7 @@ input[type="range"] {
 }
 
 /* ============================================================
-   LIVE
+   LIVE / RADIO / NUTRICIÓN
    ============================================================ */
 
 .radio-list {
@@ -881,6 +912,48 @@ input[type="range"] {
 .energy.bad {
   border-color: rgba(239,68,68,.45);
   background: rgba(239,68,68,.12);
+}
+
+.live-rider-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap: 12px;
+}
+
+.nutrition-stock {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0,1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.nutrition-stock.compact {
+  grid-template-columns: repeat(2, minmax(0,1fr));
+}
+
+.nutrition-card {
+  display: grid;
+  gap: 4px;
+}
+
+.nutrition-card span {
+  color: var(--green);
+  font-weight: 900;
+}
+
+.nutrition-card small {
+  color: var(--muted);
+}
+
+.nutrition-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0,1fr));
+  gap: 6px;
+}
+
+.nutrition-actions button {
+  padding: 8px;
+  font-size: 11px;
 }
 
 /* ============================================================
@@ -1031,14 +1104,6 @@ tr.race-leader td {
   font-weight: 950;
 }
 
-.mini-class {
-  margin-bottom: 12px;
-}
-
-.mini-class h3 {
-  margin: 0 0 8px;
-}
-
 .podium {
   display: grid;
   grid-template-columns: repeat(3, minmax(0,1fr));
@@ -1138,12 +1203,16 @@ tr.race-leader td {
 
   .grid.teams,
   .race-grid,
+  .mode-grid,
   .roster-grid,
   .material-grid,
   .leader-strip,
   .quick-grid,
   .energy-map,
-  .podium {
+  .podium,
+  .season-calendar,
+  .nutrition-stock,
+  .live-rider-grid {
     grid-template-columns: 1fr;
   }
 
