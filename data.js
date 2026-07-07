@@ -1,8 +1,65 @@
 /* ============================================================
    CYCLING MANAGER TOUR - data.js
-   v0.6: etapa por sectores, nutrición, material, radio,
-   pelotón vivo, órdenes de carrera, UCI, temporada.
+   v0.8 Material & Visuals
    ============================================================ */
+
+/* ============================================================
+   MARCAS REALES - RATINGS INTERNOS DEL SIMULADOR
+   100 = referencia máxima del juego en ese atributo.
+   No son datos de laboratorio reales.
+   ============================================================ */
+
+const FRAME_BRANDS = [
+  { id: "colnago", name: "Colnago", country: "Italia", aero: 96, weight: 94, stiffness: 97, comfort: 88, handling: 93, cobbles: 84, tt: 88, reliability: 94 },
+  { id: "specialized", name: "Specialized", country: "EE.UU.", aero: 99, weight: 95, stiffness: 96, comfort: 90, handling: 94, cobbles: 86, tt: 94, reliability: 95 },
+  { id: "pinarello", name: "Pinarello", country: "Italia", aero: 97, weight: 92, stiffness: 98, comfort: 87, handling: 96, cobbles: 84, tt: 95, reliability: 94 },
+  { id: "cervelo", name: "Cervélo", country: "Canadá", aero: 98, weight: 93, stiffness: 95, comfort: 87, handling: 92, cobbles: 83, tt: 97, reliability: 93 },
+  { id: "canyon", name: "Canyon", country: "Alemania", aero: 97, weight: 94, stiffness: 95, comfort: 88, handling: 92, cobbles: 86, tt: 95, reliability: 93 },
+  { id: "trek", name: "Trek", country: "EE.UU.", aero: 95, weight: 93, stiffness: 94, comfort: 91, handling: 93, cobbles: 89, tt: 91, reliability: 95 },
+  { id: "merida", name: "Merida", country: "Taiwán", aero: 94, weight: 92, stiffness: 94, comfort: 89, handling: 91, cobbles: 86, tt: 90, reliability: 94 },
+  { id: "bh", name: "BH", country: "España", aero: 91, weight: 94, stiffness: 92, comfort: 88, handling: 90, cobbles: 83, tt: 86, reliability: 91 },
+  { id: "mmr", name: "MMR", country: "España", aero: 90, weight: 93, stiffness: 91, comfort: 87, handling: 89, cobbles: 82, tt: 85, reliability: 90 },
+  { id: "aurum", name: "Aurum", country: "España", aero: 92, weight: 92, stiffness: 92, comfort: 88, handling: 90, cobbles: 83, tt: 87, reliability: 90 },
+  { id: "quickpro", name: "Quick Pro", country: "China", aero: 88, weight: 88, stiffness: 88, comfort: 85, handling: 86, cobbles: 80, tt: 82, reliability: 86 }
+];
+
+const WHEEL_BRANDS = [
+  { id: "roval", name: "Roval", country: "EE.UU.", aero: 98, weight: 95, stiffness: 95, crosswind: 90, cobbles: 86, tt: 96, reliability: 94 },
+  { id: "reserve", name: "Reserve", country: "EE.UU.", aero: 97, weight: 93, stiffness: 95, crosswind: 91, cobbles: 85, tt: 96, reliability: 93 },
+  { id: "shimano", name: "Shimano Dura-Ace", country: "Japón", aero: 94, weight: 93, stiffness: 94, crosswind: 92, cobbles: 87, tt: 91, reliability: 96 },
+  { id: "bontrager", name: "Bontrager / Trek", country: "EE.UU.", aero: 94, weight: 92, stiffness: 93, crosswind: 91, cobbles: 88, tt: 90, reliability: 95 },
+  { id: "vision", name: "Vision Metron", country: "Italia/EE.UU.", aero: 95, weight: 91, stiffness: 94, crosswind: 88, cobbles: 84, tt: 94, reliability: 92 },
+  { id: "dt_swiss", name: "DT Swiss", country: "Suiza", aero: 93, weight: 94, stiffness: 93, crosswind: 92, cobbles: 89, tt: 90, reliability: 96 },
+  { id: "enve", name: "ENVE", country: "EE.UU.", aero: 96, weight: 93, stiffness: 95, crosswind: 90, cobbles: 87, tt: 94, reliability: 93 },
+  { id: "mavic", name: "Mavic", country: "Francia", aero: 90, weight: 91, stiffness: 91, crosswind: 91, cobbles: 88, tt: 86, reliability: 93 },
+  { id: "fulcrum", name: "Fulcrum", country: "Italia", aero: 92, weight: 92, stiffness: 92, crosswind: 90, cobbles: 86, tt: 88, reliability: 92 },
+  { id: "no_limited", name: "No Limited", country: "España", aero: 88, weight: 88, stiffness: 87, crosswind: 87, cobbles: 82, tt: 82, reliability: 86 }
+];
+
+const BIKE_SETUPS = [
+  { id: "aero", name: "Aero", description: "Máxima velocidad en llano y sprint.", terrain: "flat", aero: 1.25, weight: 0.60, stiffness: 1.05, comfort: 0.55, handling: 0.70, tt: 0.80, punctureRisk: 1.0 },
+  { id: "lightweight", name: "Ligera", description: "Ideal para alta montaña.", terrain: "mountain", aero: 0.60, weight: 1.35, stiffness: 0.90, comfort: 0.70, handling: 1.00, tt: 0.50, punctureRisk: 1.04 },
+  { id: "endurance", name: "Endurance", description: "Cómoda y segura en pavés/lluvia.", terrain: "cobbles", aero: 0.70, weight: 0.75, stiffness: 0.80, comfort: 1.30, handling: 1.20, tt: 0.45, punctureRisk: 0.86 },
+  { id: "tt", name: "Cabra CRI", description: "Máxima eficiencia en CRI/CRE.", terrain: "tt", aero: 1.40, weight: 0.45, stiffness: 1.05, comfort: 0.40, handling: 0.58, tt: 1.45, punctureRisk: 1.0 }
+];
+
+const WHEEL_SETUPS = [
+  { id: "deep_60", name: "Perfil 60 mm", description: "Rápidas en llano, sensibles al viento.", aero: 1.25, weight: 0.65, stiffness: 1.05, crosswind: 0.68, cobbles: 0.60, tt: 1.00, punctureRisk: 1.0 },
+  { id: "mid_45", name: "Perfil 45 mm", description: "Equilibradas y polivalentes.", aero: 1.00, weight: 0.92, stiffness: 0.98, crosswind: 0.95, cobbles: 0.82, tt: 0.82, punctureRisk: 0.96 },
+  { id: "climbing", name: "Ruedas ligeras", description: "Buenas para puertos largos.", aero: 0.72, weight: 1.25, stiffness: 0.90, crosswind: 1.00, cobbles: 0.70, tt: 0.55, punctureRisk: 1.04 },
+  { id: "cobbles", name: "Ruedas pavés", description: "Seguridad, agarre y fiabilidad.", aero: 0.68, weight: 0.72, stiffness: 0.75, crosswind: 1.05, cobbles: 1.35, tt: 0.45, punctureRisk: 0.78 },
+  { id: "disc_tt", name: "Lenticular CRI", description: "Máxima aero en crono.", aero: 1.45, weight: 0.45, stiffness: 1.05, crosswind: 0.58, cobbles: 0.35, tt: 1.50, punctureRisk: 1.0 }
+];
+
+const EQUIPMENT_PRESETS = [
+  { id: "auto", name: "Auto según etapa", bikeType: "auto", wheelType: "auto" },
+  { id: "flat", name: "Llano", bikeType: "aero", wheelType: "deep_60" },
+  { id: "mountain", name: "Montaña", bikeType: "lightweight", wheelType: "climbing" },
+  { id: "hilly", name: "Media montaña", bikeType: "lightweight", wheelType: "mid_45" },
+  { id: "cobbles", name: "Pavés", bikeType: "endurance", wheelType: "cobbles" },
+  { id: "tt", name: "Crono", bikeType: "tt", wheelType: "disc_tt" },
+  { id: "safe_rain", name: "Seguro lluvia", bikeType: "endurance", wheelType: "mid_45" }
+];
 
 /* ============================================================
    EQUIPOS
@@ -13,123 +70,223 @@ const TEAM_BLUEPRINTS = [
     id: "uae",
     name: "UAE Team Emirates XRG",
     archetype: "GC / Superteam",
-    description: "Equipo dominante de grandes vueltas, montaña, cronos y clásicas.",
     color: "green",
+    description: "Equipo dominante de grandes vueltas, montaña, cronos y clásicas.",
     management: { budget: 42000000, prestige: 96, sponsorPressure: 94 },
     objectives: ["gc_win", "stage_wins_3", "uci_top_1"],
     aiProfile: { aggression: 88, control: 84, sprintFocus: 30, gcFocus: 98, breakawayFocus: 35 },
+    equipmentContract: { frameBrand: "colnago", wheelBrand: "enve", bikeType: "aero", wheelType: "mid_45", freeChoice: true },
+    visual: { jerseyImage: "", primary: "#00843d", secondary: "#ffffff", accent: "#d32f2f", logoText: "UAE" },
     modifiers: { flat: 3, sprint: 1, timeTrial: 5, teamTimeTrial: 5, mountain: 7, cobbles: 1, hills: 5, stamina: 6, recovery: 6, acceleration: 5, positioning: 5, downhill: 3, form: 4 }
   },
   {
     id: "visma",
     name: "Team Visma | Lease a Bike",
     archetype: "GC / Bloque",
-    description: "Bloque de gran vuelta muy fuerte en montaña, recuperación y trabajo colectivo.",
     color: "yellow",
+    description: "Bloque de gran vuelta muy fuerte en montaña, recuperación y trabajo colectivo.",
     management: { budget: 38000000, prestige: 94, sponsorPressure: 92 },
     objectives: ["gc_win", "teams_win", "stage_wins_2"],
     aiProfile: { aggression: 78, control: 92, sprintFocus: 35, gcFocus: 96, breakawayFocus: 30 },
+    equipmentContract: { frameBrand: "cervelo", wheelBrand: "reserve", bikeType: "aero", wheelType: "mid_45", freeChoice: true },
+    visual: { jerseyImage: "", primary: "#f6d32d", secondary: "#111827", accent: "#2563eb", logoText: "VISMA" },
     modifiers: { flat: 2, sprint: 1, timeTrial: 4, teamTimeTrial: 6, mountain: 6, cobbles: 2, hills: 4, stamina: 6, recovery: 7, acceleration: 3, positioning: 6, downhill: 4, form: 3 }
   },
   {
     id: "ineos",
     name: "Netcompany INEOS",
     archetype: "Crono / GC",
-    description: "Equipo orientado a cronos, rodadores, ciencia deportiva y líderes de general.",
     color: "blue",
+    description: "Equipo orientado a cronos, rodadores y líderes de general.",
     management: { budget: 35000000, prestige: 89, sponsorPressure: 86 },
     objectives: ["gc_top_3", "stage_win", "uci_top_3"],
     aiProfile: { aggression: 62, control: 78, sprintFocus: 20, gcFocus: 86, breakawayFocus: 32 },
+    equipmentContract: { frameBrand: "pinarello", wheelBrand: "shimano", bikeType: "aero", wheelType: "mid_45", freeChoice: true },
+    visual: { jerseyImage: "", primary: "#d91e36", secondary: "#111827", accent: "#f9fafb", logoText: "INEOS" },
     modifiers: { flat: 4, sprint: -1, timeTrial: 8, teamTimeTrial: 8, mountain: 3, cobbles: 1, hills: 2, stamina: 5, recovery: 4, acceleration: 0, positioning: 4, downhill: 2, form: 2 }
   },
   {
     id: "movistar",
     name: "Movistar Team",
     archetype: "Montaña / Etapas",
-    description: "Equipo español con foco en montaña, fugas, general y etapas selectivas.",
     color: "blue",
+    description: "Equipo español con foco en montaña, fugas, general y etapas selectivas.",
     management: { budget: 17000000, prestige: 78, sponsorPressure: 75 },
     objectives: ["gc_top_5", "stage_win", "mountain_top_3"],
     aiProfile: { aggression: 74, control: 52, sprintFocus: 25, gcFocus: 72, breakawayFocus: 80 },
+    equipmentContract: { frameBrand: "canyon", wheelBrand: "dt_swiss", bikeType: "lightweight", wheelType: "mid_45", freeChoice: true },
+    visual: { jerseyImage: "", primary: "#2563eb", secondary: "#22c55e", accent: "#f9fafb", logoText: "MOVISTAR" },
     modifiers: { flat: 0, sprint: -2, timeTrial: 1, teamTimeTrial: 1, mountain: 5, cobbles: -2, hills: 4, stamina: 4, recovery: 4, acceleration: 2, positioning: 2, downhill: 3, form: 2 }
   },
   {
     id: "redbull",
     name: "Red Bull - BORA - hansgrohe",
     archetype: "GC / Potencia",
-    description: "Equipo muy fuerte en líderes de general, montaña y potencia sostenida.",
     color: "orange",
+    description: "Equipo muy fuerte en líderes de general, montaña y potencia sostenida.",
     management: { budget: 33000000, prestige: 90, sponsorPressure: 88 },
     objectives: ["gc_top_3", "stage_wins_2", "uci_top_3"],
     aiProfile: { aggression: 76, control: 75, sprintFocus: 35, gcFocus: 90, breakawayFocus: 42 },
+    equipmentContract: { frameBrand: "specialized", wheelBrand: "roval", bikeType: "aero", wheelType: "mid_45", freeChoice: true },
+    visual: { jerseyImage: "", primary: "#0f172a", secondary: "#f59e0b", accent: "#ef4444", logoText: "RED BULL" },
     modifiers: { flat: 2, sprint: 1, timeTrial: 4, teamTimeTrial: 4, mountain: 6, cobbles: 0, hills: 3, stamina: 5, recovery: 5, acceleration: 3, positioning: 3, downhill: 2, form: 3 }
   },
   {
     id: "soudal",
     name: "Soudal Quick-Step",
     archetype: "Crono / Sprint",
-    description: "Equipo muy fuerte en cronos, velocidad, etapas llanas y talento ofensivo.",
     color: "blue",
+    description: "Equipo fuerte en cronos, velocidad, etapas llanas y talento ofensivo.",
     management: { budget: 28000000, prestige: 87, sponsorPressure: 84 },
     objectives: ["gc_top_3", "points_top_3", "time_trial_win"],
     aiProfile: { aggression: 82, control: 62, sprintFocus: 72, gcFocus: 78, breakawayFocus: 50 },
+    equipmentContract: { frameBrand: "specialized", wheelBrand: "roval", bikeType: "aero", wheelType: "deep_60", freeChoice: true },
+    visual: { jerseyImage: "", primary: "#2563eb", secondary: "#ffffff", accent: "#ef4444", logoText: "SOUDAL" },
     modifiers: { flat: 4, sprint: 5, timeTrial: 7, teamTimeTrial: 5, mountain: 1, cobbles: 3, hills: 3, stamina: 3, recovery: 2, acceleration: 5, positioning: 4, downhill: 1, form: 2 }
   },
   {
     id: "lidl",
     name: "Lidl - Trek",
     archetype: "Clásicas / Sprint / GC",
-    description: "Equipo completo: clásicas, sprint, montaña y corredores de general.",
     color: "red",
+    description: "Equipo completo: clásicas, sprint, montaña y corredores de general.",
     management: { budget: 29000000, prestige: 86, sponsorPressure: 82 },
     objectives: ["stage_wins_2", "points_top_3", "uci_top_5"],
     aiProfile: { aggression: 84, control: 66, sprintFocus: 82, gcFocus: 68, breakawayFocus: 65 },
+    equipmentContract: { frameBrand: "trek", wheelBrand: "bontrager", bikeType: "aero", wheelType: "deep_60", freeChoice: true },
+    visual: { jerseyImage: "", primary: "#0f172a", secondary: "#ef4444", accent: "#facc15", logoText: "LIDL TREK" },
     modifiers: { flat: 4, sprint: 6, timeTrial: 3, teamTimeTrial: 3, mountain: 4, cobbles: 5, hills: 5, stamina: 4, recovery: 3, acceleration: 5, positioning: 4, downhill: 3, form: 3 }
   },
   {
     id: "alpecin",
     name: "Alpecin - Premier Tech",
     archetype: "Clásicas / Sprint",
-    description: "Clasicómanos y velocistas; brutal en pavés, muros y finales explosivos.",
     color: "orange",
+    description: "Clasicómanos y velocistas; brutal en pavés, muros y finales explosivos.",
     management: { budget: 24000000, prestige: 88, sponsorPressure: 83 },
     objectives: ["points_win", "stage_wins_3", "monument_win"],
     aiProfile: { aggression: 92, control: 58, sprintFocus: 94, gcFocus: 10, breakawayFocus: 76 },
+    equipmentContract: { frameBrand: "canyon", wheelBrand: "shimano", bikeType: "aero", wheelType: "deep_60", freeChoice: true },
+    visual: { jerseyImage: "", primary: "#0f172a", secondary: "#06b6d4", accent: "#ef4444", logoText: "ALPECIN" },
     modifiers: { flat: 5, sprint: 8, timeTrial: 0, teamTimeTrial: 1, mountain: -4, cobbles: 9, hills: 7, stamina: 4, recovery: 0, acceleration: 8, positioning: 7, downhill: 3, form: 3 }
   },
   {
     id: "bahrain",
     name: "Bahrain Victorious",
     archetype: "Montaña / Clásicas",
-    description: "Equipo equilibrado con escaladores, clasicómanos y cazadores de etapa.",
     color: "red",
+    description: "Equipo equilibrado con escaladores, clasicómanos y cazadores de etapa.",
     management: { budget: 22000000, prestige: 80, sponsorPressure: 77 },
     objectives: ["stage_win", "gc_top_10", "mountain_top_3"],
     aiProfile: { aggression: 78, control: 55, sprintFocus: 38, gcFocus: 62, breakawayFocus: 78 },
+    equipmentContract: { frameBrand: "merida", wheelBrand: "vision", bikeType: "lightweight", wheelType: "mid_45", freeChoice: true },
+    visual: { jerseyImage: "", primary: "#ef4444", secondary: "#f9fafb", accent: "#111827", logoText: "BAHRAIN" },
     modifiers: { flat: 2, sprint: 2, timeTrial: 2, teamTimeTrial: 2, mountain: 4, cobbles: 3, hills: 5, stamina: 4, recovery: 3, acceleration: 4, positioning: 3, downhill: 4, form: 2 }
   },
   {
     id: "decathlon",
     name: "Decathlon CMA CGM Team",
     archetype: "Montaña / Desarrollo",
-    description: "Escaladores, jóvenes talentos y buen rendimiento en media montaña.",
     color: "green",
+    description: "Escaladores, jóvenes talentos y buen rendimiento en media montaña.",
     management: { budget: 21000000, prestige: 79, sponsorPressure: 74 },
     objectives: ["youth_win", "stage_win", "gc_top_10"],
     aiProfile: { aggression: 75, control: 50, sprintFocus: 35, gcFocus: 64, breakawayFocus: 82 },
+    equipmentContract: { frameBrand: "cervelo", wheelBrand: "reserve", bikeType: "lightweight", wheelType: "mid_45", freeChoice: true },
+    visual: { jerseyImage: "", primary: "#10b981", secondary: "#0f172a", accent: "#f97316", logoText: "DECATHLON" },
     modifiers: { flat: 0, sprint: 1, timeTrial: 1, teamTimeTrial: 1, mountain: 5, cobbles: 0, hills: 5, stamina: 4, recovery: 3, acceleration: 4, positioning: 2, downhill: 3, form: 3 }
+  },
+
+  /* Nuevos ProTeams */
+  {
+    id: "caja",
+    name: "Caja Rural - Seguros RGA",
+    archetype: "ProTeam / Sprint-Fugas",
+    color: "green",
+    description: "Equipo combativo, con sprint, fugas y escaladores de oportunidad.",
+    management: { budget: 9000000, prestige: 68, sponsorPressure: 68 },
+    objectives: ["stage_win", "points_top_3", "uci_top_10"],
+    aiProfile: { aggression: 82, control: 36, sprintFocus: 74, gcFocus: 30, breakawayFocus: 88 },
+    equipmentContract: { frameBrand: "mmr", wheelBrand: "vision", bikeType: "aero", wheelType: "mid_45", freeChoice: true },
+    visual: {
+      jerseyImage: "https://tse3.mm.bing.net/th/id/OIP.aR2_WBoSc_3l3msjSpstzAHaHa?r=0&pid=Api",
+      primary: "#0f7d45",
+      secondary: "#ffffff",
+      accent: "#d9a441",
+      logoText: "CAJA RURAL"
+    },
+    modifiers: { flat: 0, sprint: 4, timeTrial: -1, teamTimeTrial: -1, mountain: 1, cobbles: 0, hills: 2, stamina: 2, recovery: 1, acceleration: 3, positioning: 1, downhill: 1, form: 1 }
+  },
+  {
+    id: "burgos",
+    name: "Burgos Burpellet BH",
+    archetype: "ProTeam / Montaña-Fugas",
+    color: "pink",
+    description: "Equipo agresivo de fugas, montaña media y caza de etapas.",
+    management: { budget: 7600000, prestige: 64, sponsorPressure: 65 },
+    objectives: ["stage_win", "mountain_top_3", "uci_top_10"],
+    aiProfile: { aggression: 84, control: 32, sprintFocus: 38, gcFocus: 38, breakawayFocus: 90 },
+    equipmentContract: { frameBrand: "bh", wheelBrand: "vision", bikeType: "lightweight", wheelType: "mid_45", freeChoice: true },
+    visual: {
+      jerseyImage: "https://images.openai.com/static-rsc-4/2i-wTL__ML2AOtV65eggkLUHUobXSjU-0xRGm3YdMdHY-Y07r6ZnGz2EZgq7R1whOIwA1CJsF592k0U4GSztzNSxCgp2Kqr-Rn_Pgwc-7EYbZY17RcPaJfR1rhRfo2XlgCXNmcooXdddLX7_JR9u1dYL0V8OYGB3NUnkVDxQl1o?purpose=inline",
+      primary: "#ffffff",
+      secondary: "#ec4899",
+      accent: "#7c3aed",
+      logoText: "BURGOS BH"
+    },
+    modifiers: { flat: -1, sprint: 1, timeTrial: -1, teamTimeTrial: -1, mountain: 3, cobbles: -1, hills: 4, stamina: 2, recovery: 1, acceleration: 2, positioning: 0, downhill: 2, form: 1 }
+  },
+  {
+    id: "euskaltel",
+    name: "Euskaltel - Euskadi",
+    archetype: "ProTeam / Cantera-Fugas",
+    color: "orange",
+    description: "Equipo vasco ofensivo, muy visible en fugas, media montaña y carreteras duras.",
+    management: { budget: 7200000, prestige: 67, sponsorPressure: 70 },
+    objectives: ["stage_win", "mountain_top_3", "uci_top_10"],
+    aiProfile: { aggression: 88, control: 30, sprintFocus: 22, gcFocus: 34, breakawayFocus: 94 },
+    equipmentContract: { frameBrand: "quickpro", wheelBrand: "no_limited", bikeType: "lightweight", wheelType: "mid_45", freeChoice: true },
+    visual: {
+      jerseyImage: "https://tse2.mm.bing.net/th/id/OIP.sPcyIOOB_bmRN8r2tG3CygHaJQ?pid=Api",
+      primary: "#f97316",
+      secondary: "#fb7185",
+      accent: "#111827",
+      logoText: "EUSKALTEL"
+    },
+    modifiers: { flat: -1, sprint: -1, timeTrial: -2, teamTimeTrial: -2, mountain: 3, cobbles: -1, hills: 4, stamina: 2, recovery: 2, acceleration: 2, positioning: 1, downhill: 3, form: 1 }
+  },
+  {
+    id: "polti",
+    name: "Team Polti VisitMalta",
+    archetype: "ProTeam / Sprint-Fugas",
+    color: "red",
+    description: "Equipo italiano combativo, con sprinters, rodadores y escaladores de etapa.",
+    management: { budget: 8200000, prestige: 66, sponsorPressure: 66 },
+    objectives: ["stage_win", "points_top_3", "uci_top_10"],
+    aiProfile: { aggression: 80, control: 35, sprintFocus: 66, gcFocus: 28, breakawayFocus: 86 },
+    equipmentContract: { frameBrand: "aurum", wheelBrand: "fulcrum", bikeType: "aero", wheelType: "mid_45", freeChoice: true },
+    visual: {
+      jerseyImage: "https://tse3.mm.bing.net/th/id/OIP.iCBCtvYtI564kGRI9BHw2wAAAA?pid=Api",
+      primary: "#ef4444",
+      secondary: "#ffffff",
+      accent: "#16a34a",
+      logoText: "POLTI"
+    },
+    modifiers: { flat: 1, sprint: 3, timeTrial: -1, teamTimeTrial: -1, mountain: 1, cobbles: 0, hills: 2, stamina: 2, recovery: 1, acceleration: 3, positioning: 1, downhill: 1, form: 1 }
   }
 ];
 
-const TEAMS = TEAM_BLUEPRINTS.map(t => ({
-  id: t.id,
-  name: t.name,
-  archetype: t.archetype,
-  description: t.description,
-  color: t.color,
-  objectives: t.objectives,
-  management: t.management,
-  aiProfile: t.aiProfile
+const TEAMS = TEAM_BLUEPRINTS.map(team => ({
+  id: team.id,
+  name: team.name,
+  archetype: team.archetype,
+  description: team.description,
+  color: team.color,
+  management: team.management,
+  objectives: team.objectives,
+  aiProfile: team.aiProfile,
+  equipmentContract: team.equipmentContract,
+  visual: team.visual
 }));
 
 /* ============================================================
@@ -149,9 +306,10 @@ const OBJECTIVE_DEFINITIONS = {
   mountain_top_3: { label: "Top 3 en montaña", prestige: 45, budget: 400000 },
   youth_win: { label: "Ganar la clasificación joven", prestige: 70, budget: 700000 },
   teams_win: { label: "Ganar la clasificación por equipos", prestige: 70, budget: 700000 },
-  uci_top_1: { label: "Liderar el ranking UCI de la carrera", prestige: 100, budget: 1200000 },
-  uci_top_3: { label: "Top 3 UCI de la carrera", prestige: 65, budget: 650000 },
-  uci_top_5: { label: "Top 5 UCI de la carrera", prestige: 45, budget: 450000 },
+  uci_top_1: { label: "Liderar el ranking UCI", prestige: 100, budget: 1200000 },
+  uci_top_3: { label: "Top 3 UCI", prestige: 65, budget: 650000 },
+  uci_top_5: { label: "Top 5 UCI", prestige: 45, budget: 450000 },
+  uci_top_10: { label: "Top 10 UCI", prestige: 30, budget: 250000 },
   time_trial_win: { label: "Ganar una crono", prestige: 50, budget: 450000 },
   monument_win: { label: "Ganar una clásica/monumento", prestige: 100, budget: 1000000 }
 };
@@ -163,63 +321,54 @@ const OBJECTIVE_DEFINITIONS = {
 const ROLE_TEMPLATES = {
   gc: {
     role: "Líder GC",
-    ageBase: 28,
     abandonRisk: 0.016,
     stats: { flat: 80, sprint: 66, timeTrial: 84, teamTimeTrial: 84, mountain: 88, cobbles: 68, hills: 84, stamina: 90, recovery: 89, acceleration: 80, positioning: 84, downhill: 82, consistency: 88, injuryResistance: 82 },
     form: 84
   },
   co_leader: {
     role: "Co-líder",
-    ageBase: 27,
     abandonRisk: 0.018,
     stats: { flat: 78, sprint: 64, timeTrial: 80, teamTimeTrial: 81, mountain: 85, cobbles: 66, hills: 82, stamina: 87, recovery: 86, acceleration: 78, positioning: 80, downhill: 80, consistency: 84, injuryResistance: 81 },
     form: 82
   },
   climber: {
     role: "Escalador",
-    ageBase: 27,
     abandonRisk: 0.021,
     stats: { flat: 72, sprint: 58, timeTrial: 72, teamTimeTrial: 74, mountain: 87, cobbles: 56, hills: 81, stamina: 86, recovery: 85, acceleration: 78, positioning: 76, downhill: 80, consistency: 82, injuryResistance: 78 },
     form: 81
   },
   time_trialist: {
     role: "Croner",
-    ageBase: 28,
     abandonRisk: 0.017,
     stats: { flat: 84, sprint: 64, timeTrial: 86, teamTimeTrial: 87, mountain: 74, cobbles: 68, hills: 75, stamina: 84, recovery: 81, acceleration: 70, positioning: 78, downhill: 76, consistency: 84, injuryResistance: 80 },
     form: 81
   },
   sprinter: {
     role: "Sprinter",
-    ageBase: 29,
     abandonRisk: 0.026,
     stats: { flat: 84, sprint: 88, timeTrial: 70, teamTimeTrial: 76, mountain: 62, cobbles: 72, hills: 72, stamina: 80, recovery: 76, acceleration: 89, positioning: 86, downhill: 74, consistency: 78, injuryResistance: 75 },
     form: 81
   },
   classics: {
     role: "Clasicómano",
-    ageBase: 29,
     abandonRisk: 0.024,
     stats: { flat: 82, sprint: 78, timeTrial: 75, teamTimeTrial: 78, mountain: 72, cobbles: 83, hills: 84, stamina: 84, recovery: 80, acceleration: 84, positioning: 87, downhill: 80, consistency: 80, injuryResistance: 77 },
     form: 81
   },
   rouleur: {
     role: "Rodador",
-    ageBase: 29,
     abandonRisk: 0.018,
     stats: { flat: 85, sprint: 70, timeTrial: 80, teamTimeTrial: 83, mountain: 72, cobbles: 72, hills: 75, stamina: 83, recovery: 80, acceleration: 72, positioning: 79, downhill: 76, consistency: 82, injuryResistance: 82 },
     form: 79
   },
   domestique: {
     role: "Gregario",
-    ageBase: 29,
     abandonRisk: 0.019,
     stats: { flat: 78, sprint: 66, timeTrial: 75, teamTimeTrial: 78, mountain: 78, cobbles: 66, hills: 77, stamina: 82, recovery: 81, acceleration: 73, positioning: 78, downhill: 76, consistency: 80, injuryResistance: 82 },
     form: 78
   },
   puncheur: {
     role: "Puncheur",
-    ageBase: 26,
     abandonRisk: 0.023,
     stats: { flat: 78, sprint: 76, timeTrial: 74, teamTimeTrial: 76, mountain: 78, cobbles: 72, hills: 86, stamina: 83, recovery: 80, acceleration: 86, positioning: 82, downhill: 80, consistency: 78, injuryResistance: 77 },
     form: 81
@@ -228,104 +377,60 @@ const ROLE_TEMPLATES = {
 
 const TEAM_RIDER_BLUEPRINTS = {
   uae: [
-    ["Tadej Pogačar", "Slovenia", 27, "gc"],
-    ["João Almeida", "Portugal", 27, "co_leader"],
-    ["Adam Yates", "Great Britain", 33, "climber"],
-    ["Isaac del Toro", "Mexico", 22, "puncheur"],
-    ["Brandon McNulty", "United States", 28, "time_trialist"],
-    ["Tim Wellens", "Belgium", 35, "classics"],
-    ["Pavel Sivakov", "France", 29, "domestique"],
-    ["Nils Politt", "Germany", 32, "rouleur"]
+    ["Tadej Pogačar", "Slovenia", 27, "gc"], ["João Almeida", "Portugal", 27, "co_leader"], ["Adam Yates", "Great Britain", 33, "climber"], ["Isaac del Toro", "Mexico", 22, "puncheur"],
+    ["Brandon McNulty", "United States", 28, "time_trialist"], ["Tim Wellens", "Belgium", 35, "classics"], ["Pavel Sivakov", "France", 29, "domestique"], ["Nils Politt", "Germany", 32, "rouleur"]
   ],
   visma: [
-    ["Jonas Vingegaard", "Denmark", 29, "gc"],
-    ["Matteo Jorgenson", "United States", 27, "co_leader"],
-    ["Sepp Kuss", "United States", 31, "climber"],
-    ["Wilco Kelderman", "Netherlands", 35, "domestique"],
-    ["Dylan van Baarle", "Netherlands", 34, "rouleur"],
-    ["Christophe Laporte", "France", 33, "classics"],
-    ["Olav Kooij", "Netherlands", 24, "sprinter"],
-    ["Tiesj Benoot", "Belgium", 32, "puncheur"]
+    ["Jonas Vingegaard", "Denmark", 29, "gc"], ["Matteo Jorgenson", "United States", 27, "co_leader"], ["Sepp Kuss", "United States", 31, "climber"], ["Wilco Kelderman", "Netherlands", 35, "domestique"],
+    ["Dylan van Baarle", "Netherlands", 34, "rouleur"], ["Christophe Laporte", "France", 33, "classics"], ["Olav Kooij", "Netherlands", 24, "sprinter"], ["Tiesj Benoot", "Belgium", 32, "puncheur"]
   ],
   ineos: [
-    ["Egan Bernal", "Colombia", 29, "gc"],
-    ["Carlos Rodríguez", "Spain", 25, "co_leader"],
-    ["Thymen Arensman", "Netherlands", 26, "climber"],
-    ["Filippo Ganna", "Italy", 29, "time_trialist"],
-    ["Joshua Tarling", "Great Britain", 22, "time_trialist"],
-    ["Magnus Sheffield", "United States", 24, "rouleur"],
-    ["Laurens De Plus", "Belgium", 30, "domestique"],
-    ["Ben Turner", "Great Britain", 27, "classics"]
+    ["Egan Bernal", "Colombia", 29, "gc"], ["Carlos Rodríguez", "Spain", 25, "co_leader"], ["Thymen Arensman", "Netherlands", 26, "climber"], ["Filippo Ganna", "Italy", 29, "time_trialist"],
+    ["Joshua Tarling", "Great Britain", 22, "time_trialist"], ["Magnus Sheffield", "United States", 24, "rouleur"], ["Laurens De Plus", "Belgium", 30, "domestique"], ["Ben Turner", "Great Britain", 27, "classics"]
   ],
   movistar: [
-    ["Enric Mas", "Spain", 31, "gc"],
-    ["Nairo Quintana", "Colombia", 36, "climber"],
-    ["Einer Rubio", "Colombia", 28, "climber"],
-    ["Iván Romeo", "Spain", 23, "time_trialist"],
-    ["Alex Aranburu", "Spain", 30, "classics"],
-    ["Fernando Gaviria", "Colombia", 31, "sprinter"],
-    ["Davide Formolo", "Italy", 33, "domestique"],
-    ["Pelayo Sánchez", "Spain", 26, "puncheur"]
+    ["Enric Mas", "Spain", 31, "gc"], ["Nairo Quintana", "Colombia", 36, "climber"], ["Einer Rubio", "Colombia", 28, "climber"], ["Iván Romeo", "Spain", 23, "time_trialist"],
+    ["Alex Aranburu", "Spain", 30, "classics"], ["Fernando Gaviria", "Colombia", 31, "sprinter"], ["Davide Formolo", "Italy", 33, "domestique"], ["Pelayo Sánchez", "Spain", 26, "puncheur"]
   ],
   redbull: [
-    ["Primož Roglič", "Slovenia", 36, "gc"],
-    ["Jai Hindley", "Australia", 30, "climber"],
-    ["Aleksandr Vlasov", "Russia", 30, "co_leader"],
-    ["Daniel Martínez", "Colombia", 30, "climber"],
-    ["Florian Lipowitz", "Germany", 25, "climber"],
-    ["Roger Adrià", "Spain", 28, "puncheur"],
-    ["Sam Welsford", "Australia", 30, "sprinter"],
-    ["Bob Jungels", "Luxembourg", 33, "rouleur"]
+    ["Primož Roglič", "Slovenia", 36, "gc"], ["Jai Hindley", "Australia", 30, "climber"], ["Aleksandr Vlasov", "Russia", 30, "co_leader"], ["Daniel Martínez", "Colombia", 30, "climber"],
+    ["Florian Lipowitz", "Germany", 25, "climber"], ["Roger Adrià", "Spain", 28, "puncheur"], ["Sam Welsford", "Australia", 30, "sprinter"], ["Bob Jungels", "Luxembourg", 33, "rouleur"]
   ],
   soudal: [
-    ["Remco Evenepoel", "Belgium", 26, "gc"],
-    ["Mikel Landa", "Spain", 36, "climber"],
-    ["Ilan Van Wilder", "Belgium", 26, "co_leader"],
-    ["Tim Merlier", "Belgium", 33, "sprinter"],
-    ["Kasper Asgreen", "Denmark", 31, "rouleur"],
-    ["Yves Lampaert", "Belgium", 35, "time_trialist"],
-    ["Mauri Vansevenant", "Belgium", 27, "puncheur"],
-    ["Bert Van Lerberghe", "Belgium", 33, "domestique"]
+    ["Remco Evenepoel", "Belgium", 26, "gc"], ["Mikel Landa", "Spain", 36, "climber"], ["Ilan Van Wilder", "Belgium", 26, "co_leader"], ["Tim Merlier", "Belgium", 33, "sprinter"],
+    ["Kasper Asgreen", "Denmark", 31, "rouleur"], ["Yves Lampaert", "Belgium", 35, "time_trialist"], ["Mauri Vansevenant", "Belgium", 27, "puncheur"], ["Bert Van Lerberghe", "Belgium", 33, "domestique"]
   ],
   lidl: [
-    ["Juan Ayuso", "Spain", 24, "gc"],
-    ["Mattias Skjelmose", "Denmark", 26, "co_leader"],
-    ["Giulio Ciccone", "Italy", 31, "climber"],
-    ["Mads Pedersen", "Denmark", 30, "classics"],
-    ["Jonathan Milan", "Italy", 26, "sprinter"],
-    ["Tao Geoghegan Hart", "Great Britain", 31, "climber"],
-    ["Simone Consonni", "Italy", 31, "rouleur"],
-    ["Jasper Stuyven", "Belgium", 34, "classics"]
+    ["Juan Ayuso", "Spain", 24, "gc"], ["Mattias Skjelmose", "Denmark", 26, "co_leader"], ["Giulio Ciccone", "Italy", 31, "climber"], ["Mads Pedersen", "Denmark", 30, "classics"],
+    ["Jonathan Milan", "Italy", 26, "sprinter"], ["Tao Geoghegan Hart", "Great Britain", 31, "climber"], ["Simone Consonni", "Italy", 31, "rouleur"], ["Jasper Stuyven", "Belgium", 34, "classics"]
   ],
   alpecin: [
-    ["Mathieu van der Poel", "Netherlands", 31, "classics"],
-    ["Jasper Philipsen", "Belgium", 28, "sprinter"],
-    ["Kaden Groves", "Australia", 27, "sprinter"],
-    ["Søren Kragh Andersen", "Denmark", 32, "rouleur"],
-    ["Quinten Hermans", "Belgium", 31, "puncheur"],
-    ["Gianni Vermeersch", "Belgium", 33, "classics"],
-    ["Tibor Del Grosso", "Netherlands", 23, "puncheur"],
-    ["Silvan Dillier", "Switzerland", 36, "domestique"]
+    ["Mathieu van der Poel", "Netherlands", 31, "classics"], ["Jasper Philipsen", "Belgium", 28, "sprinter"], ["Kaden Groves", "Australia", 27, "sprinter"], ["Søren Kragh Andersen", "Denmark", 32, "rouleur"],
+    ["Quinten Hermans", "Belgium", 31, "puncheur"], ["Gianni Vermeersch", "Belgium", 33, "classics"], ["Tibor Del Grosso", "Netherlands", 23, "puncheur"], ["Silvan Dillier", "Switzerland", 36, "domestique"]
   ],
   bahrain: [
-    ["Pello Bilbao", "Spain", 36, "gc"],
-    ["Santiago Buitrago", "Colombia", 26, "climber"],
-    ["Antonio Tiberi", "Italy", 25, "co_leader"],
-    ["Matej Mohorič", "Slovenia", 31, "classics"],
-    ["Phil Bauhaus", "Germany", 32, "sprinter"],
-    ["Jack Haig", "Australia", 33, "climber"],
-    ["Fred Wright", "Great Britain", 27, "rouleur"],
-    ["Kamil Gradek", "Poland", 36, "time_trialist"]
+    ["Pello Bilbao", "Spain", 36, "gc"], ["Santiago Buitrago", "Colombia", 26, "climber"], ["Antonio Tiberi", "Italy", 25, "co_leader"], ["Matej Mohorič", "Slovenia", 31, "classics"],
+    ["Phil Bauhaus", "Germany", 32, "sprinter"], ["Jack Haig", "Australia", 33, "climber"], ["Fred Wright", "Great Britain", 27, "rouleur"], ["Kamil Gradek", "Poland", 36, "time_trialist"]
   ],
   decathlon: [
-    ["Felix Gall", "Austria", 28, "gc"],
-    ["Paul Seixas", "France", 20, "climber"],
-    ["Paul Lapeira", "France", 26, "puncheur"],
-    ["Dorian Godon", "France", 30, "classics"],
-    ["Bruno Armirail", "France", 32, "time_trialist"],
-    ["Oliver Naesen", "Belgium", 35, "rouleur"],
-    ["Sam Bennett", "Ireland", 35, "sprinter"],
-    ["Aurélien Paret-Peintre", "France", 30, "climber"]
+    ["Felix Gall", "Austria", 28, "gc"], ["Paul Seixas", "France", 20, "climber"], ["Paul Lapeira", "France", 26, "puncheur"], ["Dorian Godon", "France", 30, "classics"],
+    ["Bruno Armirail", "France", 32, "time_trialist"], ["Oliver Naesen", "Belgium", 35, "rouleur"], ["Sam Bennett", "Ireland", 35, "sprinter"], ["Aurélien Paret-Peintre", "France", 30, "climber"]
+  ],
+  caja: [
+    ["Fernando Gaviria", "Colombia", 31, "sprinter"], ["Stefano Oldani", "Italy", 28, "classics"], ["Sebastian Berwick", "Australia", 26, "climber"], ["Alex Molenaar", "Netherlands", 27, "puncheur"],
+    ["José Félix Parra", "Spain", 29, "climber"], ["Jakub Otruba", "Czech Republic", 28, "time_trialist"], ["Joel Nicolau", "Spain", 29, "puncheur"], ["Abel Balderstone", "Great Britain", 26, "climber"]
+  ],
+  burgos: [
+    ["Jesús Herrada", "Spain", 36, "puncheur"], ["Merhawi Kudus", "Eritrea", 32, "climber"], ["Jambaljamts Sainbayar", "Mongolia", 29, "rouleur"], ["José Manuel Díaz", "Spain", 31, "climber"],
+    ["Eric Antonio Fagúndez", "Uruguay", 28, "puncheur"], ["Lorenzo Quartucci", "Italy", 26, "sprinter"], ["Alexandre Mayer", "Mauritius", 28, "rouleur"], ["Georgios Bouglas", "Greece", 35, "sprinter"]
+  ],
+  euskaltel: [
+    ["Jonathan Lastra", "Spain", 33, "classics"], ["Mikel Bizkarra", "Spain", 37, "climber"], ["Gotzon Martín", "Spain", 30, "puncheur"], ["Xabier Berasategi", "Spain", 26, "climber"],
+    ["Txomin Juaristi", "Spain", 31, "rouleur"], ["Jordi López", "Spain", 27, "climber"], ["Jon Agirre", "Spain", 29, "puncheur"], ["Jokin Murguialday", "Spain", 26, "climber"]
+  ],
+  polti: [
+    ["Giovanni Lonardi", "Italy", 30, "sprinter"], ["Mirco Maestri", "Italy", 34, "rouleur"], ["Alessandro Tonelli", "Italy", 34, "puncheur"], ["Manuel Peñalver", "Spain", 27, "sprinter"],
+    ["Thomas Pesenti", "Italy", 26, "climber"], ["Mattia Bais", "Italy", 29, "rouleur"], ["Davide Bais", "Italy", 28, "climber"], ["Ludovico Crescioli", "Italy", 23, "climber"]
   ]
 };
 
@@ -334,39 +439,26 @@ function dataClamp(value, min, max) {
 }
 
 function deterministicNoise(teamIndex, riderIndex, statName) {
-  const seed =
-    teamIndex * 97 +
-    riderIndex * 31 +
-    statName.split("").reduce((sum, char) => sum + char.charCodeAt(0), 0);
-
+  const seed = teamIndex * 97 + riderIndex * 31 + statName.split("").reduce((sum, char) => sum + char.charCodeAt(0), 0);
   const raw = Math.sin(seed) * 10000;
   const fractional = raw - Math.floor(raw);
-
   return Math.round((fractional - 0.5) * 6);
 }
 
 function buildStats(baseStats, modifiers, teamIndex, riderIndex) {
   const stats = {};
-
   Object.keys(baseStats).forEach(statName => {
-    stats[statName] = dataClamp(
-      baseStats[statName] + (modifiers[statName] || 0) + deterministicNoise(teamIndex, riderIndex, statName),
-      42,
-      99
-    );
+    stats[statName] = dataClamp(baseStats[statName] + (modifiers[statName] || 0) + deterministicNoise(teamIndex, riderIndex, statName), 42, 99);
   });
-
   return stats;
 }
 
 function generateRiders() {
   const riders = [];
-
   TEAM_BLUEPRINTS.forEach((team, teamIndex) => {
     TEAM_RIDER_BLUEPRINTS[team.id].forEach((item, riderIndex) => {
       const [name, nationality, age, roleKey] = item;
       const template = ROLE_TEMPLATES[roleKey];
-
       riders.push({
         id: `${team.id}_${String(riderIndex + 1).padStart(2, "0")}`,
         name,
@@ -377,16 +469,8 @@ function generateRiders() {
         roleKey,
         speciality: template.role,
         stats: buildStats(template.stats, team.modifiers, teamIndex, riderIndex),
-        form: dataClamp(
-          template.form + team.modifiers.form + deterministicNoise(teamIndex, riderIndex, "form"),
-          68,
-          98
-        ),
-        morale: dataClamp(
-          78 + team.modifiers.form + deterministicNoise(teamIndex, riderIndex, "morale"),
-          45,
-          98
-        ),
+        form: dataClamp(template.form + team.modifiers.form + deterministicNoise(teamIndex, riderIndex, "form"), 62, 98),
+        morale: dataClamp(78 + team.modifiers.form + deterministicNoise(teamIndex, riderIndex, "morale"), 45, 98),
         energy: 100,
         fatigue: 0,
         totalTime: 0,
@@ -400,7 +484,6 @@ function generateRiders() {
       });
     });
   });
-
   return riders;
 }
 
@@ -414,7 +497,6 @@ const CLASSIFICATION_RULES = {
   youthMaxAge: 25,
   teamClassificationBestRiders: 3,
   finishBonuses: [10, 6, 4],
-
   pointsByStageType: {
     flat: [50, 30, 20, 18, 16, 14, 12, 10, 8, 7, 6, 5, 4, 3, 2],
     hilly: [35, 25, 20, 17, 15, 13, 11, 9, 7, 6, 5, 4, 3, 2, 1],
@@ -423,9 +505,7 @@ const CLASSIFICATION_RULES = {
     time_trial: [20, 17, 15, 13, 11, 9, 7, 5, 3, 1],
     team_time_trial: [20, 17, 15, 13, 11, 9, 7, 5, 3, 1]
   },
-
   intermediateSprintPoints: [20, 17, 15, 13, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1],
-
   mountainPoints: {
     HC: [20, 15, 12, 10, 8, 6, 4, 2],
     "1": [10, 8, 6, 4, 2, 1],
@@ -433,14 +513,9 @@ const CLASSIFICATION_RULES = {
     "3": [2, 1],
     "4": [1]
   },
-
   uci: {
     grandTourStage: [120, 50, 25, 15, 5],
-    grandTourFinalGC: [
-      1300, 1040, 880, 730, 620, 520, 425, 325, 275, 225,
-      175, 150, 125, 105, 85, 75, 70, 65, 60, 55,
-      50, 45, 40, 35, 30, 25, 20, 15, 10, 5
-    ],
+    grandTourFinalGC: [1300, 1040, 880, 730, 620, 520, 425, 325, 275, 225, 175, 150, 125, 105, 85, 75, 70, 65, 60, 55, 50, 45, 40, 35, 30, 25, 20, 15, 10, 5],
     stageLeaderPerDay: 25,
     secondaryFinal: [120, 50, 25],
     oneDay: [500, 400, 325, 275, 225, 175, 150, 125, 100, 85, 70, 60, 50, 40, 30]
@@ -448,139 +523,21 @@ const CLASSIFICATION_RULES = {
 };
 
 const DIFFICULTY_LEVELS = {
-  easy: {
-    label: "Fácil",
-    userBonus: 3,
-    aiBonus: -1,
-    incidentMultiplier: 0.75,
-    crisisMultiplier: 0.75,
-    sponsorMultiplier: 0.85
-  },
-  normal: {
-    label: "Normal",
-    userBonus: 0,
-    aiBonus: 0,
-    incidentMultiplier: 1.0,
-    crisisMultiplier: 1.0,
-    sponsorMultiplier: 1.0
-  },
-  realistic: {
-    label: "Realista",
-    userBonus: -1,
-    aiBonus: 1,
-    incidentMultiplier: 1.25,
-    crisisMultiplier: 1.25,
-    sponsorMultiplier: 1.15
-  }
+  easy: { label: "Fácil", userBonus: 3, aiBonus: -1, incidentMultiplier: 0.75, crisisMultiplier: 0.75, sponsorMultiplier: 0.85 },
+  normal: { label: "Normal", userBonus: 0, aiBonus: 0, incidentMultiplier: 1.0, crisisMultiplier: 1.0, sponsorMultiplier: 1.0 },
+  realistic: { label: "Realista", userBonus: -1, aiBonus: 1, incidentMultiplier: 1.25, crisisMultiplier: 1.25, sponsorMultiplier: 1.15 }
 };
 
-/* ============================================================
-   TÁCTICAS Y ÓRDENES
-   ============================================================ */
-
 const TACTICS = [
-  {
-    id: "conservative",
-    name: "Conservar",
-    description: "Menor riesgo y fatiga. Ideal para corredores tocados.",
-    bonus: -2,
-    risk: 0.06,
-    fatigueMultiplier: 0.62,
-    supportBonus: 0,
-    sprintTrainBonus: 0,
-    sectorEnergy: 0.72
-  },
-  {
-    id: "balanced",
-    name: "Equilibrado",
-    description: "Compromiso entre rendimiento y desgaste.",
-    bonus: 0,
-    risk: 0.16,
-    fatigueMultiplier: 1.0,
-    supportBonus: 0,
-    sprintTrainBonus: 0,
-    sectorEnergy: 1.0
-  },
-  {
-    id: "protect_leader",
-    name: "Proteger líder",
-    description: "Sacrifica rendimiento para ayudar al líder protegido.",
-    bonus: -1,
-    risk: 0.12,
-    fatigueMultiplier: 1.20,
-    supportBonus: 2.4,
-    sprintTrainBonus: 0,
-    sectorEnergy: 1.15
-  },
-  {
-    id: "pull_peloton",
-    name: "Tirar del pelotón",
-    description: "Trabaja para reducir fuga. Mucho coste de energía.",
-    bonus: 1,
-    risk: 0.20,
-    fatigueMultiplier: 1.55,
-    supportBonus: 0,
-    sprintTrainBonus: 0,
-    sectorEnergy: 1.45,
-    pullsPeloton: true
-  },
-  {
-    id: "mark_rival",
-    name: "Marcar rival",
-    description: "Cubre ataques de rivales directos. Bueno para GC.",
-    bonus: 1,
-    risk: 0.20,
-    fatigueMultiplier: 1.20,
-    supportBonus: 1.0,
-    sprintTrainBonus: 0,
-    sectorEnergy: 1.15,
-    markRival: true
-  },
-  {
-    id: "aggressive",
-    name: "Atacar",
-    description: "Más rendimiento potencial, más fatiga y riesgo.",
-    bonus: 4,
-    risk: 0.36,
-    fatigueMultiplier: 1.45,
-    supportBonus: 0,
-    sprintTrainBonus: 0,
-    sectorEnergy: 1.45
-  },
-  {
-    id: "all_in",
-    name: "Todo o nada",
-    description: "Máximo riesgo; puede romper la etapa o hundir al corredor.",
-    bonus: 8,
-    risk: 0.62,
-    fatigueMultiplier: 2.0,
-    supportBonus: 0,
-    sprintTrainBonus: 0,
-    sectorEnergy: 2.0
-  },
-  {
-    id: "sprint_train",
-    name: "Tren de sprint",
-    description: "Ayuda al sprinter en llanas y finales rápidos.",
-    bonus: -1,
-    risk: 0.22,
-    fatigueMultiplier: 1.30,
-    supportBonus: 0,
-    sprintTrainBonus: 2.6,
-    sectorEnergy: 1.35
-  },
-  {
-    id: "wait_leader",
-    name: "Esperar líder",
-    description: "Pierde tiempo para ayudar a un líder con problema.",
-    bonus: -5,
-    risk: 0.08,
-    fatigueMultiplier: 1.35,
-    supportBonus: 3.8,
-    sprintTrainBonus: 0,
-    sectorEnergy: 1.35,
-    waitsLeader: true
-  }
+  { id: "conservative", name: "Conservar", description: "Menor riesgo y fatiga.", bonus: -2, risk: 0.06, fatigueMultiplier: 0.62, supportBonus: 0, sprintTrainBonus: 0, sectorEnergy: 0.72 },
+  { id: "balanced", name: "Equilibrado", description: "Compromiso entre rendimiento y desgaste.", bonus: 0, risk: 0.16, fatigueMultiplier: 1.0, supportBonus: 0, sprintTrainBonus: 0, sectorEnergy: 1.0 },
+  { id: "protect_leader", name: "Proteger líder", description: "Sacrifica rendimiento para ayudar al líder.", bonus: -1, risk: 0.12, fatigueMultiplier: 1.20, supportBonus: 2.4, sprintTrainBonus: 0, sectorEnergy: 1.15 },
+  { id: "pull_peloton", name: "Tirar del pelotón", description: "Trabaja para reducir fuga.", bonus: 1, risk: 0.20, fatigueMultiplier: 1.55, supportBonus: 0, sprintTrainBonus: 0, sectorEnergy: 1.45, pullsPeloton: true },
+  { id: "mark_rival", name: "Marcar rival", description: "Cubre ataques de rivales directos.", bonus: 1, risk: 0.20, fatigueMultiplier: 1.20, supportBonus: 1.0, sprintTrainBonus: 0, sectorEnergy: 1.15, markRival: true },
+  { id: "aggressive", name: "Atacar", description: "Más rendimiento potencial, más riesgo.", bonus: 4, risk: 0.36, fatigueMultiplier: 1.45, supportBonus: 0, sprintTrainBonus: 0, sectorEnergy: 1.45 },
+  { id: "all_in", name: "Todo o nada", description: "Máximo riesgo y máximo desgaste.", bonus: 8, risk: 0.62, fatigueMultiplier: 2.0, supportBonus: 0, sprintTrainBonus: 0, sectorEnergy: 2.0 },
+  { id: "sprint_train", name: "Tren de sprint", description: "Ayuda al sprinter en finales rápidos.", bonus: -1, risk: 0.22, fatigueMultiplier: 1.30, supportBonus: 0, sprintTrainBonus: 2.6, sectorEnergy: 1.35 },
+  { id: "wait_leader", name: "Esperar líder", description: "Pierde tiempo para ayudar a un líder con problema.", bonus: -5, risk: 0.08, fatigueMultiplier: 1.35, supportBonus: 3.8, sprintTrainBonus: 0, sectorEnergy: 1.35, waitsLeader: true }
 ];
 
 const SMART_PRESETS = [
@@ -588,8 +545,8 @@ const SMART_PRESETS = [
   { id: "sprint", name: "Sprint masivo", description: "Sprinter ataca; rodadores hacen tren." },
   { id: "breakaway", name: "Fuga del día", description: "Puncheurs/rouleurs atacan; líderes conservan." },
   { id: "mountain_attack", name: "Montaña agresiva", description: "GC y escaladores atacan; gregarios protegen." },
-  { id: "survival", name: "Supervivencia", description: "Todos conservan para salvar fatiga." },
-  { id: "time_trial", name: "Crono a tope", description: "Croners y líderes atacan; resto equilibrado." }
+  { id: "survival", name: "Supervivencia", description: "Todos conservan." },
+  { id: "time_trial", name: "Crono a tope", description: "Croners y líderes a ritmo alto." }
 ];
 
 /* ============================================================
@@ -597,239 +554,26 @@ const SMART_PRESETS = [
    ============================================================ */
 
 const NUTRITION_ITEMS = [
-  {
-    id: "gel",
-    name: "Gel",
-    description: "Energía rápida. Bueno antes de puertos o ataques.",
-    energy: 20,
-    hydration: 0,
-    stomachLoad: 8,
-    morale: 0,
-    finalBonus: 0,
-    delay: 0,
-    bestUse: ["climb", "final", "attack"]
-  },
-  {
-    id: "bar",
-    name: "Barrita",
-    description: "Energía lenta. Mejor en llano o valle.",
-    energy: 25,
-    hydration: -2,
-    stomachLoad: 14,
-    morale: 0,
-    finalBonus: 0,
-    delay: 1,
-    bestUse: ["flat", "valley"]
-  },
-  {
-    id: "isotonic",
-    name: "Bidón isotónico",
-    description: "Energía moderada e hidratación.",
-    energy: 12,
-    hydration: 18,
-    stomachLoad: 5,
-    morale: 0,
-    finalBonus: 0,
-    delay: 0,
-    bestUse: ["flat", "hilly", "hot"]
-  },
-  {
-    id: "caffeine_gel",
-    name: "Gel cafeína",
-    description: "Bonus de final. Úsalo en el último sector duro.",
-    energy: 18,
-    hydration: -2,
-    stomachLoad: 10,
-    morale: 3,
-    finalBonus: 3,
-    delay: 0,
-    bestUse: ["final"]
-  },
-  {
-    id: "rice_cake",
-    name: "Rice cake",
-    description: "Energía estable y poco agresiva.",
-    energy: 18,
-    hydration: 0,
-    stomachLoad: 9,
-    morale: 1,
-    finalBonus: 0,
-    delay: 1,
-    bestUse: ["flat", "valley", "hilly"]
-  },
-  {
-    id: "water",
-    name: "Agua",
-    description: "Hidratación sin apenas energía.",
-    energy: 2,
-    hydration: 24,
-    stomachLoad: 2,
-    morale: 0,
-    finalBonus: 0,
-    delay: 0,
-    bestUse: ["hot", "flat", "climb"]
-  }
+  { id: "gel", name: "Gel", description: "Energía rápida.", energy: 20, hydration: 0, stomachLoad: 8, morale: 0, finalBonus: 0, delay: 0 },
+  { id: "bar", name: "Barrita", description: "Energía lenta.", energy: 25, hydration: -2, stomachLoad: 14, morale: 0, finalBonus: 0, delay: 1 },
+  { id: "isotonic", name: "Bidón isotónico", description: "Energía e hidratación.", energy: 12, hydration: 18, stomachLoad: 5, morale: 0, finalBonus: 0, delay: 0 },
+  { id: "caffeine_gel", name: "Gel cafeína", description: "Bonus de final.", energy: 18, hydration: -2, stomachLoad: 10, morale: 3, finalBonus: 3, delay: 0 },
+  { id: "rice_cake", name: "Rice cake", description: "Energía estable.", energy: 18, hydration: 0, stomachLoad: 9, morale: 1, finalBonus: 0, delay: 1 },
+  { id: "water", name: "Agua", description: "Hidratación sin energía.", energy: 2, hydration: 24, stomachLoad: 2, morale: 0, finalBonus: 0, delay: 0 }
 ];
 
 const NUTRITION_PLANS = [
-  {
-    id: "auto_balanced",
-    name: "Automático equilibrado",
-    description: "Come de forma estable durante toda la etapa.",
-    stock: { gel: 16, bar: 12, isotonic: 24, caffeine_gel: 6, rice_cake: 12, water: 24 },
-    rules: [
-      { sectorType: "flat", item: "bar" },
-      { sectorType: "valley", item: "rice_cake" },
-      { sectorType: "hilly", item: "gel" },
-      { sectorType: "climb", item: "gel" },
-      { sectorType: "final", item: "caffeine_gel" }
-    ]
-  },
-  {
-    id: "mountain",
-    name: "Montaña",
-    description: "Más geles y cafeína para sectores duros.",
-    stock: { gel: 24, bar: 8, isotonic: 24, caffeine_gel: 8, rice_cake: 8, water: 24 },
-    rules: [
-      { sectorType: "flat", item: "bar" },
-      { sectorType: "valley", item: "isotonic" },
-      { sectorType: "hilly", item: "gel" },
-      { sectorType: "climb", item: "gel" },
-      { sectorType: "final", item: "caffeine_gel" }
-    ]
-  },
-  {
-    id: "sprint",
-    name: "Sprint",
-    description: "Hidrata y reserva cafeína para el final rápido.",
-    stock: { gel: 18, bar: 10, isotonic: 28, caffeine_gel: 8, rice_cake: 10, water: 24 },
-    rules: [
-      { sectorType: "flat", item: "isotonic" },
-      { sectorType: "valley", item: "rice_cake" },
-      { sectorType: "hilly", item: "gel" },
-      { sectorType: "climb", item: "gel" },
-      { sectorType: "final", item: "caffeine_gel" }
-    ]
-  },
-  {
-    id: "hot",
-    name: "Calor",
-    description: "Prioriza hidratación para evitar crisis.",
-    stock: { gel: 18, bar: 8, isotonic: 34, caffeine_gel: 6, rice_cake: 8, water: 34 },
-    rules: [
-      { sectorType: "flat", item: "isotonic" },
-      { sectorType: "valley", item: "water" },
-      { sectorType: "hilly", item: "isotonic" },
-      { sectorType: "climb", item: "gel" },
-      { sectorType: "final", item: "caffeine_gel" }
-    ]
-  }
+  { id: "auto_balanced", name: "Equilibrado", description: "Stock equilibrado para todo tipo de etapa.", stock: { gel: 16, bar: 12, isotonic: 24, caffeine_gel: 6, rice_cake: 12, water: 24 } },
+  { id: "mountain", name: "Montaña", description: "Más geles y cafeína.", stock: { gel: 24, bar: 8, isotonic: 24, caffeine_gel: 8, rice_cake: 8, water: 24 } },
+  { id: "sprint", name: "Sprint", description: "Hidratación y cafeína para final rápido.", stock: { gel: 18, bar: 10, isotonic: 28, caffeine_gel: 8, rice_cake: 10, water: 24 } },
+  { id: "hot", name: "Calor", description: "Prioriza hidratación.", stock: { gel: 18, bar: 8, isotonic: 34, caffeine_gel: 6, rice_cake: 8, water: 34 } }
 ];
 
 const AUTO_NUTRITION_MODES = [
-  {
-    id: "auto_smart",
-    name: "Automático inteligente",
-    description: "El ciclista toma geles, bidones o comida según energía, hidratación, sector y momento de carrera."
-  },
-  {
-    id: "auto_conservative",
-    name: "Automático conservador",
-    description: "Prioriza evitar pájaras y deshidratación aunque gaste más stock."
-  },
-  {
-    id: "auto_aggressive",
-    name: "Automático agresivo",
-    description: "Reserva cafeína y geles para ataques, puertos y finales."
-  },
-  {
-    id: "manual",
-    name: "Manual",
-    description: "Tú decides cuándo come cada corredor."
-  }
-];
-
-/* ============================================================
-   MATERIAL
-   ============================================================ */
-
-const BIKE_SETUPS = [
-  {
-    id: "aero",
-    name: "Aero",
-    description: "Máxima velocidad en llano y sprint.",
-    bonuses: { flat: 3, sprint: 2, timeTrial: 1, mountain: -2, cobbles: -1, hilly: 1, handling: -1 },
-    punctureRisk: 1.0
-  },
-  {
-    id: "lightweight",
-    name: "Ligera",
-    description: "Ideal para alta montaña.",
-    bonuses: { mountain: 3, hilly: 2, acceleration: 1, flat: -1, cobbles: -2, handling: 1 },
-    punctureRisk: 1.05
-  },
-  {
-    id: "endurance",
-    name: "Endurance",
-    description: "Más cómoda y segura en pavés o etapas largas.",
-    bonuses: { cobbles: 3, stamina: 1, positioning: 1, flat: -1, timeTrial: -1, handling: 2 },
-    punctureRisk: 0.85
-  },
-  {
-    id: "tt",
-    name: "Cabra CRI",
-    description: "Solo para cronos.",
-    bonuses: { timeTrial: 6, teamTimeTrial: 5, flat: 2, mountain: -2, handling: -2 },
-    punctureRisk: 1.0
-  }
-];
-
-const WHEEL_SETUPS = [
-  {
-    id: "deep_60",
-    name: "Perfil 60 mm",
-    description: "Muy rápidas en llano, sensibles al viento.",
-    bonuses: { flat: 2, sprint: 1, timeTrial: 2, mountain: -1, hilly: 0, windPenalty: 2 },
-    punctureRisk: 1.0
-  },
-  {
-    id: "shallow_35",
-    name: "Perfil 35 mm",
-    description: "Equilibradas y manejables.",
-    bonuses: { mountain: 1, hilly: 1, handling: 1, flat: 0, windPenalty: 0 },
-    punctureRisk: 0.95
-  },
-  {
-    id: "climbing",
-    name: "Ruedas ligeras",
-    description: "Buenas para puertos largos.",
-    bonuses: { mountain: 2, acceleration: 1, flat: -1, hilly: 1, windPenalty: 0 },
-    punctureRisk: 1.05
-  },
-  {
-    id: "cobbles",
-    name: "Ruedas pavés",
-    description: "Más seguridad y confort en adoquines.",
-    bonuses: { cobbles: 3, positioning: 1, stamina: 1, windPenalty: 0 },
-    punctureRisk: 0.75
-  },
-  {
-    id: "disc_tt",
-    name: "Lenticular CRI",
-    description: "Máxima aerodinámica en cronos.",
-    bonuses: { timeTrial: 4, teamTimeTrial: 4, flat: 2, windPenalty: 3 },
-    punctureRisk: 1.0
-  }
-];
-
-const EQUIPMENT_PRESETS = [
-  { id: "auto", name: "Auto según etapa", bike: "auto", wheels: "auto" },
-  { id: "flat", name: "Llano", bike: "aero", wheels: "deep_60" },
-  { id: "mountain", name: "Montaña", bike: "lightweight", wheels: "climbing" },
-  { id: "hilly", name: "Media montaña", bike: "lightweight", wheels: "shallow_35" },
-  { id: "cobbles", name: "Pavés", bike: "endurance", wheels: "cobbles" },
-  { id: "tt", name: "Crono", bike: "tt", wheels: "disc_tt" },
-  { id: "safe_rain", name: "Seguro lluvia", bike: "endurance", wheels: "shallow_35" }
+  { id: "auto_smart", name: "Automático inteligente", description: "Come según energía, hidratación, sector y final." },
+  { id: "auto_conservative", name: "Automático conservador", description: "Prioriza evitar pájaras y deshidratación." },
+  { id: "auto_aggressive", name: "Automático agresivo", description: "Reserva recursos para ataques/finales." },
+  { id: "manual", name: "Manual", description: "Tú decides cuándo come cada corredor." }
 ];
 
 /* ============================================================
@@ -837,40 +581,15 @@ const EQUIPMENT_PRESETS = [
    ============================================================ */
 
 const TRAINING_OPTIONS = [
-  {
-    id: "recovery",
-    name: "Recuperación total",
-    description: "Reduce mucha fatiga, pero baja ligeramente la forma.",
-    effects: { fatigue: -22, form: -1, morale: 1 }
-  },
-  {
-    id: "activation",
-    name: "Activación suave",
-    description: "Reduce fatiga y mantiene tono competitivo.",
-    effects: { fatigue: -12, form: 1, morale: 1 }
-  },
-  {
-    id: "altitude",
-    name: "Concentración en altura",
-    description: "Mejora montaña, stamina y forma, pero recupera menos.",
-    effects: { fatigue: -6, form: 3, mountain: 1, stamina: 1, morale: 1 }
-  },
-  {
-    id: "time_trial",
-    name: "Bloque de crono",
-    description: "Mejora CRI/CRE.",
-    effects: { fatigue: -7, form: 2, timeTrial: 1, teamTimeTrial: 1 }
-  },
-  {
-    id: "sprint",
-    name: "Tren de sprint",
-    description: "Mejora sprint, colocación y aceleración.",
-    effects: { fatigue: -7, form: 2, sprint: 1, positioning: 1, acceleration: 1 }
-  }
+  { id: "recovery", name: "Recuperación total", description: "Reduce mucha fatiga, baja ligeramente forma.", effects: { fatigue: -22, form: -1, morale: 1 } },
+  { id: "activation", name: "Activación suave", description: "Reduce fatiga y mantiene tono.", effects: { fatigue: -12, form: 1, morale: 1 } },
+  { id: "altitude", name: "Concentración en altura", description: "Mejora montaña/stamina.", effects: { fatigue: -6, form: 3, mountain: 1, stamina: 1, morale: 1 } },
+  { id: "time_trial", name: "Bloque de crono", description: "Mejora CRI/CRE.", effects: { fatigue: -7, form: 2, timeTrial: 1, teamTimeTrial: 1 } },
+  { id: "sprint", name: "Tren de sprint", description: "Mejora sprint, colocación y aceleración.", effects: { fatigue: -7, form: 2, sprint: 1, positioning: 1, acceleration: 1 } }
 ];
 
 /* ============================================================
-   ETAPAS Y CARRERAS
+   ETAPAS
    ============================================================ */
 
 function climb(name, category, km, length, gradient) {
@@ -900,19 +619,9 @@ function buildStageSectors(stageType, distance, difficulty, profile) {
   for (let i = 0; i < sectorCount; i++) {
     const kmStart = Math.round((distance / sectorCount) * i);
     const kmEnd = i === sectorCount - 1 ? distance : Math.round((distance / sectorCount) * (i + 1));
-    const kmMid = (kmStart + kmEnd) / 2;
     const climbHere = climbs.find(c => c.km >= kmStart && c.km <= kmEnd);
     const isFinal = i === sectorCount - 1;
-
     const type = sectorTypeFromStage(stageType, isFinal, climbHere);
-    const sectorDifficulty = dataClamp(
-      difficulty +
-        (climbHere ? 12 : 0) +
-        (isFinal ? 8 : 0) +
-        (profile.roadSurface === "pavé" ? 8 : 0),
-      10,
-      100
-    );
 
     sectors.push({
       id: `sector_${i + 1}`,
@@ -927,29 +636,10 @@ function buildStageSectors(stageType, distance, difficulty, profile) {
       kmStart,
       kmEnd,
       type,
-      difficulty: sectorDifficulty,
-      energyCost:
-        type === "flat" ? 14 :
-        type === "valley" ? 16 :
-        type === "hilly" ? 22 :
-        type === "climb" ? 30 :
-        type === "cobbles" ? 28 :
-        type === "tt" ? 26 :
-        34,
-      feedingAllowed: !["final"].includes(type) || sectorDifficulty < 88,
-      attackValue:
-        type === "flat" ? 25 :
-        type === "hilly" ? 65 :
-        type === "climb" ? 85 :
-        type === "cobbles" ? 75 :
-        type === "final" ? 95 :
-        50,
-      risk:
-        type === "cobbles" ? 70 :
-        type === "climb" ? 45 :
-        type === "final" ? 55 :
-        profile.rainRisk > 40 ? 45 :
-        30
+      difficulty: dataClamp(difficulty + (climbHere ? 12 : 0) + (isFinal ? 8 : 0) + (profile.roadSurface === "pavé" ? 8 : 0), 10, 100),
+      energyCost: type === "flat" ? 14 : type === "valley" ? 16 : type === "hilly" ? 22 : type === "climb" ? 30 : type === "cobbles" ? 28 : type === "tt" ? 26 : 34,
+      attackValue: type === "flat" ? 25 : type === "hilly" ? 65 : type === "climb" ? 85 : type === "cobbles" ? 75 : type === "final" ? 95 : 50,
+      risk: type === "cobbles" ? 70 : type === "climb" ? 45 : type === "final" ? 55 : profile.rainRisk > 40 ? 45 : 30
     });
   }
 
@@ -975,10 +665,7 @@ function stage(idPrefix, number, name, type, distance, difficulty, profile = {})
     rainRisk: profile.rainRisk || 20,
     roadSurface: profile.roadSurface || "normal",
     climbs: profile.climbs || [],
-    intermediateSprints:
-      profile.intermediateSprints === false
-        ? []
-        : profile.intermediateSprints || [sprint(Math.round(distance * 0.45))],
+    intermediateSprints: profile.intermediateSprints === false ? [] : profile.intermediateSprints || [sprint(Math.round(distance * 0.45))],
     finishBonuses: profile.finishBonuses === false ? [] : CLASSIFICATION_RULES.finishBonuses
   };
 
@@ -997,27 +684,27 @@ function stage(idPrefix, number, name, type, distance, difficulty, profile = {})
 }
 
 const TOUR_STAGES = [
-  stage("tour", 1, "Tour 1 - Grand Départ Costero", "flat", 182, 34, { elevationGain: 900, windExposure: 65, description: "Primera etapa favorable al sprint, con riesgo de abanicos." }),
-  stage("tour", 2, "Tour 2 - Muros del Interior", "hilly", 171, 68, { elevationGain: 2500, climbs: [climb("Côte de Saint-Romain", "3", 96, 3.8, 6.1), climb("Mur final", "2", 168, 2.2, 9.4)], description: "Final quebrado con repechos y bonificaciones." }),
-  stage("tour", 3, "Tour 3 - Llanura del Norte", "flat", 198, 38, { elevationGain: 700, windExposure: 45, description: "Día largo para sprinters." }),
-  stage("tour", 4, "Tour 4 - Crono por Equipos", "team_time_trial", 41, 62, { elevationGain: 400, intermediateSprints: false, finishBonuses: false, description: "Test colectivo para bloques de GC." }),
-  stage("tour", 5, "Tour 5 - Pavés y Muros", "cobbles_hills", 204, 88, { elevationGain: 2100, roadSurface: "pavé", rainRisk: 38, climbs: [climb("Sector pavé 1", "4", 72, 2.0, 3.0), climb("Mur de la Chapelle", "2", 187, 1.6, 10.2)], description: "Pavés, muros, colocación y riesgo alto." }),
-  stage("tour", 6, "Tour 6 - Sprint del Valle", "flat", 176, 32, { elevationGain: 650, description: "Oportunidad clara para velocistas." }),
-  stage("tour", 7, "Tour 7 - Primer Contacto Alpino", "mountain", 164, 84, { elevationGain: 3900, climbs: [climb("Col de la Biche", "1", 88, 11.5, 7.1), climb("Mont du Cerf", "1", 153, 9.6, 8.0)], finalClimb: true, description: "Primera etapa de montaña." }),
-  stage("tour", 8, "Tour 8 - Etapa Trampa", "hilly", 186, 72, { elevationGain: 3100, climbs: [climb("Côte des Vignes", "3", 44, 4.1, 5.8), climb("Côte du Signal", "2", 176, 4.4, 7.5)], description: "Ideal para fugas y clasicómanos." }),
-  stage("tour", 9, "Tour 9 - Cima de los Lagos", "mountain", 152, 91, { elevationGain: 4300, climbs: [climb("Port de Balès", "HC", 94, 18.6, 7.2), climb("Lagos", "HC", 152, 13.7, 8.4)], finalClimb: true, description: "Final en alto muy selectivo." }),
-  stage("tour", 10, "Tour 10 - Llanura de Recuperación", "flat", 188, 36, { elevationGain: 800, description: "Transición con sprint probable." }),
-  stage("tour", 11, "Tour 11 - Crono Individual", "time_trial", 37, 70, { elevationGain: 550, intermediateSprints: false, finishBonuses: false, description: "Crono individual de media distancia." }),
-  stage("tour", 12, "Tour 12 - Camino de los Viñedos", "flat", 211, 42, { elevationGain: 1100, heat: 65, description: "Etapa larga y calurosa." }),
-  stage("tour", 13, "Tour 13 - Colinas Encadenadas", "hilly", 194, 76, { elevationGain: 3400, climbs: [climb("Côte de la Croix", "2", 121, 6.2, 7.0), climb("Côte du Château", "3", 181, 3.2, 8.2)], description: "Jornada favorable a la fuga." }),
-  stage("tour", 14, "Tour 14 - Etapa Reina", "mountain", 178, 98, { elevationGain: 5200, climbs: [climb("Col de la Madeleine", "HC", 82, 19.2, 7.8), climb("Col du Télégraphe", "1", 131, 11.8, 7.3), climb("Final en alto", "HC", 178, 15.4, 8.1)], finalClimb: true, description: "Día más duro de la carrera." }),
-  stage("tour", 15, "Tour 15 - Montaña Acumulada", "mountain", 183, 94, { elevationGain: 4700, climbs: [climb("Col de Sarenne", "1", 96, 13.0, 7.0), climb("La Toussuire", "HC", 183, 16.1, 7.3)], finalClimb: true, description: "Segundo día de montaña consecutivo." }),
-  stage("tour", 16, "Tour 16 - Sprint Tardío", "flat", 169, 35, { elevationGain: 650, description: "Sprinters con piernas castigadas." }),
-  stage("tour", 17, "Tour 17 - Alta Montaña Explosiva", "mountain", 136, 90, { elevationGain: 3900, climbs: [climb("Col court", "2", 45, 6.5, 7.7), climb("Final explosivo", "1", 136, 8.8, 9.1)], finalClimb: true, description: "Etapa corta para ataques." }),
-  stage("tour", 18, "Tour 18 - Gran Fondo Alpino", "mountain", 201, 96, { elevationGain: 5000, climbs: [climb("Col de Vars", "1", 73, 14.2, 6.8), climb("Izoard", "HC", 141, 14.1, 7.3), climb("Final alpino", "HC", 201, 12.9, 8.5)], finalClimb: true, description: "Última gran etapa de montaña." }),
-  stage("tour", 19, "Tour 19 - Crono Final", "time_trial", 31, 74, { elevationGain: 700, intermediateSprints: false, finishBonuses: false, description: "Crono decisiva de tercera semana." }),
-  stage("tour", 20, "Tour 20 - Muros Finales", "hilly", 143, 82, { elevationGain: 2800, climbs: [climb("Mur du Signal", "2", 132, 2.4, 10.8), climb("Côte Finale", "3", 140, 1.8, 9.0)], description: "Última oportunidad ofensiva." }),
-  stage("tour", 21, "Tour 21 - Paseo Final", "flat", 115, 25, { elevationGain: 400, description: "Etapa final y sprint probable." })
+  stage("tour", 1, "Tour 1 - Grand Départ Costero", "flat", 182, 34, { elevationGain: 900, windExposure: 65, description: "Sprint con riesgo de abanicos." }),
+  stage("tour", 2, "Tour 2 - Muros del Interior", "hilly", 171, 68, { elevationGain: 2500, climbs: [climb("Côte de Saint-Romain", "3", 96, 3.8, 6.1), climb("Mur final", "2", 168, 2.2, 9.4)] }),
+  stage("tour", 3, "Tour 3 - Llanura del Norte", "flat", 198, 38, { elevationGain: 700, windExposure: 45 }),
+  stage("tour", 4, "Tour 4 - Crono por Equipos", "team_time_trial", 41, 62, { elevationGain: 400, intermediateSprints: false, finishBonuses: false, description: "El tiempo lo marca el 4º corredor del equipo." }),
+  stage("tour", 5, "Tour 5 - Pavés y Muros", "cobbles_hills", 204, 88, { elevationGain: 2100, roadSurface: "pavé", rainRisk: 38, climbs: [climb("Sector pavé", "4", 72, 2.0, 3.0), climb("Mur de la Chapelle", "2", 187, 1.6, 10.2)] }),
+  stage("tour", 6, "Tour 6 - Sprint del Valle", "flat", 176, 32, { elevationGain: 650 }),
+  stage("tour", 7, "Tour 7 - Primer Contacto Alpino", "mountain", 164, 84, { elevationGain: 3900, climbs: [climb("Col de la Biche", "1", 88, 11.5, 7.1), climb("Mont du Cerf", "1", 153, 9.6, 8.0)], finalClimb: true }),
+  stage("tour", 8, "Tour 8 - Etapa Trampa", "hilly", 186, 72, { elevationGain: 3100, climbs: [climb("Côte des Vignes", "3", 44, 4.1, 5.8), climb("Côte du Signal", "2", 176, 4.4, 7.5)] }),
+  stage("tour", 9, "Tour 9 - Cima de los Lagos", "mountain", 152, 91, { elevationGain: 4300, climbs: [climb("Port de Balès", "HC", 94, 18.6, 7.2), climb("Lagos", "HC", 152, 13.7, 8.4)], finalClimb: true }),
+  stage("tour", 10, "Tour 10 - Llanura de Recuperación", "flat", 188, 36, { elevationGain: 800 }),
+  stage("tour", 11, "Tour 11 - Crono Individual", "time_trial", 37, 70, { elevationGain: 550, intermediateSprints: false, finishBonuses: false }),
+  stage("tour", 12, "Tour 12 - Camino de los Viñedos", "flat", 211, 42, { elevationGain: 1100, heat: 65 }),
+  stage("tour", 13, "Tour 13 - Colinas Encadenadas", "hilly", 194, 76, { elevationGain: 3400, climbs: [climb("Côte de la Croix", "2", 121, 6.2, 7.0), climb("Côte du Château", "3", 181, 3.2, 8.2)] }),
+  stage("tour", 14, "Tour 14 - Etapa Reina", "mountain", 178, 98, { elevationGain: 5200, climbs: [climb("Madeleine", "HC", 82, 19.2, 7.8), climb("Télégraphe", "1", 131, 11.8, 7.3), climb("Final en alto", "HC", 178, 15.4, 8.1)], finalClimb: true }),
+  stage("tour", 15, "Tour 15 - Montaña Acumulada", "mountain", 183, 94, { elevationGain: 4700, climbs: [climb("Sarenne", "1", 96, 13.0, 7.0), climb("La Toussuire", "HC", 183, 16.1, 7.3)], finalClimb: true }),
+  stage("tour", 16, "Tour 16 - Sprint Tardío", "flat", 169, 35, { elevationGain: 650 }),
+  stage("tour", 17, "Tour 17 - Alta Montaña Explosiva", "mountain", 136, 90, { elevationGain: 3900, climbs: [climb("Col court", "2", 45, 6.5, 7.7), climb("Final explosivo", "1", 136, 8.8, 9.1)], finalClimb: true }),
+  stage("tour", 18, "Tour 18 - Gran Fondo Alpino", "mountain", 201, 96, { elevationGain: 5000, climbs: [climb("Vars", "1", 73, 14.2, 6.8), climb("Izoard", "HC", 141, 14.1, 7.3), climb("Final alpino", "HC", 201, 12.9, 8.5)], finalClimb: true }),
+  stage("tour", 19, "Tour 19 - Crono Final", "time_trial", 31, 74, { elevationGain: 700, intermediateSprints: false, finishBonuses: false }),
+  stage("tour", 20, "Tour 20 - Muros Finales", "hilly", 143, 82, { elevationGain: 2800, climbs: [climb("Mur du Signal", "2", 132, 2.4, 10.8), climb("Côte Finale", "3", 140, 1.8, 9.0)] }),
+  stage("tour", 21, "Tour 21 - Paseo Final", "flat", 115, 25, { elevationGain: 400 })
 ];
 
 function cloneStagesForRace(stages, raceId, raceLabel, bias = 0) {
@@ -1026,132 +713,25 @@ function cloneStagesForRace(stages, raceId, raceLabel, bias = 0) {
     copy.id = `${raceId}_${String(copy.number).padStart(2, "0")}`;
     copy.name = copy.name.replace("Tour", raceLabel);
     copy.difficulty = dataClamp(copy.difficulty + bias, 20, 100);
-
-    if (raceId === "giro") {
-      copy.profile.rainRisk = dataClamp(copy.profile.rainRisk + 8, 5, 75);
-    }
-
-    if (raceId === "vuelta") {
-      copy.profile.heat = dataClamp(copy.profile.heat + 12, 20, 95);
-    }
-
+    if (raceId === "giro") copy.profile.rainRisk = dataClamp(copy.profile.rainRisk + 8, 5, 75);
+    if (raceId === "vuelta") copy.profile.heat = dataClamp(copy.profile.heat + 12, 20, 95);
     copy.sectors = buildStageSectors(copy.type, copy.distance, copy.difficulty, copy.profile);
     return copy;
   });
 }
 
 const ONE_DAY_RACES = [
-  {
-    id: "roubaix",
-    name: "Paris-Roubaix",
-    country: "France",
-    leaderJerseyName: "Ganador",
-    leaderJerseyClass: "jersey-cobbles",
-    uciClass: "monument",
-    stages: [
-      stage("roubaix", 1, "Paris-Roubaix", "cobbles_hills", 257, 98, {
-        elevationGain: 1600,
-        roadSurface: "pavé",
-        rainRisk: 45,
-        windExposure: 55,
-        climbs: [climb("Trouée d'Arenberg", "2", 162, 2.3, 2.0), climb("Carrefour de l'Arbre", "2", 240, 2.1, 2.0)],
-        description: "Monumento extremo de pavés; colocación y resistencia son críticas."
-      })
-    ]
-  },
-  {
-    id: "flanders",
-    name: "Tour de Flandes",
-    country: "Belgium",
-    leaderJerseyName: "Ganador",
-    leaderJerseyClass: "jersey-yellow",
-    uciClass: "monument",
-    stages: [
-      stage("flanders", 1, "Tour de Flandes", "cobbles_hills", 272, 96, {
-        elevationGain: 2900,
-        roadSurface: "pavé",
-        windExposure: 50,
-        climbs: [climb("Oude Kwaremont", "2", 220, 2.2, 4.0), climb("Paterberg", "2", 247, 0.4, 12.9)],
-        description: "Muros flamencos, pavés y ataques violentos."
-      })
-    ]
-  },
-  {
-    id: "liege",
-    name: "Liège-Bastogne-Liège",
-    country: "Belgium",
-    leaderJerseyName: "Ganador",
-    leaderJerseyClass: "jersey-red",
-    uciClass: "monument",
-    stages: [
-      stage("liege", 1, "Liège-Bastogne-Liège", "hilly", 259, 94, {
-        elevationGain: 4100,
-        climbs: [climb("La Redoute", "1", 220, 2.0, 8.9), climb("Roche-aux-Faucons", "1", 242, 1.3, 11.0)],
-        description: "Clásica de desgaste para puncheurs y escaladores explosivos."
-      })
-    ]
-  },
-  {
-    id: "lombardia",
-    name: "Il Lombardia",
-    country: "Italy",
-    leaderJerseyName: "Ganador",
-    leaderJerseyClass: "jersey-pink",
-    uciClass: "monument",
-    stages: [
-      stage("lombardia", 1, "Il Lombardia", "hilly", 253, 95, {
-        elevationGain: 4400,
-        technicalDescent: 75,
-        climbs: [climb("Madonna del Ghisallo", "1", 166, 8.6, 6.2), climb("Civiglio", "1", 235, 4.2, 9.7)],
-        description: "Monumento de otoño con subidas y bajadas técnicas."
-      })
-    ]
-  },
-  {
-    id: "worlds",
-    name: "Campeonato del Mundo",
-    country: "World",
-    leaderJerseyName: "Arcoíris",
-    leaderJerseyClass: "jersey-rainbow",
-    uciClass: "worlds",
-    stages: [
-      stage("worlds", 1, "Mundial en ruta", "hilly", 268, 97, {
-        elevationGain: 3600,
-        climbs: [climb("Circuito duro", "2", 210, 3.1, 7.8), climb("Último muro", "3", 263, 1.0, 9.5)],
-        description: "Mundial exigente: resistencia, colocación y explosividad."
-      })
-    ]
-  }
+  { id: "roubaix", name: "Paris-Roubaix", country: "France", leaderJerseyName: "Ganador", leaderJerseyClass: "jersey-cobbles", uciClass: "monument", stages: [stage("roubaix", 1, "Paris-Roubaix", "cobbles_hills", 257, 98, { elevationGain: 1600, roadSurface: "pavé", rainRisk: 45, windExposure: 55, climbs: [climb("Arenberg", "2", 162, 2.3, 2.0), climb("Carrefour de l'Arbre", "2", 240, 2.1, 2.0)] })] },
+  { id: "flanders", name: "Tour de Flandes", country: "Belgium", leaderJerseyName: "Ganador", leaderJerseyClass: "jersey-yellow", uciClass: "monument", stages: [stage("flanders", 1, "Tour de Flandes", "cobbles_hills", 272, 96, { elevationGain: 2900, roadSurface: "pavé", windExposure: 50, climbs: [climb("Oude Kwaremont", "2", 220, 2.2, 4.0), climb("Paterberg", "2", 247, 0.4, 12.9)] })] },
+  { id: "liege", name: "Liège-Bastogne-Liège", country: "Belgium", leaderJerseyName: "Ganador", leaderJerseyClass: "jersey-red", uciClass: "monument", stages: [stage("liege", 1, "Liège-Bastogne-Liège", "hilly", 259, 94, { elevationGain: 4100, climbs: [climb("La Redoute", "1", 220, 2.0, 8.9), climb("Roche-aux-Faucons", "1", 242, 1.3, 11.0)] })] },
+  { id: "lombardia", name: "Il Lombardia", country: "Italy", leaderJerseyName: "Ganador", leaderJerseyClass: "jersey-pink", uciClass: "monument", stages: [stage("lombardia", 1, "Il Lombardia", "hilly", 253, 95, { elevationGain: 4400, technicalDescent: 75, climbs: [climb("Ghisallo", "1", 166, 8.6, 6.2), climb("Civiglio", "1", 235, 4.2, 9.7)] })] },
+  { id: "worlds", name: "Campeonato del Mundo", country: "World", leaderJerseyName: "Arcoíris", leaderJerseyClass: "jersey-rainbow", uciClass: "worlds", stages: [stage("worlds", 1, "Mundial en ruta", "hilly", 268, 97, { elevationGain: 3600, climbs: [climb("Circuito duro", "2", 210, 3.1, 7.8), climb("Último muro", "3", 263, 1.0, 9.5)] })] }
 ];
 
 const RACES = [
-  {
-    id: "tour",
-    name: "Tour de France",
-    country: "France",
-    leaderJerseyName: "Maillot amarillo",
-    leaderJerseyClass: "jersey-yellow",
-    uciClass: "grand_tour",
-    stages: TOUR_STAGES
-  },
-  {
-    id: "giro",
-    name: "Giro d'Italia",
-    country: "Italy",
-    leaderJerseyName: "Maglia rosa",
-    leaderJerseyClass: "jersey-pink",
-    uciClass: "grand_tour",
-    stages: cloneStagesForRace(TOUR_STAGES, "giro", "Giro", 2)
-  },
-  {
-    id: "vuelta",
-    name: "La Vuelta a España",
-    country: "Spain",
-    leaderJerseyName: "Maillot rojo",
-    leaderJerseyClass: "jersey-red",
-    uciClass: "grand_tour",
-    stages: cloneStagesForRace(TOUR_STAGES, "vuelta", "Vuelta", 1)
-  },
+  { id: "tour", name: "Tour de France", country: "France", leaderJerseyName: "Maillot amarillo", leaderJerseyClass: "jersey-yellow", uciClass: "grand_tour", stages: TOUR_STAGES },
+  { id: "giro", name: "Giro d'Italia", country: "Italy", leaderJerseyName: "Maglia rosa", leaderJerseyClass: "jersey-pink", uciClass: "grand_tour", stages: cloneStagesForRace(TOUR_STAGES, "giro", "Giro", 2) },
+  { id: "vuelta", name: "La Vuelta a España", country: "Spain", leaderJerseyName: "Maillot rojo", leaderJerseyClass: "jersey-red", uciClass: "grand_tour", stages: cloneStagesForRace(TOUR_STAGES, "vuelta", "Vuelta", 1) },
   ...ONE_DAY_RACES
 ];
 
