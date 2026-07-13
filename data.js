@@ -1,10 +1,10 @@
 /* ============================================================
    CYCLING MANAGER TOUR
    data.js
-   v0.13 Pro Peloton + Season Calendar + TT/TTT + Training Camps
+   v0.14 Pro Peloton + Season Calendar + TT/TTT + Training Camps
    ============================================================ */
 
-const SAVE_VERSION = "v0.13";
+const SAVE_VERSION = "v0.14";
 const ROSTER_SIZE = 8;
 const DEFAULT_RACE_ID = "santos";
 
@@ -446,9 +446,9 @@ function makeStagesForRace(race) {
     const types = race.stageTypes || ["flat","hilly","mountain","flat","tt","mountain","hilly"];
     types.forEach((t,i)=> {
       const n = i+1;
-      const dist = t === "tt" ? 22 + i*2 : t === "mountain" ? 145 + i*8 : t === "hilly" ? 168 : 185;
+      const dist = t === "tt" ? 22 + i*2 : t === "ttt" ? 32 + i*3 : t === "mountain" ? 145 + i*8 : t === "hilly" ? 168 : 185;
       const climbs = t === "mountain" ? [climb("Subida reina", "1", Math.round(dist*.75), 9+i, 7.2, 1400)] : t === "hilly" ? [climb("Cota", "3", Math.round(dist*.65), 4, 6.2, 680)] : [];
-      arr.push(makeStage(race.id,n,`${race.name} · Etapa ${n}`,t,dist,t==="mountain"?82:t==="hilly"?67:t==="tt"?66:35,{climbs,finalClimb:t==="mountain"&&i%2===0},m,c));
+      arr.push(makeStage(race.id,n,`${race.name} · Etapa ${n}`,t,dist,t==="mountain"?82:t==="hilly"?67:t==="tt"?66:t==="ttt"?64:35,{climbs,finalClimb:t==="mountain"&&i%2===0},m,c));
     });
     return arr;
   }
