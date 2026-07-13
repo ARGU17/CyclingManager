@@ -1,11 +1,11 @@
 /* ============================================================
    CYCLING MANAGER TOUR
    game.js
-   v0.15 realism patch
+   v0.17 realism patch
    ============================================================ */
 
 const app = document.getElementById("app");
-const SAVE_KEY = "cyclingManager_v015";
+const SAVE_KEY = "cyclingManager_v017";
 
 const Game = {
   version: SAVE_VERSION,
@@ -144,7 +144,7 @@ function saveGame(show = true) {
 }
 function loadGame() {
   const raw = localStorage.getItem(SAVE_KEY);
-  if (!raw) return toast("No hay guardado v0.15. Empieza partida nueva.");
+  if (!raw) return toast("No hay guardado v0.17. Empieza partida nueva.");
   try {
     const obj = JSON.parse(raw);
     if (obj.version !== SAVE_VERSION) {
@@ -194,7 +194,7 @@ function render() {
 function renderHome() {
   app.innerHTML = `
     <div class="header">
-      <div><h1>Cycling Manager Tour</h1><p>v0.15 · simulación realista · perfiles 1 km con microgradientes · gaps estabilizados</p></div>
+      <div><h1>Cycling Manager Tour</h1><p>v0.17 · simulación realista · perfiles 1 km con microgradientes · gaps estabilizados</p></div>
       <div class="top-actions"><button class="secondary" onclick="loadGame()">Cargar</button><button class="danger" onclick="clearSave()">Borrar guardado</button></div>
     </div>
     <section class="panel"><h2>Modo de juego</h2><div class="mode-grid">
@@ -608,5 +608,675 @@ function getImportantRivals(){return getGC().filter(r=>r.teamId!==Game.selectedT
 function isRival(r){return getImportantRivals().some(x=>x.id===r.id);}
 function renderLiveRadar(groups){const rivals=getImportantRivals();return `<div class="radar"><h3>Radar de rivales</h3>${rivals.map(r=>{const st=Game.live.states[r.id];return `<div class="radar-row"><strong>${esc(r.name)}</strong><span>${esc(st?st.group:"—")} · km ${st?st.km.toFixed(1):"—"}</span></div>`;}).join("")}</div>`;}
 function renderEnergyHeatmap(){return `<div class="energy-map">${getTeamRiders(Game.selectedTeamId).map(r=>{const e=Game.live.states[r.id]?.energy||0,cls=e>68?"good":e>38?"warn":"bad";return `<div class="energy ${cls}"><strong>${esc(r.name)}</strong><span>${Math.round(e)}%</span></div>`;}).join("")}</div>`;}
+
+/* ============================================================
+   v0.17 Race Director Pro + Group Engine + Rival AI Patch
+   ============================================================ */
+
+function ensureV017State() {
+  if (!Game.directorLog) Game.directorLog = [];
+  if (!Game.aiMemory) Game.aiMemory = {};
+  if (!Game.recommendationHistory) Game.recommendationHistory = [];
+}
+
+function renderDirectorTab() {
+  ensureV017State();
+  const stage = getStage();
+  const previewGroups = previewStartGroups(stage);
+  const situation = analyzeRaceSituation(previewGroups, stage, null);
+  return `
+    <div class="grid director">
+      <section class="panel">
+        ${renderActionBar(false)}
+        ${renderWeather(stage)}
+        ${renderRaceControlPanel(situation, false)}
+        ${renderStageProfile(stage, previewGroups)}
+        ${renderThreatPanel(situation, false)}
+        ${renderDirectorRecommendation(situation, false)}
+        ${renderVisualLanesPreview()}
+      </section>
+      <section class="panel">
+        ${renderStrategyTab(false, true)}
+      </section>
+    </div>`;
+}
+
+function renderActionBar(live) {
+  const stage = getStage();
+  const sector = live ? stage.sectors[Game.live.sectorIndex] : null;
+  const groups = live && Game.live ? buildGroups() : previewStartGroups(stage);
+  const situation = analyzeRaceSituation(groups, stage, sector);
+  const progress = live ? Math.round((sector.from / stage.distance) * 100) : 0;
+  return `
+    <div class="actionbar ${live ? "live" : ""}">
+      <div>
+        <strong>${live ? `Sector ${Game.live.sectorIndex + 1}/${stage.sectors.length} · ${sector.name}` : "Salida de etapa"}</strong>
+        <p>${live ? `Km ${sector.from}-${sector.to} · ${sector.question}` : "Simulación rápida o Race Director por sectores. Motor v0.17 basado en grupos + IA rival."}</p>
+        <div class="actionbar-mini">
+          <span class="control-pill ${situation.controlClass}">${situation.controlLabel}</span>
+          <span class="control-pill ${situation.threatClass}">${situation.threatLabel}</span>
+          <span class="control-pill">${situation.shortAdvice}</span>
+        </div>
+        ${live ? `<div class="bar"><div style="width:${progress}%"></div></div>` : ""}
+      </div>
+      <div class="actionbar-buttons">
+        ${live ? `
+          <button onclick="simulateSector()">Simular sector</button>
+          <button class="secondary" onclick="applyDirectorRecommendation(true)">Aplicar recomendación</button>
+          <button class="secondary" onclick="renderLive()">Actualizar</button>
+        ` : `
+          <button class="secondary" onclick="simulateFullStageQuick()">Simular etapa rápida</button>
+          <button onclick="startLiveStage()">Iniciar por sectores</button>
+        `}
+      </div>
+    </div>`;
+}
+
+function previewStartGroups(stage) {
+  if (isTT(stage)) {
+    return [{ label: "CRI individual", riders: getRaceRiders().slice(0, 12), count: getRaceRiders().length, gapText: "salidas cada 2 min", gapSeconds: 0, km: 0, speed: 0, wkg: 0, collaboration: 0, fatigue: 0, risk: 0, cls: "tt" }];
+  }
+  if (isTTT(stage)) {
+    return [{ label: "CRE equipos", riders: getTeamRiders(Game.selectedTeamId), count: TEAMS.length, gapText: "equipos cada 5 min", gapSeconds: 0, km: 0, speed: 0, wkg: 0, collaboration: 90, fatigue: 0, risk: 0, cls: "fav" }];
+  }
+  const user = getTeamRiders(Game.selectedTeamId);
+  return [
+    { label: "Fuga", riders: [], count: 0, gapText: "sin formar", gapSeconds: 0, km: 0, speed: 0, wkg: 0, collaboration: 0, fatigue: 0, risk: 0, cls: "break" },
+    { label: "Pelotón", riders: getRaceRiders().slice(0, 20), count: getRaceRiders().length, gapText: "m.t.", gapSeconds: 0, km: 0, speed: 0, wkg: 0, collaboration: 55, fatigue: 0, risk: stage.weather.crosswind > 50 ? 62 : 20, cls: "peloton" },
+    { label: "Tu equipo", riders: user, count: user.length, gapText: "m.t.", gapSeconds: 0, km: 0, speed: 0, wkg: 0, collaboration: 60, fatigue: avg(user.map(r => r.fatigue || 0)), risk: 0, cls: "fav" }
+  ];
+}
+
+function renderRaceControlPanel(situation, live) {
+  return `
+    <div class="race-control-panel ${situation.controlClass}">
+      <div class="control-gauge">
+        <span>${situation.controlIcon}</span>
+        <strong>${situation.controlLabel}</strong>
+        <small>Control carrera</small>
+      </div>
+      <div class="control-data-grid">
+        <div><b>${situation.breakGapText}</b><span>Fuga</span></div>
+        <div><b>${situation.userLeaderGroup}</b><span>Líder propio</span></div>
+        <div><b>${situation.rivalAlert}</b><span>Rivales GC</span></div>
+        <div><b>${situation.prediction}</b><span>Predicción</span></div>
+      </div>
+    </div>`;
+}
+
+function renderThreatPanel(situation, live) {
+  return `
+    <div class="threat-panel ${situation.threatClass}">
+      <div>
+        <h2>Panel de amenaza táctica</h2>
+        <p>${situation.threatText}</p>
+      </div>
+      <div class="threat-meter"><div style="width:${situation.threatScore}%"></div></div>
+    </div>`;
+}
+
+function renderDirectorRecommendation(situation, live) {
+  return `
+    <div class="recommendation-card">
+      <div>
+        <h2>Recomendación del director</h2>
+        <p>${situation.recommendationText}</p>
+      </div>
+      <button class="secondary" onclick="applyDirectorRecommendation(${live})">${situation.recommendationButton}</button>
+    </div>`;
+}
+
+function renderTacticalAdvice(stage) {
+  const groups = Game.live ? buildGroups() : previewStartGroups(stage);
+  const situation = analyzeRaceSituation(groups, stage, Game.live ? stage.sectors[Game.live.sectorIndex] : null);
+  return `<div class="advice ${situation.threatLevel}"><span>${situation.controlIcon}</span><div><strong>${situation.adviceTitle}</strong><p>${situation.threatText}</p></div></div>`;
+}
+
+function renderVisualLanesPreview() {
+  return `
+    <div class="tv-lanes preview">
+      ${["Fuga", "Grupo perseguidor", "Grupo favoritos", "Pelotón", "Grupo 2", "Autobús", "Cortados"].map((x, i) => `
+        <div class="lane ${i === 2 ? "fav" : i === 3 ? "peloton" : i === 0 ? "break" : ""}">
+          <strong>${x}</strong>
+          <span>${i === 3 ? "Salida normal de carrera. El motor v0.17 moverá grupos según colaboración, W/kg y objetivos." : "—"}</span>
+        </div>
+      `).join("")}
+    </div>`;
+}
+
+function analyzeRaceSituation(groups, stage, sector) {
+  const userRiders = getTeamRiders(Game.selectedTeamId);
+  const protectedRider = getRider(Game.protectedRiderId) || userRiders[0];
+  const protectedState = Game.live && protectedRider ? Game.live.states[protectedRider.id] : null;
+  const breakGroup = groups.find(g => g.label === "Fuga");
+  const chaseGroup = groups.find(g => g.label === "Grupo perseguidor");
+  const favGroup = groups.find(g => g.label === "Grupo favoritos");
+  const peloton = groups.find(g => g.label === "Pelotón");
+  const remaining = sector ? Math.max(0, stage.distance - sector.to) : stage.distance;
+  const breakGap = breakGroup ? Number(breakGroup.gapSeconds || 0) : 0;
+  const breakThreat = breakGap > 0 ? clamp((breakGap / Math.max(45, remaining * 4.2)) * 55 + (breakGroup?.count || 0) * 3, 0, 100) : 0;
+  const rivalStatus = getImportantRivals().map(r => ({ rider: r, state: Game.live ? Game.live.states[r.id] : null }));
+  const dangerousRivalAhead = rivalStatus.some(x => x.state && ["Fuga", "Ataque", "Grupo perseguidor"].includes(x.state.group));
+  const leaderGroup = protectedState ? protectedState.group : "Sin empezar";
+  const leaderProblem = protectedState && ["Grupo 2", "Autobús", "Cortados"].includes(protectedState.group);
+  const energyAvg = avg(userRiders.map(r => Game.live && Game.live.states[r.id] ? Game.live.states[r.id].energy : 90));
+  const riskBase = stage.weather.crosswind > 50 ? 18 : 0;
+  let threatScore = clamp(breakThreat + (dangerousRivalAhead ? 22 : 0) + (leaderProblem ? 35 : 0) + riskBase + (energyAvg < 45 ? 14 : 0), 0, 100);
+
+  let controlClass = "good", controlLabel = "Controlado", controlIcon = "🟢";
+  if (threatScore > 70) { controlClass = "danger"; controlLabel = "Actuar ya"; controlIcon = "🔴"; }
+  else if (threatScore > 38) { controlClass = "warning"; controlLabel = "Vigilar"; controlIcon = "🟠"; }
+
+  let threatClass = threatScore > 70 ? "danger" : threatScore > 38 ? "warning" : "good";
+  let threatLevel = threatScore > 70 ? "high" : threatScore > 38 ? "medium" : "low";
+  let breakGapText = breakGap > 0 ? seconds(breakGap) : "sin fuga";
+  let prediction = "neutral";
+  if (breakGap > 0) {
+    const projected = breakGap - remaining * (peloton?.collaboration > 70 ? 7.2 : 4.6);
+    prediction = projected > 45 ? `fuga llega +${seconds(projected)}` : "fuga cazable";
+  }
+  if (isTT(stage)) prediction = "CRI sin grupos";
+  if (isTTT(stage)) prediction = "tiempo 4º corredor";
+
+  let recommendation = "Mantener posición, proteger líder y no quemar gregarios todavía.";
+  let button = "Aplicar equilibrio";
+  let shortAdvice = "Mantener";
+  let title = "Carrera bajo control";
+  if (isTT(stage)) {
+    recommendation = "Usa esfuerzos altos solo en croners y líderes. Sin rebufo ni órdenes de grupo.";
+    button = "Ritmo CRI";
+    shortAdvice = "Pacing CRI";
+    title = "Crono individual";
+  } else if (isTTT(stage)) {
+    recommendation = "Relevos regulares o fuertes, manteniendo al menos 5 corredores hasta el último sector.";
+    button = "Relevos CRE";
+    shortAdvice = "Relevos";
+    title = "Crono por equipos";
+  } else if (leaderProblem) {
+    recommendation = "Tu líder está mal colocado o cortado. Ordena esperar/proteger y reduce ataques innecesarios.";
+    button = "Salvar líder";
+    shortAdvice = "Salvar líder";
+    title = "Líder en peligro";
+  } else if (breakGap > 180 && remaining < 55) {
+    recommendation = "La fuga es peligrosa. Pon gregarios y rodadores a cazar fuga al 82-88%.";
+    button = "Cazar fuga";
+    shortAdvice = "Cazar";
+    title = "Fuga peligrosa";
+  } else if (stage.type === "mountain" && sector && ["climb", "final"].includes(sector.type)) {
+    recommendation = "Sube a tempo con escaladores y protege al líder. Ataca solo si el rival directo está aislado.";
+    button = "Tempo montaña";
+    shortAdvice = "Tempo";
+    title = "Sector decisivo de montaña";
+  } else if (stage.type === "flat" && stage.weather.crosswind > 50) {
+    recommendation = "Viento lateral: coloca líderes delante, gregarios protegen y evita ir a rueda atrás.";
+    button = "Proteger abanicos";
+    shortAdvice = "Abanicos";
+    title = "Riesgo por viento lateral";
+  } else if (stage.type === "flat" && sector && sector.type === "final") {
+    recommendation = "Organiza tren de sprint: rodadores y clasicómanos lanzan, sprinter a rueda.";
+    button = "Tren sprint";
+    shortAdvice = "Sprint";
+    title = "Final rápido";
+  }
+
+  const rivalAlert = dangerousRivalAhead ? "rival delante" : leaderGroup;
+  return {
+    threatScore: Math.round(threatScore), threatClass, threatLevel,
+    controlClass, controlLabel, controlIcon,
+    breakGapText, userLeaderGroup: leaderGroup, rivalAlert, prediction,
+    recommendationText: recommendation, recommendationButton: button,
+    shortAdvice, adviceTitle: title,
+    threatLabel: threatScore > 70 ? "Amenaza alta" : threatScore > 38 ? "Amenaza media" : "Amenaza baja",
+    threatText: buildThreatText(stage, sector, breakGroup, protectedRider, protectedState, dangerousRivalAhead, breakGap, remaining)
+  };
+}
+
+function buildThreatText(stage, sector, breakGroup, protectedRider, protectedState, dangerousRivalAhead, breakGap, remaining) {
+  if (isTT(stage)) return "CRI: cada corredor sale cada 2 minutos. No hay rebufo ni persecución colectiva; solo pacing, forma, material y clima.";
+  if (isTTT(stage)) return "CRE: los equipos salen cada 5 minutos. La clave es regular relevos para que el 4º corredor marque un buen tiempo sin romper el bloque.";
+  if (protectedState && ["Grupo 2", "Autobús", "Cortados"].includes(protectedState.group)) return `${protectedRider.name} está en ${protectedState.group}. Prioridad absoluta: reagrupar o limitar pérdidas.`;
+  if (dangerousRivalAhead) return "Hay rivales de general por delante o en movimiento. No conviene dejar estabilizar la diferencia.";
+  if (breakGap > 180 && remaining < 60) return `La fuga mantiene ${seconds(breakGap)} con ${Math.round(remaining)} km restantes. Si el pelotón no colabora, puede llegar.`;
+  if (stage.weather.crosswind > 50) return `Viento lateral de ${stage.weather.crosswind} km/h: alto riesgo de abanicos y cortes si los líderes van mal colocados.`;
+  if (sector && sector.type === "climb") return "Subida activa: el grupo de favoritos puede seleccionar por W/kg y fatiga. Sprinters y gregarios débiles deberían caer al autobús.";
+  return "Carrera estable. Vigila fuga, energía del líder y colocación antes del sector decisivo.";
+}
+
+function applyDirectorRecommendation(live) {
+  const stage = getStage();
+  const sector = live && Game.live ? stage.sectors[Game.live.sectorIndex] : null;
+  const groups = live && Game.live ? buildGroups() : previewStartGroups(stage);
+  const situation = analyzeRaceSituation(groups, stage, sector);
+  const riders = getTeamRiders(Game.selectedTeamId);
+  const text = situation.recommendationButton;
+
+  riders.forEach(r => {
+    if (isTT(stage)) {
+      Game.riderOrders[r.id] = ["tt", "rouleur", "gc", "co"].includes(r.roleKey) ? "pull" : "hold";
+      Game.riderEfforts[r.id] = ["tt", "rouleur", "gc", "co"].includes(r.roleKey) ? 88 : 74;
+      return;
+    }
+    if (isTTT(stage)) {
+      Game.riderOrders[r.id] = "pull";
+      Game.riderEfforts[r.id] = ["tt", "rouleur", "gc", "co"].includes(r.roleKey) ? 86 : 76;
+      Game.tttRelayIntensity = "steady";
+      Game.tttRelayLength = "medium";
+      Game.tttFormation = "smooth";
+      return;
+    }
+    if (text.includes("Cazar")) {
+      Game.riderOrders[r.id] = ["domestique", "rouleur", "tt", "classics"].includes(r.roleKey) ? "catch" : r.id === Game.protectedRiderId ? "protect" : "hold";
+      Game.riderEfforts[r.id] = ["domestique", "rouleur", "tt", "classics"].includes(r.roleKey) ? 86 : r.id === Game.protectedRiderId ? 66 : 62;
+      return;
+    }
+    if (text.includes("Tempo")) {
+      Game.riderOrders[r.id] = r.id === Game.protectedRiderId ? "hold" : ["climber", "puncheur", "domestique"].includes(r.roleKey) ? "tempo" : "sit";
+      Game.riderEfforts[r.id] = r.id === Game.protectedRiderId ? 76 : ["climber", "puncheur", "domestique"].includes(r.roleKey) ? 84 : 52;
+      return;
+    }
+    if (text.includes("Sprint")) {
+      Game.riderOrders[r.id] = r.roleKey === "sprinter" ? "sit" : ["rouleur", "classics", "tt"].includes(r.roleKey) ? "sprint_train" : "hold";
+      Game.riderEfforts[r.id] = r.roleKey === "sprinter" ? 55 : ["rouleur", "classics", "tt"].includes(r.roleKey) ? 84 : 62;
+      return;
+    }
+    if (text.includes("abanicos") || text.includes("Proteger") || text.includes("Salvar")) {
+      Game.riderOrders[r.id] = r.id === Game.protectedRiderId ? "hold" : ["domestique", "rouleur", "tt", "classics"].includes(r.roleKey) ? "protect" : "sit";
+      Game.riderEfforts[r.id] = r.id === Game.protectedRiderId ? 70 : ["domestique", "rouleur", "tt", "classics"].includes(r.roleKey) ? 80 : 55;
+      return;
+    }
+    Game.riderOrders[r.id] = r.id === Game.protectedRiderId ? "hold" : ["domestique", "rouleur"].includes(r.roleKey) ? "protect" : "sit";
+    Game.riderEfforts[r.id] = r.id === Game.protectedRiderId ? 68 : ["domestique", "rouleur"].includes(r.roleKey) ? 72 : 52;
+  });
+
+  if (live && Game.live) addRadio(`Director: ${situation.recommendationText}`);
+  Game.recommendationHistory.push({ raceId: Game.selectedRaceId, stageId: stage.id, sector: sector ? sector.id : "pre", text: situation.recommendationText });
+  live && Game.live ? renderLive() : renderRace();
+}
+
+function startLiveStage(renderNow = true) {
+  ensureV017State();
+  const stage = getStage();
+  Game.live = {
+    sectorIndex: 0,
+    states: {},
+    radio: [],
+    events: [],
+    director: { control: "neutral", threat: 0 },
+    breakaway: { gap: 0, ids: [], collaboration: 0, fatigue: 0, lastGap: 0 },
+    groupModel: { pelotonCollaboration: 55, chaseCommitment: 0, favoritePressure: 0 },
+    startOffsets: {},
+    teamStartOffsets: {}
+  };
+
+  getRaceRiders().forEach((r, index) => {
+    Game.live.states[r.id] = {
+      elapsed: 0,
+      raceTime: 0,
+      km: 0,
+      speed: 0,
+      wkg: 0,
+      energy: clamp(100 - r.fatigue * 0.35, 10, 112),
+      hydration: 105,
+      stomach: 0,
+      finalBonus: 0,
+      group: isTT(stage) ? "CRI individual" : isTTT(stage) ? `CRE ${getTeam(r.teamId).name}` : "Pelotón",
+      groupId: isTT(stage) ? `tt_${r.id}` : isTTT(stage) ? `ttt_${r.teamId}` : "peloton",
+      fatigueGain: 0,
+      incident: null
+    };
+    if (isTT(stage)) Game.live.startOffsets[r.id] = index * 120;
+  });
+
+  if (isTTT(stage)) {
+    TEAMS.forEach((team, index) => { Game.live.teamStartOffsets[team.id] = index * 300; });
+    addRadio("Salida CRE: equipos cada 5 minutos. Tiempo oficial por el 4º corredor.");
+  } else if (isTT(stage)) {
+    addRadio("Salida CRI: corredores cada 2 minutos, sin rebufo ni grupos.");
+  } else {
+    const breakaway = selectBreakaway(stage);
+    const initialGap = Math.round(rnd(75, 190));
+    Game.live.breakaway = {
+      gap: initialGap,
+      lastGap: initialGap,
+      ids: breakaway.map(r => r.id),
+      collaboration: calculateBreakawayCollaboration(breakaway, stage),
+      fatigue: 0
+    };
+    breakaway.forEach(r => {
+      const st = Game.live.states[r.id];
+      st.group = "Fuga";
+      st.groupId = "breakaway";
+      st.elapsed = -initialGap;
+    });
+    addRadio(`Salida: fuga de ${breakaway.length} corredores. Ventaja inicial ${seconds(initialGap)}.`);
+  }
+
+  if (renderNow) renderLive();
+}
+
+function renderLive() {
+  const stage = getStage();
+  const sector = stage.sectors[Game.live.sectorIndex];
+  const groups = buildGroups();
+  const situation = analyzeRaceSituation(groups, stage, sector);
+  app.innerHTML = `
+    <div class="header">
+      <div><h1>Race Director · ${esc(stage.name)}</h1><p>Sector ${Game.live.sectorIndex + 1}/${stage.sectors.length} · km ${sector.from}-${sector.to}</p></div>
+      <div class="top-actions"><button class="secondary" onclick="saveGame()">Guardar</button></div>
+    </div>
+    ${renderActionBar(true)}
+    <section class="panel">
+      ${renderWeather(stage)}
+      ${renderRaceControlPanel(situation, true)}
+      ${renderStageProfile(stage, groups)}
+      ${renderTVLanes(groups)}
+      ${renderThreatPanel(situation, true)}
+      ${renderDirectorRecommendation(situation, true)}
+    </section>
+    <div class="grid live-grid">
+      <section class="panel">
+        <h2>Decisión del sector</h2>
+        <div class="sector-focus"><strong>${esc(sector.question)}</strong><p>${esc(sector.name)} · Dificultad ${sector.difficulty} · ${sector.from}-${sector.to} km</p></div>
+        ${isTTT(stage) ? renderTTTControls(true) : ""}
+        ${renderLiveRadar(groups)}
+        ${renderQuickControls(true)}
+      </section>
+      <section class="panel">
+        <h2>Radio / TV</h2>
+        <div class="radio-list">${Game.live.radio.map(r => `<div class="radio"><span>${esc(r.time)}</span><p>${esc(r.msg)}</p></div>`).join("")}</div>
+        <h2>Stock coche</h2>${renderStock(Game.stock)}
+      </section>
+    </div>
+    <section class="panel">
+      <h2>Tu equipo en carrera</h2>
+      ${renderEnergyHeatmap()}
+      <div class="live-rider-grid">${getTeamRiders(Game.selectedTeamId).map(renderLiveRiderCard).join("")}</div>
+    </section>`;
+}
+
+function processSector(renderNow) {
+  const stage = getStage();
+  const sector = stage.sectors[Game.live.sectorIndex];
+  if (!isTT(stage) && !isTTT(stage)) applyAIRaceTactics(stage, sector);
+  autoFeed(sector);
+  if (isTT(stage)) simulateTTSector(stage, sector);
+  else if (isTTT(stage)) simulateTTTSector(stage, sector);
+  else simulateRoadSector(stage, sector);
+  Game.live.sectorIndex++;
+  if (Game.live.sectorIndex >= stage.sectors.length) return finishStage(renderNow);
+  const groups = buildGroups();
+  const nextSector = stage.sectors[Game.live.sectorIndex];
+  const situation = analyzeRaceSituation(groups, stage, nextSector);
+  addRadio(`Entramos en ${nextSector.name}. ${situation.shortAdvice}: ${situation.threatLabel}.`);
+  if (renderNow) renderLive();
+}
+
+function applyAIRaceTactics(stage, sector) {
+  TEAMS.forEach(team => {
+    if (team.id === Game.selectedTeamId) return;
+    const riders = getTeamRiders(team.id);
+    const ai = team.ai || { gc: 50, sprint: 50, classics: 50, breakaway: 50, control: 50 };
+    const hasGC = riders.some(r => ["gc", "co"].includes(r.roleKey));
+    const bestGC = riders.filter(r => ["gc", "co"].includes(r.roleKey)).sort((a, b) => b.base - a.base)[0];
+    const bestSprinter = riders.filter(r => r.roleKey === "sprinter").sort((a, b) => b.stats.sprint - a.stats.sprint)[0];
+    const early = sector.to < stage.distance * 0.45;
+    const final = sector.type === "final";
+    const breakThreat = Game.live.breakaway && Game.live.breakaway.gap > 180 && stage.distance - sector.to < 70;
+    riders.forEach(r => {
+      let order = "hold";
+      let effort = 62;
+      if (hasGC && bestGC && r.id === bestGC.id) { order = "hold"; effort = stage.type === "mountain" ? 74 : 66; }
+      if (hasGC && bestGC && ["domestique", "rouleur", "tt", "climber"].includes(r.roleKey)) { order = "protect"; effort = stage.type === "mountain" ? 72 : 68; }
+      if (stage.type === "flat" && final && bestSprinter) {
+        order = r.id === bestSprinter.id ? "sit" : ["rouleur", "classics", "tt"].includes(r.roleKey) ? "sprint_train" : "hold";
+        effort = r.id === bestSprinter.id ? 54 : ["rouleur", "classics", "tt"].includes(r.roleKey) ? 82 : 64;
+      }
+      if (early && ai.breakaway > 78 && ["puncheur", "rouleur", "climber", "classics"].includes(r.roleKey) && !["gc", "co"].includes(r.roleKey) && Math.random() < 0.28) {
+        order = "attack"; effort = 84;
+      }
+      if (breakThreat && ai.control > 62 && ["domestique", "rouleur", "tt", "classics"].includes(r.roleKey)) {
+        order = "catch"; effort = 82;
+      }
+      if (stage.type === "mountain" && ["climb", "final"].includes(sector.type) && ai.gc > 75 && ["climber", "domestique"].includes(r.roleKey)) {
+        order = "tempo"; effort = final ? 84 : 78;
+      }
+      if (stage.type === "cobbles" && ai.classics > 74 && ["classics", "rouleur"].includes(r.roleKey)) {
+        order = final ? "attack" : "pull"; effort = final ? 84 : 78;
+      }
+      Game.riderOrders[r.id] = order;
+      Game.riderEfforts[r.id] = effort;
+    });
+  });
+}
+
+function calculateBreakawayCollaboration(riders, stage) {
+  if (!riders || !riders.length) return 0;
+  const roles = avg(riders.map(r => ["rouleur", "puncheur", "classics", "climber"].includes(r.roleKey) ? 82 : 62));
+  const stamina = avg(riders.map(r => r.stats.stamina || 75));
+  const motive = avg(riders.map(r => ["gc", "co", "sprinter"].includes(r.roleKey) ? 52 : 78));
+  return clamp(roles * 0.34 + stamina * 0.34 + motive * 0.32 + rnd(-6, 6), 35, 94);
+}
+
+function simulateRoadSector(stage, sector) {
+  const base = baseSectorTime(stage, sector);
+  const riders = getRaceRiders();
+  const previousGap = toNum(Game.live.breakaway?.gap, 0);
+  const breakIds = new Set(Game.live.breakaway?.ids || []);
+  const userPull = calculateTeamPull(Game.selectedTeamId, sector);
+  const aiPull = TEAMS.filter(t => t.id !== Game.selectedTeamId).reduce((sum, t) => sum + calculateTeamPull(t.id, sector), 0);
+  const pelotonCollab = clamp(42 + userPull * 0.55 + aiPull * 0.11 + (stage.type === "flat" ? 6 : 0) + (stage.type === "mountain" ? -4 : 0), 18, 96);
+  const breakRiders = riders.filter(r => breakIds.has(r.id) && !r.abandoned);
+  const breakCollab = breakRiders.length ? calculateBreakawayCollaboration(breakRiders, stage) - toNum(Game.live.breakaway.fatigue, 0) : 0;
+  const sectorKm = Math.max(1, sector.to - sector.from);
+  const remaining = Math.max(0, stage.distance - sector.to);
+  const terrainChaseFactor = sector.type === "flat" ? 1.12 : sector.type === "hilly" ? 0.95 : sector.type === "climb" ? 0.72 : sector.type === "cobbles" ? 0.84 : sector.type === "final" ? 1.05 : 0.92;
+  const chaseDelta = (pelotonCollab - breakCollab) * terrainChaseFactor * sectorKm * 0.72;
+  const naturalDrift = sector.type === "climb" && breakRiders.length < 4 ? -sectorKm * 1.8 : sector.type === "flat" && breakRiders.length >= 5 ? sectorKm * 0.45 : 0;
+  let newGap = previousGap;
+  if (breakRiders.length) {
+    newGap = previousGap - chaseDelta + naturalDrift + rnd(-18, 18);
+    const maxDrop = previousGap > 240 ? 95 + sectorKm * 2.2 : 70 + sectorKm * 1.7;
+    newGap = Math.max(previousGap - maxDrop, newGap);
+    if (remaining < 10 && newGap < 45) newGap = 0;
+    newGap = clamp(newGap, 0, 900);
+  }
+  const pelotonSectorTime = calculateGroupSectorTime(riders.filter(r => !breakIds.has(r.id)), stage, sector, base, "peloton", pelotonCollab);
+  const breakSectorTime = breakRiders.length ? Math.max(60, pelotonSectorTime - (newGap - previousGap)) : pelotonSectorTime;
+
+  Game.live.breakaway.lastGap = previousGap;
+  Game.live.breakaway.gap = newGap;
+  Game.live.breakaway.collaboration = breakCollab;
+  Game.live.breakaway.fatigue = clamp(toNum(Game.live.breakaway.fatigue, 0) + sector.difficulty / 45 + (breakRiders.length < 4 ? 2.2 : 1.0), 0, 35);
+  Game.live.groupModel.pelotonCollaboration = pelotonCollab;
+
+  riders.forEach(r => {
+    const st = Game.live.states[r.id];
+    const order = getOrder(Game.riderOrders[r.id] || r.defaultOrder);
+    const effort = Game.riderEfforts[r.id] ?? r.defaultEffort;
+    const inBreak = breakIds.has(r.id) && newGap > 0;
+    const groupSectorTime = inBreak ? breakSectorTime : pelotonSectorTime;
+    let perf = terrainPerformance(r, stage, sector) + (effort - 60) * 0.09 + materialScore(r, stage, sector) * 0.045 - r.fatigue * 0.055 + st.finalBonus + rnd(-2.2, 2.2);
+    if (stage.type === "mountain" && r.roleKey === "sprinter") perf -= 22;
+    if (stage.type === "mountain" && ["climb", "final"].includes(sector.type) && r.stats.mountain < 68) perf -= 24;
+    if (sector.type === "cobbles" && r.stats.cobbles < 68) perf -= 9;
+    if (stage.weather.temp > 30 && st.hydration < 58) perf -= 7;
+    if (stage.weather.roadWet > 60) perf -= Math.max(0, (75 - r.stats.positioning)) * 0.10;
+
+    let personalLoss = calculatePersonalGroupLoss(r, st, stage, sector, perf, effort, inBreak);
+    let attackGain = 0;
+    if (!inBreak && order.attack && effort > 76 && Math.random() < attackChance(r, sector, effort)) {
+      attackGain = rnd(18, 65);
+      st.groupId = `attack_${r.id}`;
+      addRadio(`${r.name} ataca.`);
+    }
+    const risk = incidentRisk(r, stage, sector, effort) * toNum(order.risk, 1);
+    if (Math.random() < risk) {
+      const loss = rnd(30, sector.type === "cobbles" ? 190 : 120);
+      personalLoss += loss;
+      st.incident = "Incidente";
+      st.groupId = "dropped";
+      addRadio(`${r.name} sufre incidente y pierde ${seconds(loss)}.`);
+    }
+    if (st.energy < 25 && Math.random() < (st.energy < 15 ? 0.34 : 0.16)) {
+      const loss = rnd(75, 260);
+      personalLoss += loss;
+      st.groupId = "dropped";
+      addRadio(`${r.name} entra en crisis y pierde ${seconds(loss)}.`);
+    }
+    st.elapsed += Math.max(35, groupSectorTime + personalLoss - attackGain);
+    st.raceTime += Math.max(35, groupSectorTime + personalLoss - attackGain);
+    st.km = inBreak ? Math.min(stage.distance, sector.to + newGap / 55) : sector.to;
+    st.speed = sectorKm / Math.max(0.01, (groupSectorTime + personalLoss) / 3600);
+    st.wkg = estimateWkg(r, sector, effort, st.groupId);
+    st.energy = clamp(st.energy - energyCost(sector, order, effort, r), 0, 118);
+    st.hydration = clamp(st.hydration - hydrationCost(stage, sector, effort), 0, 125);
+    st.stomach = clamp(st.stomach - 4, 0, 100);
+    st.finalBonus = Math.max(0, st.finalBonus - 0.8);
+    st.fatigueGain += fatigueGain(sector, effort, r);
+    if (inBreak) { st.groupId = "breakaway"; st.group = "Fuga"; }
+  });
+
+  applyGroupCohesion(stage, sector);
+  applyRaceGroupSelection(stage, sector);
+  if (breakRiders.length) {
+    if (newGap === 0) addRadio("La fuga queda neutralizada.");
+    else addRadio(`Fuga: ${breakRiders.length} corredores, ${seconds(newGap)} de ventaja, colaboración ${Math.round(breakCollab)}%.`);
+  }
+}
+
+function calculateTeamPull(teamId, sector) {
+  return getTeamRiders(teamId).reduce((sum, r) => {
+    const st = Game.live.states[r.id];
+    if (!st || st.groupId === "dropped") return sum;
+    const order = getOrder(Game.riderOrders[r.id] || r.defaultOrder);
+    const effort = Game.riderEfforts[r.id] ?? r.defaultEffort;
+    const roleMultiplier = ["rouleur", "tt", "domestique", "classics"].includes(r.roleKey) ? 1.12 : ["gc", "co"].includes(r.roleKey) ? 0.55 : 0.82;
+    return sum + order.pull * Math.max(0, effort - 48) * 0.13 * roleMultiplier;
+  }, 0);
+}
+
+function calculateGroupSectorTime(groupRiders, stage, sector, base, groupType, collaboration) {
+  const riders = groupRiders && groupRiders.length ? groupRiders : getRaceRiders();
+  const perf = avg(riders.slice().sort((a, b) => terrainPerformance(b, stage, sector) - terrainPerformance(a, stage, sector)).slice(0, Math.min(16, riders.length)).map(r => terrainPerformance(r, stage, sector)));
+  const effortBoost = groupType === "break" ? 2.4 : collaboration > 70 ? 1.8 : 0;
+  const time = base + (82 - perf - effortBoost) * difficultySpread(sector) - (collaboration - 50) * 0.75;
+  return Math.max(base * 0.82, time + rnd(-8, 8));
+}
+
+function calculatePersonalGroupLoss(r, st, stage, sector, perf, effort, inBreak) {
+  let loss = 0;
+  const pressure = sector.difficulty + (stage.type === "mountain" ? 10 : 0) + Math.max(0, effort - 78) * 0.25;
+  if (["climb", "final"].includes(sector.type) && stage.type === "mountain") {
+    const climbingGap = 76 - (r.stats.mountain * 0.58 + r.stats.stamina * 0.24 + r.form * 0.18);
+    if (climbingGap > 0) loss += climbingGap * (sector.to - sector.from) * 1.55;
+    if (r.roleKey === "sprinter") loss += (sector.to - sector.from) * 10.5;
+  }
+  if (sector.type === "cobbles" && r.stats.cobbles < 70) loss += (70 - r.stats.cobbles) * 2.2;
+  if (st.energy < 45) loss += (45 - st.energy) * 2.6;
+  if (st.hydration < 45) loss += (45 - st.hydration) * 1.9;
+  if (perf < 68 && pressure > 78) loss += rnd(15, 85);
+  if (inBreak && st.energy < 38) loss += rnd(20, 90);
+  return Math.max(0, loss);
+}
+
+function applyRaceGroupSelection(stage, sector) {
+  if (isTT(stage) || isTTT(stage)) return;
+  const riders = getRaceRiders();
+  const best = Math.min(...riders.map(r => Game.live.states[r.id].elapsed));
+  riders.forEach(r => {
+    const st = Game.live.states[r.id];
+    const delta = st.elapsed - best;
+    if (st.groupId === "breakaway" && Game.live.breakaway.gap > 15) { st.group = "Fuga"; return; }
+    if (st.groupId && st.groupId.startsWith("attack")) { st.group = "Ataque"; return; }
+    if (st.groupId === "dropped" || delta > 360) { st.group = delta > 720 ? "Autobús" : "Cortados"; return; }
+    if (["climb", "final"].includes(sector.type) && stage.type === "mountain") {
+      if (["gc", "co", "climber"].includes(r.roleKey) && delta <= 70) { st.group = "Grupo favoritos"; st.groupId = "favorites"; return; }
+      if (delta > 180 || r.roleKey === "sprinter") { st.group = delta > 430 ? "Autobús" : "Grupo 2"; st.groupId = delta > 430 ? "autobus" : "group2"; return; }
+    }
+    if (delta <= 28) { st.group = "Grupo favoritos"; st.groupId = "favorites"; }
+    else if (delta <= 100) { st.group = "Pelotón"; st.groupId = "peloton"; }
+    else if (delta <= 260) { st.group = "Grupo 2"; st.groupId = "group2"; }
+    else { st.group = "Cortados"; st.groupId = "dropped"; }
+  });
+}
+
+function buildGroups() {
+  const stage = getStage();
+  if (isTT(stage)) return buildTTGroups();
+  if (isTTT(stage)) return buildTTTGroups();
+  const riders = getRaceRiders().filter(r => Game.live.states[r.id]);
+  const best = Math.min(...riders.map(r => Game.live.states[r.id].elapsed));
+  const map = {};
+  riders.forEach(r => {
+    const st = Game.live.states[r.id];
+    const g = st.elapsed - best;
+    if (st.groupId === "breakaway" && Game.live.breakaway.gap > 15) st.group = "Fuga";
+    else if (st.groupId && st.groupId.startsWith("attack")) st.group = "Ataque";
+    else if (st.groupId === "favorites" || (["gc", "co", "climber"].includes(r.roleKey) && g <= 40)) st.group = "Grupo favoritos";
+    else if (st.groupId === "group2" || (g > 100 && g <= 260)) st.group = "Grupo 2";
+    else if (st.groupId === "autobus" || (g > 430 && r.roleKey === "sprinter")) st.group = "Autobús";
+    else if (st.groupId === "dropped" || g > 260) st.group = "Cortados";
+    else if (g <= 100) st.group = "Pelotón";
+    else st.group = "Grupo 2";
+    (map[st.group] ||= []).push(r);
+  });
+  return ["Fuga", "Ataque", "Grupo perseguidor", "Grupo favoritos", "Pelotón", "Grupo 2", "Autobús", "Cortados"].filter(k => map[k]).map(k => groupObject(k, map[k], best));
+}
+
+function groupObject(label, riders, best) {
+  const t = avg(riders.map(r => Game.live.states[r.id].elapsed));
+  const km = avg(riders.map(r => Game.live.states[r.id].km));
+  const speed = avg(riders.map(r => Game.live.states[r.id].speed));
+  const wkg = avg(riders.map(r => Game.live.states[r.id].wkg));
+  const energy = avg(riders.map(r => Game.live.states[r.id].energy));
+  const fatigue = avg(riders.map(r => Game.live.states[r.id].fatigueGain || 0));
+  const collaboration = label === "Fuga" ? toNum(Game.live.breakaway.collaboration, 0) : label === "Pelotón" ? toNum(Game.live.groupModel?.pelotonCollaboration, 55) : label === "Grupo favoritos" ? 70 : label === "Autobús" ? 34 : 45;
+  const risk = clamp((100 - energy) * 0.55 + fatigue * 2.1 + (label === "Cortados" ? 25 : 0), 0, 100);
+  const gapSeconds = label === "Fuga" ? -toNum(Game.live.breakaway.gap, 0) : Math.max(0, t - best);
+  return { label, riders, count: riders.length, gapText: label === "Fuga" ? `${seconds(Game.live.breakaway.gap)} sobre pelotón` : gap(t, best), gapSeconds: Math.abs(gapSeconds), km: clamp(km, 0, getStage().distance), speed: speed || 0, wkg: wkg || 0, energy: energy || 0, collaboration, fatigue, risk, cls: groupClass(label) };
+}
+
+function groupClass(label) {
+  return { "Fuga": "break", "Ataque": "attack", "Grupo perseguidor": "chase", "Grupo favoritos": "fav", "Pelotón": "peloton", "Grupo 2": "second", "Autobús": "bus", "Cortados": "dropped" }[label] || "peloton";
+}
+
+function renderTVLanes(groups) {
+  if (isTT(getStage()) || isTTT(getStage())) return renderChronoLanes(groups);
+  const lanes = ["Fuga", "Ataque", "Grupo perseguidor", "Grupo favoritos", "Pelotón", "Grupo 2", "Autobús", "Cortados"];
+  return `
+    <div class="tv-lanes live pro">
+      ${lanes.map(label => {
+        const g = groups.find(x => x.label === label);
+        return `<div class="lane ${g ? g.cls : ""}">
+          <strong>${label}</strong>
+          <span>${g ? `${g.count} corredores · ${g.gapText} · km ${g.km.toFixed(1)} · ${g.speed.toFixed(1)} km/h · ${g.wkg.toFixed(1)} W/kg · colab. ${Math.round(g.collaboration)}%` : "—"}</span>
+          ${g ? `<div class="group-metrics"><i>energía ${Math.round(g.energy)}%</i><i>fatiga ${Math.round(g.fatigue)}</i><i>riesgo ${Math.round(g.risk)}%</i></div>` : ""}
+          <div class="lane-chips">${g ? g.riders.slice(0, 14).map(r => `<b class="${r.teamId === Game.selectedTeamId ? "mine" : isRival(r) ? "rival" : ""}">${esc(r.name)}</b>`).join("") : ""}</div>
+        </div>`;
+      }).join("")}
+    </div>`;
+}
+
+function renderChronoLanes(groups) {
+  return `<div class="tv-lanes live chrono">${groups.slice(0, 20).map(g => `<div class="lane ${g.cls}"><strong>${esc(g.label)}</strong><span>${g.gapText} · km ${g.km.toFixed(1)} · ${g.speed.toFixed(1)} km/h · ${g.wkg.toFixed(1)} W/kg</span><div class="lane-chips">${g.riders.slice(0, 8).map(r => `<b class="${r.teamId === Game.selectedTeamId ? "mine" : isRival(r) ? "rival" : ""}">${esc(r.name)}</b>`).join("")}</div></div>`).join("")}</div>`;
+}
+
+function renderLiveRadar(groups) {
+  const rivals = getImportantRivals();
+  return `<div class="radar"><h3>Radar de rivales GC</h3>${rivals.map(r => {
+    const st = Game.live.states[r.id];
+    const g = groups.find(group => group.riders.some(x => x.id === r.id));
+    return `<div class="radar-row"><strong>${esc(r.name)}</strong><span>${esc(st ? st.group : "—")} · km ${st ? st.km.toFixed(1) : "—"} · ${g ? g.gapText : "—"}</span></div>`;
+  }).join("")}</div>`;
+}
+
+function estimateWkg(r, sector, effort, groupId = "") {
+  const terrainBase = sector.type === "climb" || sector.type === "final" && getStage().type === "mountain" ? 4.7 : sector.type === "cobbles" ? 4.3 : sector.type === "flat" ? 3.0 : sector.type === "tt" ? 4.8 : 3.8;
+  const role = ["gc", "co", "climber"].includes(r.roleKey) ? 0.18 : r.roleKey === "sprinter" && sector.type === "climb" ? -0.22 : 0;
+  const order = getOrder(Game.riderOrders[r.id] || r.defaultOrder);
+  const pull = order.pull * 0.18 + order.attack * 0.36;
+  const group = groupId === "breakaway" ? 0.22 : groupId && groupId.startsWith("attack") ? 0.45 : 0;
+  return clamp(terrainBase + (effort - 65) * 0.018 + role + pull + group + rnd(-0.12, 0.12), 2.0, 7.2);
+}
 
 init();

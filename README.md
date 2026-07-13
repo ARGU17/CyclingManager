@@ -1,18 +1,39 @@
-# Cycling Manager Tour v0.15
+# Cycling Manager Tour v0.17
 
-Versión corregida con simulación más realista y perfiles 2D mejorados.
+Versión estable basada en v0.15 con mejoras incrementales sin eliminar funcionalidades:
 
-## Cambios v0.15
-
-- Gaps de etapa estabilizados: evita diferencias absurdas de 40+ minutos entre ganador y pelotón salvo grupetto tras montaña extrema.
-- Reequilibrio por terreno: en montaña dominan GC/escaladores; sprinters quedan penalizados en puertos y finales en alto.
-- CRI/CRE mantienen salidas separadas y tiempos normalizados.
-- Fugas: si sobreviven, ganan con margen realista; si son cazadas, no generan saltos extremos.
-- Perfil 2D con 1 punto por km y microgradientes dentro de las subidas.
-- Bandas visuales de inicio-fin de puerto sobre el SVG.
+- Modo carrera única.
+- Modo temporada 2026.
+- Selección de 8 corredores antes de cada carrera.
+- Bloqueo de convocatoria durante cada carrera.
+- Entrenamiento y training camps entre carreras.
+- Nutrición automática/manual con stock de coche.
+- Selección de material por corredor.
+- CRI: salida individual cada 2 minutos, sin rebufo.
+- CRE: salida por equipos cada 5 minutos, tiempo por 4º corredor, controles de relevos.
+- Perfil 2D con puntos por kilómetro.
+- Race Director v0.17:
+  - panel de control de carrera;
+  - amenaza táctica;
+  - recomendación automática aplicable;
+  - radar de rivales GC;
+  - carriles visuales de grupos;
+  - datos de km, velocidad, W/kg, colaboración, energía, fatiga y riesgo.
+- Motor por grupos mejorado:
+  - fuga, ataque, grupo perseguidor, favoritos, pelotón, grupo 2, autobús y cortados;
+  - colaboración de fuga/pelotón;
+  - IA táctica de equipos rivales según perfil de equipo y tipo de etapa;
+  - montaña más selectiva y coherente.
 
 ## Instalación
 
-Sube index.html, data.js, game.js y styles.css al repositorio de GitHub Pages.
+Sube estos archivos a la raíz de tu repositorio de GitHub Pages:
 
-IMPORTANTE: al abrir la web, pulsa **Borrar guardado** para limpiar partidas antiguas.
+- index.html
+- data.js
+- game.js
+- styles.css
+
+Después abre la web y pulsa **Borrar guardado** para limpiar partidas de versiones anteriores.
+
+Clave de guardado: `cyclingManager_v017`.
