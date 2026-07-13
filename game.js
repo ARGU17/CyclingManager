@@ -1,11 +1,11 @@
 /* ============================================================
    CYCLING MANAGER TOUR
    game.js
-   v0.17 realism patch
+   v0.19 realism patch
    ============================================================ */
 
 const app = document.getElementById("app");
-const SAVE_KEY = "cyclingManager_v017";
+const SAVE_KEY = "cyclingManager_v019";
 
 const Game = {
   version: SAVE_VERSION,
@@ -144,7 +144,7 @@ function saveGame(show = true) {
 }
 function loadGame() {
   const raw = localStorage.getItem(SAVE_KEY);
-  if (!raw) return toast("No hay guardado v0.17. Empieza partida nueva.");
+  if (!raw) return toast("No hay guardado v0.19. Empieza partida nueva.");
   try {
     const obj = JSON.parse(raw);
     if (obj.version !== SAVE_VERSION) {
@@ -194,7 +194,7 @@ function render() {
 function renderHome() {
   app.innerHTML = `
     <div class="header">
-      <div><h1>Cycling Manager Tour</h1><p>v0.17 · simulación realista · perfiles 1 km con microgradientes · gaps estabilizados</p></div>
+      <div><h1>Cycling Manager Tour</h1><p>v0.19 · simulación realista · perfiles 1 km con microgradientes · gaps estabilizados</p></div>
       <div class="top-actions"><button class="secondary" onclick="loadGame()">Cargar</button><button class="danger" onclick="clearSave()">Borrar guardado</button></div>
     </div>
     <section class="panel"><h2>Modo de juego</h2><div class="mode-grid">
@@ -610,7 +610,7 @@ function renderLiveRadar(groups){const rivals=getImportantRivals();return `<div 
 function renderEnergyHeatmap(){return `<div class="energy-map">${getTeamRiders(Game.selectedTeamId).map(r=>{const e=Game.live.states[r.id]?.energy||0,cls=e>68?"good":e>38?"warn":"bad";return `<div class="energy ${cls}"><strong>${esc(r.name)}</strong><span>${Math.round(e)}%</span></div>`;}).join("")}</div>`;}
 
 /* ============================================================
-   v0.17 Race Director Pro + Group Engine + Rival AI Patch
+   v0.19 Race Director Pro + Group Engine + Rival AI Patch
    ============================================================ */
 
 function ensureV017State() {
@@ -651,7 +651,7 @@ function renderActionBar(live) {
     <div class="actionbar ${live ? "live" : ""}">
       <div>
         <strong>${live ? `Sector ${Game.live.sectorIndex + 1}/${stage.sectors.length} · ${sector.name}` : "Salida de etapa"}</strong>
-        <p>${live ? `Km ${sector.from}-${sector.to} · ${sector.question}` : "Simulación rápida o Race Director por sectores. Motor v0.17 basado en grupos + IA rival."}</p>
+        <p>${live ? `Km ${sector.from}-${sector.to} · ${sector.question}` : "Simulación rápida o Race Director por sectores. Motor v0.19 basado en grupos + IA rival."}</p>
         <div class="actionbar-mini">
           <span class="control-pill ${situation.controlClass}">${situation.controlLabel}</span>
           <span class="control-pill ${situation.threatClass}">${situation.threatLabel}</span>
@@ -738,7 +738,7 @@ function renderVisualLanesPreview() {
       ${["Fuga", "Grupo perseguidor", "Grupo favoritos", "Pelotón", "Grupo 2", "Autobús", "Cortados"].map((x, i) => `
         <div class="lane ${i === 2 ? "fav" : i === 3 ? "peloton" : i === 0 ? "break" : ""}">
           <strong>${x}</strong>
-          <span>${i === 3 ? "Salida normal de carrera. El motor v0.17 moverá grupos según colaboración, W/kg y objetivos." : "—"}</span>
+          <span>${i === 3 ? "Salida normal de carrera. El motor v0.19 moverá grupos según colaboración, W/kg y objetivos." : "—"}</span>
         </div>
       `).join("")}
     </div>`;
@@ -1280,3 +1280,463 @@ function estimateWkg(r, sector, effort, groupId = "") {
 }
 
 init();
+
+
+/* ============================================================
+   v0.19 MANAGER EXPANSION
+   Prioridades 4, 5, 6 y 8: objetivos, mercado, forma/calendario,
+   pantalla TV. Se añade por extensión para conservar v0.19.
+   ============================================================ */
+
+function ensureManagerSystems() {
+  if (!Game.riders || !Game.riders.length) return;
+  const team = Game.selectedTeamId ? getTeam(Game.selectedTeamId) : null;
+  if (!Game.manager) Game.manager = {};
+  if (!Game.manager.version) Game.manager.version = "v0.19";
+  if (!Number.isFinite(Game.manager.budget)) {
+    const base = team ? (team.level === "WT" ? 34000000 : 9200000) : 18000000;
+    const ai = team && team.ai ? team.ai : { gc: 50, sprint: 50, classics: 50 };
+    Game.manager.budget = Math.round(base + (toNum(ai.gc, 50) + toNum(ai.sprint, 50) + toNum(ai.classics, 50)) * 45000);
+  }
+  if (!Number.isFinite(Game.manager.prestige)) Game.manager.prestige = team ? (team.level === "WT" ? 82 : 56) : 65;
+  if (!Number.isFinite(Game.manager.sponsorConfidence)) Game.manager.sponsorConfidence = 74;
+  if (!Game.manager.contracts) Game.manager.contracts = {};
+  if (!Game.manager.staff) Game.manager.staff = {};
+  if (!Game.manager.transferHistory) Game.manager.transferHistory = [];
+  if (!Game.manager.scoutingPool) Game.manager.scoutingPool = [];
+  if (!Game.manager.youthPool) Game.manager.youthPool = [];
+  if (!Game.manager.objectiveResults) Game.manager.objectiveResults = [];
+  if (!Game.manager.raceObjectives) Game.manager.raceObjectives = {};
+  if (!Game.manager.formPlans) Game.manager.formPlans = {};
+  if (!Game.manager.broadcastLog) Game.manager.broadcastLog = [];
+  if (!Game.trainingCampIdV019) Game.trainingCampIdV019 = "girona_stage_race_base";
+  Game.riders.forEach(r => {
+    if (!Game.manager.contracts[r.id]) Game.manager.contracts[r.id] = defaultContractForRiderV019(r);
+    if (!Game.manager.formPlans[r.id]) Game.manager.formPlans[r.id] = { preset: defaultFormPresetForRoleV019(r), targetRaceId: Game.selectedRaceId || DEFAULT_RACE_ID, priority: r.roleKey === "gc" ? "A" : ["co", "sprinter", "classics"].includes(r.roleKey) ? "B" : "C" };
+  });
+  if (Game.selectedRaceId && !Game.manager.raceObjectives[Game.selectedRaceId]) {
+    Game.manager.raceObjectives[Game.selectedRaceId] = buildRaceObjectivesV019(getRace(), team);
+  }
+}
+
+function defaultContractForRiderV019(r) {
+  const roleBonus = { gc: 2.8, co: 1.8, sprinter: 1.55, classics: 1.45, climber: 1.18, tt: 1.10, rouleur: 0.82, puncheur: 1.0, domestique: 0.62 }[r.roleKey] || 0.75;
+  const salary = Math.round((70000 + Math.pow(toNum(r.base, 70), 2) * 95 * roleBonus) / 1000) * 1000;
+  return {
+    salary,
+    years: clamp(1 + Math.round((toNum(r.base, 70) - 70) / 10 + rnd(0, 2)), 1, 4),
+    rolePromise: r.roleKey === "gc" ? "Líder" : r.roleKey === "sprinter" ? "Sprinter protegido" : r.roleKey === "co" ? "Co-líder" : ["domestique", "rouleur"].includes(r.roleKey) ? "Gregario" : "Libre en fugas",
+    happiness: clamp(Math.round(68 + toNum(r.morale, 70) * 0.22 + rnd(-8, 8)), 30, 100),
+    marketValue: Math.round((salary * (1.6 + (toNum(r.base, 70) - 70) / 32)) / 1000) * 1000
+  };
+}
+
+function defaultFormPresetForRoleV019(r) {
+  if (["gc", "co", "climber"].includes(r.roleKey)) return "grand_tour_peak";
+  if (["classics", "puncheur"].includes(r.roleKey)) return "classics_peak";
+  if (r.roleKey === "sprinter") return "sprint_peak";
+  if (r.roleKey === "tt") return "tt_peak";
+  return "maintenance";
+}
+
+function buildRaceObjectivesV019(race, team) {
+  const ai = team && team.ai ? team.ai : { gc: 55, sprint: 55, classics: 55, breakaway: 55, control: 55 };
+  const obj = [];
+  const add = (id, target = 1, mandatory = false) => obj.push({ id: `${race.id}_${id}_${obj.length}`, catalogId: id, target, mandatory, status: "pending", progress: 0 });
+  if (race.type === "grand_tour") {
+    if (ai.gc > 90) add("gc_win", 1, true); else if (ai.gc > 75) add("gc_top_3", 1, true); else if (ai.gc > 55) add("gc_top_10", 1, true); else add("aggressive_breakaway", 2, false);
+    if (ai.sprint > 72) add("points_top_3", 1, false);
+    if (ai.gc > 70 || ai.breakaway > 70) add("stage_win", 1, false);
+    add("teams_top_3", 1, false);
+  } else if (race.type === "stage_race") {
+    if (ai.gc > 75) add("gc_top_3", 1, true); else add("gc_top_10", 1, false);
+    if (ai.sprint > 70 || ai.breakaway > 72) add("stage_win", 1, false);
+  } else {
+    if (ai.classics > 80) add("monument_top_5", 1, true); else add("aggressive_breakaway", 1, false);
+    if (ai.sprint > 76) add("stage_win", 1, false);
+  }
+  return obj.slice(0, 4);
+}
+
+function objectiveCatalogV019(id) { return MANAGER_OBJECTIVE_CATALOG_V019[id] || MANAGER_OBJECTIVE_CATALOG_V019.stage_win; }
+
+function objectiveProgressV019(objective, race = getRace()) {
+  const riders = getTeamRiders(Game.selectedTeamId, true);
+  const gc = getGC();
+  const teamBestIndex = gc.findIndex(r => r.teamId === Game.selectedTeamId);
+  const stageWins = riders.reduce((s, r) => s + toNum(r.stageWins, 0), 0);
+  const pointsPos = getPoints().findIndex(r => r.teamId === Game.selectedTeamId);
+  const mountainPos = getMountain().findIndex(r => r.teamId === Game.selectedTeamId);
+  const youthPos = getYouth().findIndex(r => r.teamId === Game.selectedTeamId);
+  const teamsPos = getTeamsClass().findIndex(x => x.team.id === Game.selectedTeamId);
+  switch (objective.catalogId) {
+    case "gc_win": return teamBestIndex === 0 ? 1 : 0;
+    case "gc_top_3": return teamBestIndex >= 0 && teamBestIndex < 3 ? 1 : 0;
+    case "gc_top_5": return teamBestIndex >= 0 && teamBestIndex < 5 ? 1 : 0;
+    case "gc_top_10": return teamBestIndex >= 0 && teamBestIndex < 10 ? 1 : 0;
+    case "stage_win": return Math.min(1, stageWins / Math.max(1, objective.target));
+    case "stage_wins_2": return Math.min(1, stageWins / 2);
+    case "points_top_3": return pointsPos >= 0 && pointsPos < 3 ? 1 : 0;
+    case "mountain_top_3": return mountainPos >= 0 && mountainPos < 3 ? 1 : 0;
+    case "youth_top_3": return youthPos >= 0 && youthPos < 3 ? 1 : 0;
+    case "teams_top_3": return teamsPos >= 0 && teamsPos < 3 ? 1 : 0;
+    case "monument_top_5": return teamBestIndex >= 0 && teamBestIndex < 5 ? 1 : 0;
+    case "aggressive_breakaway": {
+      const breakStages = (Game.stageHistory || []).filter(h => h.results && h.results.some(res => res.teamId === Game.selectedTeamId && String(res.group || "").includes("Fuga"))).length;
+      return Math.min(1, breakStages / Math.max(1, objective.target));
+    }
+    default: return 0;
+  }
+}
+
+function evaluateRaceObjectivesV019(race) {
+  ensureManagerSystems();
+  const objectives = Game.manager.raceObjectives[race.id] || [];
+  if (Game.manager.objectiveResults.some(r => r.raceId === race.id)) return;
+  let deltaConfidence = 0, deltaBudget = 0, deltaPrestige = 0;
+  const results = objectives.map(o => {
+    const cat = objectiveCatalogV019(o.catalogId);
+    const progress = objectiveProgressV019(o, race);
+    const achieved = progress >= 1;
+    if (achieved) {
+      deltaBudget += cat.reward.budget || 0;
+      deltaPrestige += cat.reward.prestige || 0;
+      deltaConfidence += cat.reward.confidence || 0;
+    } else {
+      deltaConfidence -= o.mandatory ? 8 : 3;
+      deltaPrestige -= o.mandatory ? 2 : 0;
+    }
+    return { ...o, label: cat.label, achieved, progress: Math.round(progress * 100) };
+  });
+  Game.manager.budget += deltaBudget;
+  Game.manager.prestige = clamp(toNum(Game.manager.prestige, 60) + deltaPrestige, 1, 100);
+  Game.manager.sponsorConfidence = clamp(toNum(Game.manager.sponsorConfidence, 70) + deltaConfidence, 1, 100);
+  Game.manager.objectiveResults.push({ raceId: race.id, raceName: race.name, results, deltaBudget, deltaPrestige, deltaConfidence });
+}
+
+function moneyV019(v) { return `${Math.round(toNum(v,0)/1000).toLocaleString("es-ES")}k€`; }
+function ratingClassV019(v) { return v >= 78 ? "good" : v >= 55 ? "warn" : "bad"; }
+
+function renderManagerHeaderV019() {
+  ensureManagerSystems();
+  return `<section class="manager-strip">
+    <div class="manager-kpi"><span>Presupuesto</span><strong>${moneyV019(Game.manager.budget)}</strong></div>
+    <div class="manager-kpi"><span>Prestigio</span><strong>${Math.round(Game.manager.prestige)}/100</strong></div>
+    <div class="manager-kpi ${ratingClassV019(Game.manager.sponsorConfidence)}"><span>Sponsor</span><strong>${Math.round(Game.manager.sponsorConfidence)}/100</strong></div>
+    <div class="manager-kpi"><span>Staff</span><strong>${Object.keys(Game.manager.staff).length}/${STAFF_OPTIONS_V019.length}</strong></div>
+  </section>`;
+}
+
+const __v019_renderRace = renderRace;
+renderRace = function() {
+  ensureManagerSystems();
+  const race = getRace(), team = getTeam(Game.selectedTeamId);
+  const tabs = [["director","Race Director"],["tv","Vista TV"],["strategy","Estrategia"],["nutrition","Alimentación"],["material","Material"],["objectives","Objetivos"],["form","Forma"],["market","Mercado"],["staff","Staff"],["team","Equipo"],["class","Clasificaciones"],["history","Historial"]];
+  app.innerHTML = `<div class="header"><div><h1>${esc(team.name)}</h1><p>${Game.mode === "season" ? `Temporada · ${Game.seasonIndex + 1}/${SEASON_RACE_IDS.length} · ` : ""}${esc(race.name)} · Etapa ${Game.currentStageIndex + 1}/${race.stages.length}</p></div><div class="top-actions"><button class="secondary" onclick="saveGame()">Guardar</button><button class="danger" onclick="init()">Reiniciar</button></div></div>
+    ${renderManagerHeaderV019()}
+    ${renderLeaderStrip()}
+    <div class="tabs">${tabs.map(([id,label]) => `<button class="tab ${Game.activeTab===id?"active":""}" onclick="setTab('${id}')">${label}</button>`).join("")}</div>
+    ${Game.activeTab === "director" ? renderDirectorTab() : ""}
+    ${Game.activeTab === "tv" ? renderBroadcastTabV019() : ""}
+    ${Game.activeTab === "strategy" ? renderStrategyTab(false) : ""}
+    ${Game.activeTab === "nutrition" ? renderNutritionTab() : ""}
+    ${Game.activeTab === "material" ? renderMaterialTab() : ""}
+    ${Game.activeTab === "objectives" ? renderObjectivesTabV019() : ""}
+    ${Game.activeTab === "form" ? renderFormTabV019() : ""}
+    ${Game.activeTab === "market" ? renderMarketTabV019() : ""}
+    ${Game.activeTab === "staff" ? renderStaffTabV019() : ""}
+    ${Game.activeTab === "team" ? renderTeamTab() : ""}
+    ${Game.activeTab === "class" ? renderClassTab() : ""}
+    ${Game.activeTab === "history" ? renderHistoryTab() : ""}`;
+};
+
+renderDirectorTab = function() {
+  const stage = getStage();
+  const groups = previewStartGroups(stage);
+  const situation = analyzeRaceSituation(groups, stage, stage.sectors[0]);
+  return `<div class="grid director"><section class="panel">${renderActionBar(false)}${renderWeather(stage)}${renderRaceControlPanel(situation, false)}${renderStageProfile(stage, groups)}${renderThreatPanel(situation, false)}${renderDirectorRecommendation(situation, false)}${renderVisualLanesPreview()}</section><section class="panel">${renderStrategyTab(false,true)}${renderObjectiveMiniPanelV019()}</section></div>`;
+};
+
+function renderObjectiveMiniPanelV019() {
+  ensureManagerSystems();
+  const objectives = Game.manager.raceObjectives[Game.selectedRaceId] || [];
+  return `<div class="objective-mini"><h2>Objetivos de sponsor</h2>${objectives.map(o => { const cat=objectiveCatalogV019(o.catalogId); const p=Math.round(objectiveProgressV019(o)*100); return `<div class="objective-row"><strong>${esc(cat.label)}</strong><span>${p}%</span></div>`; }).join("")}<button class="secondary" onclick="setTab('objectives')">Ver objetivos completos</button></div>`;
+}
+
+function renderObjectivesTabV019() {
+  ensureManagerSystems();
+  const race = getRace();
+  const objectives = Game.manager.raceObjectives[race.id] || [];
+  const previous = Game.manager.objectiveResults.slice().reverse();
+  return `<div class="grid two"><section class="panel"><h2>Objetivos de ${esc(race.name)}</h2><p class="muted">Cumplir objetivos sube presupuesto, prestigio y confianza del sponsor. Fallar objetivos obligatorios penaliza.</p><div class="objective-grid">${objectives.map(o => renderObjectiveCardV019(o)).join("")}</div></section><section class="panel"><h2>Historial sponsor</h2><div class="classification-scroll compact-table"><table><thead><tr><th>Carrera</th><th>Balance</th><th>Presupuesto</th><th>Confianza</th></tr></thead><tbody>${previous.map(r => `<tr><td>${esc(r.raceName)}</td><td>${r.results.filter(x=>x.achieved).length}/${r.results.length}</td><td>${moneyV019(r.deltaBudget)}</td><td>${r.deltaConfidence>0?"+":""}${r.deltaConfidence}</td></tr>`).join("") || `<tr><td colspan="4">Sin carreras evaluadas</td></tr>`}</tbody></table></div></section></div>`;
+}
+
+function renderObjectiveCardV019(o) {
+  const cat = objectiveCatalogV019(o.catalogId);
+  const progress = Math.round(objectiveProgressV019(o) * 100);
+  return `<div class="objective-card ${progress>=100?"done":o.mandatory?"mandatory":""}"><div class="badge-row"><span class="badge blue">${esc(cat.category)}</span>${o.mandatory?`<span class="badge red">Obligatorio</span>`:`<span class="badge">Secundario</span>`}</div><h3>${esc(cat.label)}</h3><div class="objective-bar"><div style="width:${clamp(progress,0,100)}%"></div></div><p>${progress}% completado</p><small>Recompensa: ${moneyV019(cat.reward.budget)} · prestigio +${cat.reward.prestige} · sponsor +${cat.reward.confidence}</small></div>`;
+}
+
+function renderBroadcastTabV019() {
+  ensureManagerSystems();
+  const stage = getStage();
+  const groups = Game.live ? buildGroups() : previewStartGroups(stage);
+  const situation = analyzeRaceSituation(groups, stage, Game.live ? stage.sectors[Game.live.sectorIndex] : stage.sectors[0]);
+  return `<section class="panel tv-screen-panel">${renderBroadcastHeroV019(stage, groups, situation)}${renderBroadcastTickerV019(groups, situation)}${renderStageProfile(stage, groups)}${renderTVLanes(groups)}${renderBroadcastScriptV019(groups, situation)}</section>`;
+}
+
+function renderBroadcastHeroV019(stage, groups, situation) {
+  const main = groups.find(g => g.label === "Fuga") || groups.find(g => g.label === "Grupo favoritos") || groups.find(g => g.label === "Pelotón") || groups[0];
+  return `<div class="tv-hero"><div><span class="tv-live">● DIRECTO</span><h2>${esc(stage.name)}</h2><p>${esc(stage.label)} · ${stage.distance} km · ${stage.elevation} m+ · ${stage.weather.label}</p></div><div class="tv-scoreboard"><div><span>Grupo destacado</span><strong>${main?esc(main.label):"—"}</strong></div><div><span>Km</span><strong>${main?main.km.toFixed(1):"0.0"}</strong></div><div><span>Velocidad</span><strong>${main?main.speed.toFixed(1):"—"} km/h</strong></div><div><span>W/kg</span><strong>${main?main.wkg.toFixed(1):"—"}</strong></div><div><span>Estado</span><strong>${esc(situation.controlLabel)}</strong></div></div></div>`;
+}
+
+function renderBroadcastTickerV019(groups, situation) {
+  const rivals = getImportantRivals().slice(0,5).map(r => { const st = Game.live ? Game.live.states[r.id] : null; return `${r.name}: ${st ? st.group : "salida"}`; });
+  return `<div class="tv-ticker"><span>${esc(situation.threatLabel)}</span><span>${esc(situation.shortAdvice)}</span>${rivals.map(x=>`<span>${esc(x)}</span>`).join("")}</div>`;
+}
+
+function renderBroadcastScriptV019(groups, situation) {
+  const lines = buildBroadcastLinesV019(groups, situation);
+  return `<div class="broadcast-script"><h2>Realización TV / narración</h2>${lines.map(l => `<div class="broadcast-line"><b>${esc(l.tag)}</b><span>${esc(l.text)}</span></div>`).join("")}</div>`;
+}
+
+function buildBroadcastLinesV019(groups, situation) {
+  const stage = getStage();
+  const lines = [];
+  const fuga = groups.find(g => g.label === "Fuga");
+  const fav = groups.find(g => g.label === "Grupo favoritos");
+  const peloton = groups.find(g => g.label === "Pelotón");
+  lines.push({ tag: "Dirección", text: situation.shortAdvice + ". " + situation.recommendation });
+  if (fuga) lines.push({ tag: "Fuga", text: `La fuga rueda en el km ${fuga.km.toFixed(1)}, a ${fuga.speed.toFixed(1)} km/h y ${fuga.wkg.toFixed(1)} W/kg. Ventaja: ${fuga.gapText}.` });
+  if (fav) lines.push({ tag: "Favoritos", text: `Grupo de favoritos con ${fav.count} corredores. Energía media ${Math.round(fav.energy||0)}% y riesgo ${Math.round(fav.risk||0)}%.` });
+  if (peloton) lines.push({ tag: "Pelotón", text: `Pelotón a ${peloton.speed.toFixed(1)} km/h, colaboración ${Math.round(peloton.collaboration||0)}%.` });
+  if (stage.weather.crosswind > 50) lines.push({ tag: "Clima", text: `Viento lateral importante: ${stage.weather.crosswind} km/h. Riesgo real de cortes si el equipo va mal colocado.` });
+  if (stage.type === "mountain") lines.push({ tag: "Montaña", text: "La ponderación de montaña favorece a GC y escaladores puros; sprinters entrarán en autobús si el ritmo sube." });
+  return lines;
+}
+
+const __v019_renderLive = renderLive;
+renderLive = function() {
+  const stage = getStage();
+  const sector = stage.sectors[Game.live.sectorIndex];
+  const groups = buildGroups();
+  const situation = analyzeRaceSituation(groups, stage, sector);
+  app.innerHTML = `<div class="header"><div><h1>Race Director · ${esc(stage.name)}</h1><p>Sector ${Game.live.sectorIndex + 1}/${stage.sectors.length} · km ${sector.from}-${sector.to}</p></div><div class="top-actions"><button class="secondary" onclick="saveGame()">Guardar</button><button class="secondary" onclick="renderLiveBroadcastV019()">Vista TV completa</button></div></div>
+    ${renderActionBar(true)}
+    <section class="panel">${renderWeather(stage)}${renderRaceControlPanel(situation,true)}${renderBroadcastOverlayV019(groups,situation)}${renderStageProfile(stage,groups)}${renderTVLanes(groups)}${renderThreatPanel(situation,true)}${renderDirectorRecommendation(situation,true)}</section>
+    <div class="grid live-grid"><section class="panel"><h2>Decisión del sector</h2><div class="sector-focus"><strong>${esc(sector.question)}</strong><p>${esc(sector.name)} · Dificultad ${sector.difficulty} · ${sector.from}-${sector.to} km</p></div>${isTTT(stage)?renderTTTControls(true):""}${renderLiveRadar(groups)}${renderQuickControls(true)}</section><section class="panel"><h2>Radio / TV</h2><div class="radio-list">${Game.live.radio.map(r=>`<div class="radio"><span>${esc(r.time)}</span><p>${esc(r.msg)}</p></div>`).join("")}</div><h2>Stock coche</h2>${renderStock(Game.stock)}</section></div>
+    <section class="panel"><h2>Tu equipo en carrera</h2>${renderEnergyHeatmap()}<div class="live-rider-grid">${getTeamRiders(Game.selectedTeamId).map(renderLiveRiderCard).join("")}</div></section>`;
+};
+
+function renderBroadcastOverlayV019(groups, situation) {
+  const lines = buildBroadcastLinesV019(groups, situation).slice(0,3);
+  return `<div class="broadcast-overlay"><div class="broadcast-camera"><span>🎥 Cámara TV</span><strong>${esc(situation.controlLabel)}</strong><small>${esc(situation.threatLabel)}</small></div><div class="broadcast-lines">${lines.map(l=>`<p><b>${esc(l.tag)}</b> ${esc(l.text)}</p>`).join("")}</div></div>`;
+}
+
+function renderFormTabV019() {
+  ensureManagerSystems();
+  const races = SEASON_RACE_IDS.map(id => byId(RACES, id)).filter(Boolean);
+  const riders = getFullTeamRiders(Game.selectedTeamId).slice().sort((a,b)=>b.base-a.base);
+  return `<section class="panel"><h2>Planificación de forma y calendario individual</h2><p class="muted">Marca objetivos A/B/C por corredor. El entrenamiento entre carreras se ajusta al plan y al pico elegido.</p><div class="form-grid">${riders.map(r => renderFormCardV019(r, races)).join("")}</div></section>`;
+}
+
+function renderFormCardV019(r, races) {
+  const plan = Game.manager.formPlans[r.id] || { preset: defaultFormPresetForRoleV019(r), targetRaceId: Game.selectedRaceId, priority: "C" };
+  const preset = FORM_PLAN_PRESETS_V019.find(p => p.id === plan.preset) || FORM_PLAN_PRESETS_V019[0];
+  const readiness = readinessScoreV019(r, plan);
+  return `<div class="form-card ${ratingClassV019(readiness)}"><div class="badge-row"><span class="badge green">${esc(r.role)}</span><span class="badge blue">Readiness ${Math.round(readiness)}</span><span class="badge orange">Fatiga ${Math.round(r.fatigue||0)}</span></div><h3>${esc(r.name)}</h3><label>Objetivo</label><select onchange="setRiderTargetRaceV019('${r.id}',this.value)">${races.map(race=>`<option value="${race.id}" ${plan.targetRaceId===race.id?"selected":""}>${esc(race.name)}</option>`).join("")}</select><label>Plan</label><select onchange="setRiderFormPresetV019('${r.id}',this.value)">${FORM_PLAN_PRESETS_V019.map(p=>`<option value="${p.id}" ${plan.preset===p.id?"selected":""}>${esc(p.name)}</option>`).join("")}</select><label>Prioridad</label><select onchange="setRiderPriorityV019('${r.id}',this.value)">${["A","B","C"].map(x=>`<option value="${x}" ${plan.priority===x?"selected":""}>Objetivo ${x}</option>`).join("")}</select><p class="muted small">${esc(preset.description)}</p></div>`;
+}
+
+function readinessScoreV019(r, plan) {
+  const preset = FORM_PLAN_PRESETS_V019.find(p => p.id === plan.preset) || FORM_PLAN_PRESETS_V019[0];
+  const roleFit = (preset.id.includes("grand") && ["gc","co","climber"].includes(r.roleKey)) || (preset.id.includes("sprint") && r.roleKey === "sprinter") || (preset.id.includes("classic") && ["classics","puncheur"].includes(r.roleKey)) || (preset.id.includes("tt") && r.roleKey === "tt") ? 10 : 0;
+  const priority = plan.priority === "A" ? 8 : plan.priority === "B" ? 4 : 0;
+  return clamp(toNum(r.form,70) + roleFit + priority - toNum(r.fatigue,0)*0.35, 1, 100);
+}
+function setRiderTargetRaceV019(id, val) { ensureManagerSystems(); Game.manager.formPlans[id].targetRaceId = val; renderRace(); }
+function setRiderFormPresetV019(id, val) { ensureManagerSystems(); Game.manager.formPlans[id].preset = val; renderRace(); }
+function setRiderPriorityV019(id, val) { ensureManagerSystems(); Game.manager.formPlans[id].priority = val; renderRace(); }
+
+const __v019_applyTraining = applyTraining;
+applyTraining = function() {
+  ensureManagerSystems();
+  const option = TRAINING_CAMPS_V019.find(t => t.id === Game.trainingCampIdV019) || TRAINING_CAMPS_V019[0];
+  const selected = Game.lastRaceRosterIds || [];
+  const staffBonus = staffEffectV019("training") + staffEffectV019("form");
+  const riskReduction = Math.max(0, staffEffectV019("fatigue") * -1);
+  getFullTeamRiders(Game.selectedTeamId).forEach(r => {
+    const plan = Game.manager.formPlans[r.id] || { preset: defaultFormPresetForRoleV019(r), targetRaceId: Game.selectedRaceId, priority: "C" };
+    const formPreset = FORM_PLAN_PRESETS_V019.find(p => p.id === plan.preset) || FORM_PLAN_PRESETS_V019[0];
+    if (selected.includes(r.id)) {
+      r.fatigue = clamp(toNum(r.fatigue,0) - 8 + (plan.priority === "A" ? -2 : 0), 0, 100);
+      r.form = clamp(toNum(r.form,70) - 0.3, 45, 100);
+      return;
+    }
+    applyEffectsToRiderV019(r, option.effects, 1 + staffBonus/100);
+    applyEffectsToRiderV019(r, formPreset.focus, plan.priority === "A" ? 0.70 : plan.priority === "B" ? 0.48 : 0.30);
+    const injuryRoll = Math.random() * 100;
+    if (injuryRoll < Math.max(1, toNum(option.risk, 8) - riskReduction - toNum(r.stats.recovery,70)/20)) {
+      r.fatigue = clamp(toNum(r.fatigue,0) + 10, 0, 100);
+      r.form = clamp(toNum(r.form,70) - 2, 45, 100);
+      r.morale = clamp(toNum(r.morale,70) - 3, 20, 100);
+    }
+  });
+  Game.manager.budget -= toNum(option.cost, 0);
+};
+
+function applyEffectsToRiderV019(r, effects, multiplier = 1) {
+  Object.entries(effects || {}).forEach(([key, val]) => {
+    const v = val * multiplier;
+    if (key === "fatigue") r.fatigue = clamp(toNum(r.fatigue,0) + v, 0, 100);
+    else if (key === "form") r.form = clamp(toNum(r.form,70) + v, 45, 100);
+    else if (key === "morale") r.morale = clamp(toNum(r.morale,70) + v, 20, 100);
+    else if (key === "youngBonus" && r.age <= 23) r.base = clamp(toNum(r.base,70) + v, 50, 99);
+    else if (r.stats && r.stats[key] !== undefined) {
+      r.stats[key] = clamp(toNum(r.stats[key],70) + v, 42, 99);
+      if (key === "tt") r.stats.timeTrial = r.stats.tt;
+      if (key === "ttt") r.stats.teamTimeTrial = r.stats.ttt;
+    }
+  });
+}
+
+const __v019_renderBetweenRaces = renderBetweenRaces;
+renderBetweenRaces = function() {
+  ensureManagerSystems();
+  const curr = getRace();
+  const next = byId(RACES, SEASON_RACE_IDS[Game.seasonIndex + 1]);
+  const selected = Game.lastRaceRosterIds || [];
+  const non = getFullTeamRiders(Game.selectedTeamId).filter(r => !selected.includes(r.id));
+  app.innerHTML = `<div class="header"><div><h1>Entre carreras</h1><p>Terminado: ${esc(curr.name)} · Próxima: ${next ? esc(next.name) : "Final de temporada"}</p></div><div class="top-actions"><button class="secondary" onclick="saveGame()">Guardar</button><button onclick="advanceToNextRace()">Aplicar camp y seguir</button></div></div>${renderManagerHeaderV019()}<section class="panel"><h2>Training camps v0.19</h2><p class="muted">Los no convocados entrenan; los convocados recuperan. El staff y el plan individual modifican el resultado.</p><div class="training-grid">${TRAINING_CAMPS_V019.map(t=>`<button class="training-card ${Game.trainingCampIdV019===t.id?"active":""}" onclick="Game.trainingCampIdV019='${t.id}';renderBetweenRaces()"><strong>${esc(t.name)}</strong><span>${esc(t.destination)} · ${t.days} días · ${moneyV019(t.cost)}</span><small>${esc(t.description)}</small><em>${formatEffects(t.effects)} · riesgo ${t.risk}%</em></button>`).join("")}</div></section><section class="panel"><h2>No convocados que entrenarán</h2><div class="roster-grid">${non.map(r=>`<div class="status-card"><div class="badge-row"><span class="badge green">${esc(r.role)}</span><span class="badge blue">Forma ${Math.round(r.form)}</span><span class="badge orange">Fatiga ${Math.round(r.fatigue)}</span></div><h3>${esc(r.name)}</h3>${miniStats(r)}</div>`).join("")}</div></section>`;
+};
+
+function staffEffectV019(key) {
+  ensureManagerSystems();
+  return Object.keys(Game.manager.staff || {}).reduce((sum, id) => {
+    const staff = STAFF_OPTIONS_V019.find(s => s.id === id);
+    return sum + toNum(staff && staff.effect ? staff.effect[key] : 0, 0);
+  }, 0);
+}
+
+function renderStaffTabV019() {
+  ensureManagerSystems();
+  return `<div class="grid two"><section class="panel"><h2>Staff técnico</h2><p class="muted">El staff afecta entrenamiento, nutrición, scouting, Race Director, material y sponsor.</p><div class="staff-grid">${STAFF_OPTIONS_V019.map(s => renderStaffCardV019(s)).join("")}</div></section><section class="panel"><h2>Bonificaciones activas</h2>${renderStaffEffectsV019()}</section></div>`;
+}
+function renderStaffCardV019(s) { const hired = !!Game.manager.staff[s.id]; return `<div class="staff-card ${hired?"hired":""}"><div class="badge-row"><span class="badge blue">${esc(s.department)}</span><span class="badge">${moneyV019(s.cost)}</span></div><h3>${esc(s.name)}</h3><p>${esc(s.description)}</p><small>${formatEffects(s.effect)}</small><button ${hired?"disabled":""} onclick="hireStaffV019('${s.id}')">${hired?"Contratado":"Contratar"}</button></div>`; }
+function renderStaffEffectsV019() { const totals={}; Object.keys(Game.manager.staff||{}).forEach(id=>{const s=STAFF_OPTIONS_V019.find(x=>x.id===id);Object.entries(s?.effect||{}).forEach(([k,v])=>totals[k]=(totals[k]||0)+v);}); return `<div class="effect-grid">${Object.entries(totals).map(([k,v])=>`<div><strong>${esc(k)}</strong><span>${v>0?"+":""}${v}</span></div>`).join("") || `<p class="muted">Sin staff contratado.</p>`}</div>`; }
+function hireStaffV019(id) { ensureManagerSystems(); const s=STAFF_OPTIONS_V019.find(x=>x.id===id); if(!s) return; if(Game.manager.staff[id]) return toast("Ya contratado"); if(Game.manager.budget < s.cost) return toast("Presupuesto insuficiente"); Game.manager.budget -= s.cost; Game.manager.staff[id] = { hiredAt: Date.now(), name: s.name }; toast(`${s.name} contratado`); renderRace(); }
+
+function renderMarketTabV019() {
+  ensureManagerSystems();
+  if (!Game.manager.scoutingPool.length) generateMarketPoolV019();
+  return `<div class="grid two"><section class="panel"><h2>Mercado y contratos</h2><p class="muted">Los fichajes se incorporan a la plantilla, pero no cambian la convocatoria ya bloqueada de la carrera actual.</p><div class="classification-scroll compact-table"><table><thead><tr><th>Corredor</th><th>Rol</th><th>Salario</th><th>Años</th><th>Felicidad</th><th>Acción</th></tr></thead><tbody>${getFullTeamRiders(Game.selectedTeamId).sort((a,b)=>b.base-a.base).map(r=>renderContractRowV019(r)).join("")}</tbody></table></div></section><section class="panel"><h2>Scouting y fichajes</h2><div class="preset-row">${SCOUTING_REGIONS_V019.map(reg=>`<button class="secondary" onclick="scoutRegionV019('${reg.id}')">${esc(reg.name)} · ${moneyV019(reg.cost)}</button>`).join("")}</div><h3>Mercado observado</h3><div class="market-list">${Game.manager.scoutingPool.map(renderMarketRiderV019).join("")}</div><h3>Cantera</h3><div class="market-list">${Game.manager.youthPool.map(renderYouthRiderV019).join("") || `<p class="muted">Haz scouting para generar talento joven.</p>`}</div></section></div>`;
+}
+
+function renderContractRowV019(r) { const c=Game.manager.contracts[r.id] || defaultContractForRiderV019(r); return `<tr><td>${esc(r.name)}</td><td>${esc(r.role)}</td><td>${moneyV019(c.salary)}</td><td>${c.years}</td><td>${Math.round(c.happiness)}</td><td><button class="secondary table-btn" onclick="renewContractV019('${r.id}')">Renovar</button> <button class="danger table-btn" onclick="releaseRiderV019('${r.id}')">Rescindir</button></td></tr>`; }
+
+function generateMarketPoolV019() { Game.manager.scoutingPool = []; SCOUTING_REGIONS_V019.slice(0,4).forEach(reg=>{ for(let i=0;i<2;i++) Game.manager.scoutingPool.push(generateScoutedRiderV019(reg.bias, reg.name)); }); }
+function scoutRegionV019(id) { ensureManagerSystems(); const reg=SCOUTING_REGIONS_V019.find(r=>r.id===id); if(!reg) return; if(Game.manager.budget < reg.cost) return toast("Presupuesto insuficiente"); Game.manager.budget -= reg.cost; for(let i=0;i<3;i++) { const rider=generateScoutedRiderV019(reg.bias, reg.name); if(rider.age <= 22) Game.manager.youthPool.push(rider); else Game.manager.scoutingPool.push(rider); } toast(`Scouting completado: ${reg.name}`); renderRace(); }
+function generateScoutedRiderV019(roleKey, region) { const role=ROLE_TEMPLATES[roleKey] ? roleKey : "rouleur"; const age=Math.round(rnd(18,29)); const base=clamp(Math.round(66+rnd(0,16)+(age<22?rnd(0,5):0)+staffEffectV019("scouting")*0.25),58,86); const id=`market_${Date.now()}_${Math.round(Math.random()*1e7)}`; const nationality = region.split(" /")[0]; const name = generateNameV019(nationality, role, age); const template=ROLE_TEMPLATES[role]||ROLE_TEMPLATES.rouleur; const stats={}; Object.keys(template.stats).forEach(k=>stats[k]=clamp(Math.round(template.stats[k]+(base-74)*0.55+rnd(-5,5)),45,92)); stats.timeTrial=stats.tt;stats.teamTimeTrial=stats.ttt; return { id,name,nationality,age,teamId:"market",roleKey:role,role:template.label,base,stats,form:clamp(base+rnd(-4,4),55,90),morale:70,weightKg:Math.round(role==="climber"?rnd(58,66):role==="sprinter"?rnd(72,82):rnd(64,76)),fatigue:0,totalTime:0,points:0,mountainPoints:0,uciPoints:0,stageWins:0,seasonStageWins:0,abandoned:false,askingSalary:Math.round((90000+base*base*75)/1000)*1000,transferCost:Math.round((250000+base*base*160)/1000)*1000,potential:clamp(base+Math.round(rnd(4,14)),60,96)}; }
+function generateNameV019(region, role, age) { const first=["Alex","Lucas","Milan","Enzo","Jon","Marco","Leo","Nico","Iker","Tom","Mateo","Adrien","Pablo","Noah","Daniel"]; const last=["Martin","García","De Smet","Van der Linden","Bianchi","Moreau","Rojas","Nielsen","Verhoeven","Santos","López","Keller","Romero","Costa","Berg"]; return `${first[Math.floor(rnd(0,first.length))]} ${last[Math.floor(rnd(0,last.length))]}`; }
+function renderMarketRiderV019(r) { return `<div class="market-card"><div class="badge-row"><span class="badge green">${esc(r.role)}</span><span class="badge blue">Base ${r.base}</span><span class="badge orange">Pot ${r.potential}</span></div><h3>${esc(r.name)}</h3><p>${esc(r.nationality)} · ${r.age} años · ${moneyV019(r.transferCost)} · salario ${moneyV019(r.askingSalary)}</p>${miniStats(r)}<button onclick="signMarketRiderV019('${r.id}','scoutingPool')">Fichar</button></div>`; }
+function renderYouthRiderV019(r) { return `<div class="market-card youth"><div class="badge-row"><span class="badge green">Cantera</span><span class="badge blue">Base ${r.base}</span><span class="badge orange">Pot ${r.potential}</span></div><h3>${esc(r.name)}</h3><p>${esc(r.nationality)} · ${r.age} años</p>${miniStats(r)}<button onclick="signMarketRiderV019('${r.id}','youthPool')">Promocionar</button></div>`; }
+function signMarketRiderV019(id, poolName) { ensureManagerSystems(); const pool=Game.manager[poolName]||[]; const idx=pool.findIndex(r=>r.id===id); if(idx<0)return; const rider=pool[idx]; const cost=poolName==="youthPool"?Math.round(rider.transferCost*0.15):rider.transferCost; if(Game.manager.budget < cost) return toast("Presupuesto insuficiente"); Game.manager.budget -= cost; pool.splice(idx,1); rider.id = `${Game.selectedTeamId}_${Date.now()}_${Math.round(Math.random()*9999)}`; rider.teamId = Game.selectedTeamId; rider.totalTime=0;rider.points=0;rider.mountainPoints=0;rider.uciPoints=0;rider.stageWins=0;rider.seasonStageWins=0;rider.abandoned=false; Game.riders.push(rider); Game.manager.contracts[rider.id]={salary:rider.askingSalary,years:3,rolePromise:rider.role,happiness:72,marketValue:rider.transferCost}; Game.manager.formPlans[rider.id]={preset:defaultFormPresetForRoleV019(rider),targetRaceId:Game.selectedRaceId,priority:"C"}; Game.manager.transferHistory.unshift({name:rider.name,cost,date:new Date().toLocaleDateString()}); toast(`${rider.name} fichado`); renderRace(); }
+function renewContractV019(id) { const r=getRider(id); const c=Game.manager.contracts[id]||defaultContractForRiderV019(r); const cost=Math.round(c.salary*0.25); if(Game.manager.budget<cost)return toast("Presupuesto insuficiente"); Game.manager.budget-=cost; c.years=clamp(c.years+1,1,5); c.happiness=clamp(c.happiness+10,1,100); c.salary=Math.round(c.salary*1.08/1000)*1000; Game.manager.contracts[id]=c; renderRace(); }
+function releaseRiderV019(id) { if((Game.lastRaceRosterIds||[]).includes(id)&&Game.rosterLocked&&!Game.finished) return toast("No puedes rescindir a un corredor convocado en carrera"); const r=getRider(id); const c=Game.manager.contracts[id]||defaultContractForRiderV019(r); const penalty=Math.round(c.salary*0.55*c.years); if(Game.manager.budget<penalty)return toast("Presupuesto insuficiente para indemnización"); Game.manager.budget-=penalty; Game.riders=Game.riders.filter(x=>x.id!==id); delete Game.manager.contracts[id]; delete Game.manager.formPlans[id]; toast(`${r.name} rescindido`); renderRace(); }
+
+const __v019_finishRace = finishRace;
+finishRace = function() {
+  const race = getRace();
+  const gc = getGC();
+  const scale = race.type === "grand_tour" ? CLASSIFICATION_RULES.uci.grandTourFinalGC : race.type === "stage_race" ? CLASSIFICATION_RULES.uci.stageRaceGC : CLASSIFICATION_RULES.uci.oneDay;
+  gc.forEach((r,i)=>r.uciPoints += scale[i] || 0);
+  Game.raceHistory.push({ raceId: race.id, raceName: race.name, winnerId: gc[0]?.id, winnerName: gc[0]?.name, userBestId: getTeamRiders(Game.selectedTeamId,true).sort((a,b)=>a.totalTime-b.totalTime)[0]?.id, stageWins: getTeamRiders(Game.selectedTeamId,true).reduce((s,r)=>s+r.stageWins,0) });
+  evaluateRaceObjectivesV019(race);
+  Game.finished = true;
+  saveGame(false);
+  renderRaceFinal();
+};
+
+const __v019_renderRaceFinal = renderRaceFinal;
+renderRaceFinal = function() {
+  const race = getRace();
+  const gc = getGC();
+  const objResult = Game.manager?.objectiveResults?.find(x => x.raceId === race.id);
+  app.innerHTML = `<div class="header"><div><h1>Final · ${esc(race.name)}</h1><p>Clasificación final + objetivos de sponsor</p></div><div class="top-actions">${Game.mode==="season"?`<button onclick="goToBetweenRaces()">Continuar temporada</button>`:`<button onclick="init()">Nueva partida</button>`}</div></div>${renderManagerHeaderV019()}${renderLeaderStrip()}<section class="panel"><h2>Podio</h2><div class="podium">${gc.slice(0,3).map((r,i)=>`<div class="podium-card ${i===0?race.jerseyClass:""}"><span>#${i+1}</span><h3>${esc(r.name)}</h3><p>${esc(getTeam(r.teamId).name)} · ${seconds(r.totalTime)}</p></div>`).join("")}</div></section>${objResult?`<section class="panel"><h2>Evaluación sponsor</h2><div class="objective-grid">${objResult.results.map(r=>`<div class="objective-card ${r.achieved?"done":"failed"}"><h3>${esc(r.label)}</h3><p>${r.achieved?"Cumplido":"No cumplido"} · ${r.progress}%</p></div>`).join("")}</div></section>`:""}<section class="panel"><h2>General final</h2>${renderGeneralTable()}</section>`;
+};
+
+function formatEffects(e){return Object.entries(e||{}).map(([k,v])=>`${k} ${v>0?"+":""}${Math.round(v*10)/10}`).join(" · ");}
+
+function generateEnhancedProfilePointsV019(stage) {
+  const d = Math.max(1, Math.round(toNum(stage.distance, 100)));
+  const gradients = Array(d + 1).fill(0);
+  for (let km = 0; km <= d; km++) {
+    let base = 0;
+    if (stage.type === "flat") base = Math.sin(km/14)*0.22 + Math.sin(km/37)*0.18;
+    else if (stage.type === "hilly") base = Math.sin(km/8)*0.85 + Math.sin(km/23)*0.45;
+    else if (stage.type === "mountain") base = Math.sin(km/10)*0.55 + Math.sin(km/31)*0.35;
+    else if (stage.type === "cobbles") base = Math.sin(km/7)*0.5 + Math.sin(km/17)*0.35;
+    else base = Math.sin(km/18)*0.24;
+    gradients[km] += base + Math.sin((km + stage.number) * 1.71) * 0.18;
+  }
+  (stage.climbs || []).forEach((c, ci) => {
+    const summit = clamp(Math.round(c.km), 0, d);
+    const start = clamp(Math.round(c.km - c.length), 0, d);
+    const length = Math.max(1, summit - start);
+    for (let km = start; km <= summit; km++) {
+      const p = (km - start) / length;
+      const rampWave = 0.78 + 0.18 * Math.sin(p * Math.PI * 2.6 + ci) + 0.13 * Math.sin(p * Math.PI * 8.5) + 0.07 * Math.sin(km * 2.17);
+      const intro = p < 0.10 ? 0.62 + p * 3.8 : 1;
+      const finale = p > 0.82 ? 1.04 + (p - 0.82) * 0.85 : 1;
+      gradients[km] += Math.max(2.0, toNum(c.gradient, 6) * rampWave * intro * finale);
+    }
+    const descentLen = Math.max(4, Math.round(length * 0.92));
+    for (let km = summit + 1; km <= Math.min(d, summit + descentLen); km++) {
+      const p = (km - summit) / descentLen;
+      gradients[km] -= Math.max(1.0, toNum(c.gradient, 6) * (0.42 + 0.20*Math.sin(p*Math.PI*3.2) + 0.05*Math.sin(km*1.9)));
+    }
+  });
+  (stage.walls || []).forEach((ww, wi) => {
+    const summit = clamp(Math.round(ww.km), 0, d);
+    const start = clamp(Math.round(ww.km - ww.length), 0, d);
+    for (let km = start; km <= summit; km++) gradients[km] += toNum(ww.gradient, 8) * (1.0 + 0.10*Math.sin(km*3.1+wi));
+  });
+  let alt = stage.type === "mountain" ? 240 : stage.type === "hilly" ? 160 : 70;
+  const pts = [];
+  for (let km=0; km<=d; km++) { alt = Math.max(5, alt + gradients[km] * 10); pts.push({km, alt: Math.round(alt), gradient: Math.round(gradients[km]*10)/10}); }
+  const desired = toNum(stage.elevation, 800);
+  let gain = 0; for(let i=1;i<pts.length;i++) gain += Math.max(0, pts[i].alt - pts[i-1].alt);
+  if (gain > 1) {
+    const scale = clamp(desired/gain, 0.55, 1.9);
+    pts[0].alt = Math.round(pts[0].alt);
+    for(let i=1;i<pts.length;i++) { const delta = (pts[i].alt - pts[i-1].alt) * (pts[i].alt > pts[i-1].alt ? scale : clamp(scale*0.75,0.55,1.25)); pts[i].alt = Math.max(5, Math.round(pts[i-1].alt + delta)); }
+  }
+  return pts;
+}
+
+renderStageProfile = function(stage, groups = []) {
+  const w = 1200, h = 335, pad = 42;
+  const pts = generateEnhancedProfilePointsV019(stage);
+  const maxAlt = Math.max(...pts.map(p=>p.alt), 1000), minAlt = Math.min(...pts.map(p=>p.alt), 0);
+  const xOf = km => pad + (km / stage.distance) * (w - pad * 2);
+  const yOf = alt => h - 58 - ((alt - minAlt) / Math.max(1, maxAlt - minAlt)) * (h - 112);
+  const path = pts.map((p,i)=>`${i?"L":"M"}${xOf(p.km).toFixed(1)},${yOf(p.alt).toFixed(1)}`).join(" ");
+  const grid = Array.from({length: 6}, (_,i)=>{ const y=50+i*((h-110)/5); const alt=Math.round(maxAlt-(i/5)*(maxAlt-minAlt)); return `<line x1="${pad}" y1="${y}" x2="${w-pad}" y2="${y}" class="profile-gridline"/><text x="8" y="${y+4}" class="svg-label alt-label">${alt}m</text>`; }).join("") + Array.from({length: Math.floor(stage.distance/25)+1},(_,i)=>{ const km=i*25; const x=xOf(km); return `<line x1="${x}" y1="42" x2="${x}" y2="${h-45}" class="profile-kmline"/><text x="${x+2}" y="${h-12}" class="svg-label alt-label">${km}</text>`; }).join("");
+  const gradientBars = pts.slice(1).map(p => { const prev=pts[p.km-1] || pts[0]; const x1=xOf(prev.km); const x2=xOf(p.km); const cls=p.gradient>7?"g-hard":p.gradient>4?"g-med":p.gradient>1?"g-up":p.gradient<-2?"g-down":"g-flat"; return `<rect x="${x1.toFixed(1)}" y="${h-42}" width="${Math.max(1,x2-x1).toFixed(1)}" height="12" class="gradient-bar ${cls}"></rect>`; }).join("");
+  const climbBands = (stage.climbs || []).map(c => { const start=Math.max(0,c.km-c.length); return `<rect x="${xOf(start).toFixed(1)}" y="44" width="${Math.max(3,xOf(c.km)-xOf(start)).toFixed(1)}" height="${h-102}" class="climb-band ${c.category==='HC'||c.category==='1'?'hard':''}"></rect>`; }).join("");
+  const climbs = (stage.climbs || []).map(c => { const start=Math.max(0,c.km-c.length); const xs=xOf(start), x=xOf(c.km); const topPt=pts[Math.min(pts.length-1, Math.round(c.km))]; return `<g><line x1="${xs}" y1="82" x2="${xs}" y2="${h-58}" class="climb-start-line"/><line x1="${x}" y1="62" x2="${x}" y2="${h-58}" class="climb-line"/><circle cx="${x}" cy="${yOf(topPt.alt)}" r="7" class="climb-dot"/><text x="${xs+5}" y="92" class="svg-label small-label">inicio</text><text x="${x+9}" y="${Math.max(62,yOf(topPt.alt)-8)}" class="svg-label">${esc(c.category)} ${esc(c.name)} · ${c.length} km · ${c.gradient}%</text></g>`; }).join("");
+  const pav = (stage.paves||[]).map(p=>`<text x="${xOf(p.from)}" y="34" class="svg-icon">🪨 ${esc(p.name)}</text>`).join("");
+  const groupMarks = (groups||[]).map((g,i)=>{ const x=xOf(clamp(g.km,0,stage.distance)), y=105+i*24; return `<g><circle cx="${x}" cy="${y}" r="9" class="group-dot ${g.cls}"/><text x="${x+13}" y="${y+4}" class="svg-label">${esc(g.label)} · ${g.count} · ${g.speed.toFixed(1)} km/h · ${g.wkg.toFixed(1)} W/kg</text></g>`; }).join("");
+  return `<div class="stage-profile-card pro-profile"><div class="stage-title-row"><div><h2>${esc(stage.name)}</h2><p>${esc(stage.label)} · ${stage.distance} km · ${stage.elevation} m+ · perfil gráfico 1 km + microgradientes</p></div><div class="badge-row"><span class="badge">${stage.type.toUpperCase()}</span><span class="badge orange">Dif. ${stage.difficulty}</span><span class="badge blue">${pts.length} puntos</span></div></div><div class="profile-svg"><svg viewBox="0 0 ${w} ${h}">${grid}${climbBands}<path d="${path} L${w-pad},${h-58} L${pad},${h-58} Z" class="profile-area"></path><path d="${path}" class="profile-line"></path>${gradientBars}${climbs}${pav}${groupMarks}</svg></div><div class="legend"><span><b class="gradient-bar g-flat"></b>Llano</span><span><b class="gradient-bar g-up"></b>Subida suave</span><span><b class="gradient-bar g-med"></b>Subida</span><span><b class="gradient-bar g-hard"></b>Rampa dura</span><span><b class="gradient-bar g-down"></b>Descenso</span></div><div class="sector-grid">${stage.sectors.map((s,i)=>`<div class="sector-card"><strong>${i+1}. ${esc(s.name)}</strong><span>km ${s.from}-${s.to}</span><small>${esc(s.question)}</small></div>`).join("")}</div></div>`;
+};
+
+init();
+
+
+function renderLiveBroadcastV019() {
+  if (!Game.live) return renderRace();
+  const stage = getStage();
+  const sector = stage.sectors[Game.live.sectorIndex];
+  const groups = buildGroups();
+  const situation = analyzeRaceSituation(groups, stage, sector);
+  app.innerHTML = `<div class="header"><div><h1>Vista TV · ${esc(stage.name)}</h1><p>Sector ${Game.live.sectorIndex + 1}/${stage.sectors.length} · km ${sector.from}-${sector.to}</p></div><div class="top-actions"><button onclick="renderLive()">Volver a Race Director</button><button class="secondary" onclick="simulateSector()">Simular sector</button></div></div><section class="panel tv-screen-panel">${renderWeather(stage)}${renderBroadcastHeroV019(stage, groups, situation)}${renderBroadcastTickerV019(groups, situation)}${renderStageProfile(stage, groups)}${renderTVLanes(groups)}${renderThreatPanel(situation, true)}${renderDirectorRecommendation(situation, true)}${renderBroadcastScriptV019(groups, situation)}</section>`;
+}

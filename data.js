@@ -1,10 +1,10 @@
 /* ============================================================
    CYCLING MANAGER TOUR
    data.js
-   v0.17 Pro Peloton + Season Calendar + TT/TTT + Training Camps
+   v0.19 Pro Peloton + Season Calendar + TT/TTT + Training Camps
    ============================================================ */
 
-const SAVE_VERSION = "v0.17";
+const SAVE_VERSION = "v0.19";
 const ROSTER_SIZE = 8;
 const DEFAULT_RACE_ID = "santos";
 
@@ -556,3 +556,67 @@ const RACE_BLUEPRINTS = [
 
 const RACES = RACE_BLUEPRINTS.map(bp => ({...bp, stages: makeStagesForRace(bp)})).sort((a,b) => a.date.localeCompare(b.date));
 const SEASON_RACE_IDS = RACES.map(r => r.id);
+
+
+/* ============================================================
+   v0.19 MANAGER SYSTEMS · objetivos, mercado, forma y broadcast
+   Añadido sin romper datos v0.19.
+   ============================================================ */
+
+const MANAGER_OBJECTIVE_CATALOG_V019 = {
+  gc_win: { label: "Ganar la general", category: "GC", difficulty: 95, reward: { budget: 1600000, prestige: 12, confidence: 10 } },
+  gc_top_3: { label: "Top 3 en la general", category: "GC", difficulty: 84, reward: { budget: 950000, prestige: 8, confidence: 7 } },
+  gc_top_5: { label: "Top 5 en la general", category: "GC", difficulty: 72, reward: { budget: 650000, prestige: 6, confidence: 5 } },
+  gc_top_10: { label: "Top 10 en la general", category: "GC", difficulty: 55, reward: { budget: 350000, prestige: 4, confidence: 4 } },
+  stage_win: { label: "Ganar una etapa", category: "Etapas", difficulty: 62, reward: { budget: 500000, prestige: 5, confidence: 5 } },
+  stage_wins_2: { label: "Ganar 2 etapas", category: "Etapas", difficulty: 78, reward: { budget: 850000, prestige: 7, confidence: 6 } },
+  points_top_3: { label: "Top 3 clasificación por puntos", category: "Regularidad", difficulty: 62, reward: { budget: 360000, prestige: 4, confidence: 4 } },
+  mountain_top_3: { label: "Top 3 montaña", category: "Montaña", difficulty: 60, reward: { budget: 360000, prestige: 4, confidence: 4 } },
+  youth_top_3: { label: "Top 3 joven", category: "Desarrollo", difficulty: 55, reward: { budget: 300000, prestige: 4, confidence: 4 } },
+  teams_top_3: { label: "Top 3 por equipos", category: "Bloque", difficulty: 62, reward: { budget: 450000, prestige: 4, confidence: 5 } },
+  monument_top_5: { label: "Top 5 en clásica/monumento", category: "Clásicas", difficulty: 70, reward: { budget: 450000, prestige: 5, confidence: 4 } },
+  aggressive_breakaway: { label: "Presencia en fugas decisivas", category: "Combatividad", difficulty: 42, reward: { budget: 180000, prestige: 2, confidence: 3 } }
+};
+
+const STAFF_OPTIONS_V019 = [
+  { id: "sport_director", name: "Director deportivo élite", department: "Dirección", cost: 850000, effect: { tactics: 8, aiRecommendation: 10, sponsor: 2 }, description: "Mejora recomendaciones, lectura de carrera y cumplimiento de objetivos." },
+  { id: "performance_coach", name: "Entrenador de rendimiento", department: "Preparación", cost: 720000, effect: { form: 6, fatigue: -4, training: 8 }, description: "Mejor planificación de picos de forma y menor fatiga acumulada." },
+  { id: "altitude_specialist", name: "Especialista en altura", department: "Preparación", cost: 420000, effect: { mountain: 5, recovery: 3 }, description: "Potencia training camps en altura y preparación de grandes vueltas." },
+  { id: "nutritionist", name: "Nutricionista WorldTour", department: "Salud", cost: 380000, effect: { nutrition: 10, heat: 5 }, description: "Optimiza alimentación automática y reduce riesgo de pájara/GI." },
+  { id: "head_mechanic", name: "Jefe de mecánicos", department: "Material", cost: 460000, effect: { reliability: 9, cobbles: 4, ttt: 3 }, description: "Reduce averías y mejora rendimiento del material en pavé/cronómetro." },
+  { id: "scout_latam", name: "Ojeador Latinoamérica", department: "Scouting", cost: 240000, effect: { scouting: 7, climbers: 5 }, description: "Mejora aparición de escaladores jóvenes." },
+  { id: "scout_benelux", name: "Ojeador Benelux", department: "Scouting", cost: 240000, effect: { scouting: 7, classics: 5 }, description: "Mejora aparición de clasicómanos y corredores de pavé." },
+  { id: "data_analyst", name: "Analista de datos", department: "I+D", cost: 300000, effect: { pacing: 6, ttt: 5, scouting: 3 }, description: "Mejora pacing de CRI/CRE y predicciones del Race Director." }
+];
+
+const FORM_PLAN_PRESETS_V019 = [
+  { id: "grand_tour_peak", name: "Pico Gran Vuelta", description: "Base + altura + tapering para llegar al Tour/Giro/Vuelta con forma alta.", focus: { stamina: 2, recovery: 2, mountain: 1, form: 4, fatigue: 6 } },
+  { id: "classics_peak", name: "Pico Clásicas", description: "Explosividad, colocación, pavé y punch.", focus: { cobbles: 2, hills: 2, acceleration: 1, positioning: 2, form: 3, fatigue: 5 } },
+  { id: "sprint_peak", name: "Pico Sprint", description: "Velocidad, tren de lanzamiento y colocación final.", focus: { sprint: 2, acceleration: 2, positioning: 2, flat: 1, form: 3, fatigue: 4 } },
+  { id: "tt_peak", name: "Pico Crono", description: "Pacing, posición aero, umbral y CRE.", focus: { tt: 2, ttt: 2, flat: 1, stamina: 1, form: 3, fatigue: 4 } },
+  { id: "development", name: "Desarrollo joven", description: "Progresión lenta con baja presión competitiva.", focus: { stamina: 1, hills: 1, recovery: 1, form: 2, youngBonus: 1, fatigue: 3 } },
+  { id: "maintenance", name: "Mantenimiento", description: "Conservar forma y reducir fatiga durante calendario cargado.", focus: { form: 1, fatigue: -8, morale: 2 } }
+];
+
+const TRAINING_CAMPS_V019 = [
+  { id: "teide_gc_supercamp", name: "Supercamp GC Teide", destination: "Tenerife · 2.150 m", days: 18, cost: 180000, target: "GC / escaladores", effects: { mountain: 3, stamina: 3, recovery: 2, form: 5, fatigue: 12 }, risk: 18, description: "Bloque premium para líderes de gran vuelta. Mucha carga, pico de forma alto." },
+  { id: "sierra_altitude_threshold", name: "Sierra Nevada umbral", destination: "Granada · 2.300 m", days: 14, cost: 130000, target: "GC / crono", effects: { mountain: 2, tt: 2, stamina: 2, form: 4, fatigue: 9 }, risk: 14, description: "Altura + test de umbral. Muy útil antes de vueltas con CRI." },
+  { id: "andorra_explosive_climbs", name: "Andorra puertos explosivos", destination: "Andorra", days: 11, cost: 100000, target: "Escaladores / puncheurs", effects: { mountain: 2, acceleration: 2, downhill: 1, form: 4, fatigue: 8 }, risk: 13, description: "Subidas duras, cambios de ritmo y bajadas técnicas." },
+  { id: "girona_stage_race_base", name: "Base Girona vuelta por etapas", destination: "Girona", days: 10, cost: 70000, target: "Bloque completo", effects: { stamina: 2, recovery: 2, flat: 1, hills: 1, form: 3, fatigue: 6 }, risk: 8, description: "Base aeróbica, carreteras variadas y bajo riesgo." },
+  { id: "flanders_roubaix_camp", name: "Camp Flandes/Roubaix", destination: "Oudenaarde + Arenberg", days: 8, cost: 90000, target: "Clasicómanos", effects: { cobbles: 3, positioning: 3, hills: 1, stamina: 1, form: 3, fatigue: 7 }, risk: 16, description: "Pavé real, colocación y tolerancia a vibraciones." },
+  { id: "mallorca_sprint_leadout", name: "Mallorca sprint train", destination: "Mallorca", days: 7, cost: 80000, target: "Sprinters / lanzadores", effects: { sprint: 3, acceleration: 2, positioning: 2, flat: 1, form: 3, fatigue: 6 }, risk: 11, description: "Automatismos de tren y lanzamientos a alta velocidad." },
+  { id: "velodrome_aero_lab", name: "Aero Lab + velódromo", destination: "Velódromo / túnel aero", days: 6, cost: 160000, target: "Croners / CRE", effects: { tt: 3, ttt: 2, flat: 1, positioning: 1, form: 3, fatigue: 5 }, risk: 7, description: "Pacing, posición, material y rotaciones CRE." },
+  { id: "almeria_heat_adaptation", name: "Aclimatación calor Almería", destination: "Almería", days: 9, cost: 75000, target: "Grandes vueltas calurosas", effects: { stamina: 1, recovery: 1, heatResistance: 3, form: 3, fatigue: 6 }, risk: 10, description: "Mejora rendimiento con calor, hidratación y tolerancia térmica." },
+  { id: "dolomites_descending", name: "Dolomitas técnica bajada", destination: "Dolomitas", days: 6, cost: 85000, target: "Bajadores / GC", effects: { downhill: 3, positioning: 1, mountain: 1, form: 2, fatigue: 5 }, risk: 18, description: "Técnica, mojado, curvas rápidas y gestión de riesgo." },
+  { id: "recovery_medical_block", name: "Bloque médico recuperación", destination: "Centro rendimiento", days: 5, cost: 60000, target: "Corredores fatigados", effects: { fatigue: -24, recovery: 1, morale: 2, form: 0 }, risk: 2, description: "Fisio, sueño, nutrición, descarga y prevención de enfermedad." }
+];
+
+const SCOUTING_REGIONS_V019 = [
+  { id: "colombia", name: "Colombia / Ecuador", bias: "climber", cost: 120000 },
+  { id: "benelux", name: "Bélgica / Países Bajos", bias: "classics", cost: 110000 },
+  { id: "spain", name: "España / Portugal", bias: "puncheur", cost: 95000 },
+  { id: "france", name: "Francia", bias: "rouleur", cost: 105000 },
+  { id: "italy", name: "Italia", bias: "climber", cost: 105000 },
+  { id: "nordic", name: "Dinamarca / Noruega", bias: "tt", cost: 105000 },
+  { id: "australia", name: "Australia / NZ", bias: "sprinter", cost: 115000 }
+];
