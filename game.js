@@ -1,11 +1,11 @@
 /* ============================================================
    CYCLING MANAGER TOUR
    game.js
-   v0.14 stable release
+   v0.15 realism patch
    ============================================================ */
 
 const app = document.getElementById("app");
-const SAVE_KEY = "cyclingManager_v014";
+const SAVE_KEY = "cyclingManager_v015";
 
 const Game = {
   version: SAVE_VERSION,
@@ -144,7 +144,7 @@ function saveGame(show = true) {
 }
 function loadGame() {
   const raw = localStorage.getItem(SAVE_KEY);
-  if (!raw) return toast("No hay guardado v0.14. Empieza partida nueva.");
+  if (!raw) return toast("No hay guardado v0.15. Empieza partida nueva.");
   try {
     const obj = JSON.parse(raw);
     if (obj.version !== SAVE_VERSION) {
@@ -194,7 +194,7 @@ function render() {
 function renderHome() {
   app.innerHTML = `
     <div class="header">
-      <div><h1>Cycling Manager Tour</h1><p>v0.14 · pelotón 2026 · calendario real ordenado · CRI/CRE corregidas · nutrición/clima/fugas realistas</p></div>
+      <div><h1>Cycling Manager Tour</h1><p>v0.15 · simulación realista · perfiles 1 km con microgradientes · gaps estabilizados</p></div>
       <div class="top-actions"><button class="secondary" onclick="loadGame()">Cargar</button><button class="danger" onclick="clearSave()">Borrar guardado</button></div>
     </div>
     <section class="panel"><h2>Modo de juego</h2><div class="mode-grid">
@@ -317,10 +317,11 @@ function renderStageProfile(stage, groups = []) {
   const maxAlt=Math.max(...pts.map(p=>p.alt),1000), minAlt=Math.min(...pts.map(p=>p.alt),0);
   const path=pts.map((p,i)=>{const x=pad+(p.km/stage.distance)*(w-pad*2);const y=h-48-((p.alt-minAlt)/Math.max(1,maxAlt-minAlt))*(h-92);return `${i?"L":"M"}${x.toFixed(1)},${y.toFixed(1)}`;}).join(" ");
   const terrain=stage.sectors.map(s=>{const x=pad+(s.from/stage.distance)*(w-pad*2);const sw=Math.max(2,((s.to-s.from)/stage.distance)*(w-pad*2));return `<rect x="${x}" y="${h-30}" width="${sw}" height="13" class="terrain ${s.type}"></rect>`;}).join("");
-  const climbs=stage.climbs.map(c=>{const x=pad+(c.km/stage.distance)*(w-pad*2);return `<g><line x1="${x}" y1="70" x2="${x}" y2="${h-48}" class="climb-line"/><circle cx="${x}" cy="64" r="7" class="climb-dot"/><text x="${x+9}" y="68" class="svg-label">${esc(c.category)} ${esc(c.name)} · ${c.length}km ${c.gradient}%</text></g>`;}).join("");
+  const climbBands=stage.climbs.map(c=>{const start=Math.max(0,c.km-c.length);const x1=pad+(start/stage.distance)*(w-pad*2);const x2=pad+(c.km/stage.distance)*(w-pad*2);return `<rect x="${x1.toFixed(1)}" y="42" width="${Math.max(3,x2-x1).toFixed(1)}" height="${h-90}" class="climb-band ${c.category==='HC'||c.category==='1'?'hard':''}"></rect>`;}).join("");
+  const climbs=stage.climbs.map(c=>{const start=Math.max(0,c.km-c.length);const x0=pad+(start/stage.distance)*(w-pad*2);const x=pad+(c.km/stage.distance)*(w-pad*2);return `<g><line x1="${x0}" y1="82" x2="${x0}" y2="${h-48}" class="climb-start-line"/><line x1="${x}" y1="70" x2="${x}" y2="${h-48}" class="climb-line"/><circle cx="${x}" cy="64" r="7" class="climb-dot"/><text x="${x0+6}" y="92" class="svg-label small-label">inicio ${esc(c.name)}</text><text x="${x+9}" y="68" class="svg-label">${esc(c.category)} ${esc(c.name)} · ${c.length} km · ${c.gradient}%</text></g>`;}).join("");
   const pav=stage.paves.map(p=>{const x=pad+(p.from/stage.distance)*(w-pad*2);return `<text x="${x}" y="32" class="svg-icon">🪨 ${esc(p.name)}</text>`;}).join("");
   const gmarks=groups.map((g,i)=>{const x=pad+(g.km/stage.distance)*(w-pad*2);const y=96+i*23;return `<g><circle cx="${x}" cy="${y}" r="9" class="group-dot ${g.cls}"/><text x="${x+13}" y="${y+4}" class="svg-label">${esc(g.label)} · ${g.count} · ${g.speed.toFixed(1)} km/h · ${g.wkg.toFixed(1)} W/kg</text></g>`;}).join("");
-  return `<div class="stage-profile-card"><div class="stage-title-row"><div><h2>${esc(stage.name)}</h2><p>${esc(stage.label)} · ${stage.distance} km · ${stage.elevation} m+ · perfil ${pts.length} puntos / 1 por km</p></div><div class="badge-row"><span class="badge">${stage.type.toUpperCase()}</span><span class="badge orange">Dif. ${stage.difficulty}</span></div></div><div class="profile-svg"><svg viewBox="0 0 ${w} ${h}"><path d="${path} L${w-pad},${h-48} L${pad},${h-48} Z" class="profile-area"></path><path d="${path}" class="profile-line"></path>${terrain}${climbs}${pav}${gmarks}</svg></div><div class="legend"><span><b class="terrain flat"></b>Llano</span><span><b class="terrain hilly"></b>Media montaña</span><span><b class="terrain climb"></b>Subida</span><span><b class="terrain cobbles"></b>Pavé</span><span><b class="terrain wall"></b>Muro</span><span><b class="terrain final"></b>Final</span><span><b class="terrain tt"></b>Crono</span></div><div class="sector-grid">${stage.sectors.map((s,i)=>`<div class="sector-card"><strong>${i+1}. ${esc(s.name)}</strong><span>km ${s.from}-${s.to}</span><small>${esc(s.question)}</small></div>`).join("")}</div></div>`;
+  return `<div class="stage-profile-card"><div class="stage-title-row"><div><h2>${esc(stage.name)}</h2><p>${esc(stage.label)} · ${stage.distance} km · ${stage.elevation} m+ · perfil ${pts.length} puntos / 1 por km con microgradientes</p></div><div class="badge-row"><span class="badge">${stage.type.toUpperCase()}</span><span class="badge orange">Dif. ${stage.difficulty}</span></div></div><div class="profile-svg"><svg viewBox="0 0 ${w} ${h}">${climbBands}<path d="${path} L${w-pad},${h-48} L${pad},${h-48} Z" class="profile-area"></path><path d="${path}" class="profile-line"></path>${terrain}${climbs}${pav}${gmarks}</svg></div><div class="legend"><span><b class="terrain flat"></b>Llano</span><span><b class="terrain hilly"></b>Media montaña</span><span><b class="terrain climb"></b>Subida</span><span><b class="terrain cobbles"></b>Pavé</span><span><b class="terrain wall"></b>Muro</span><span><b class="terrain final"></b>Final</span><span><b class="terrain tt"></b>Crono</span></div><div class="sector-grid">${stage.sectors.map((s,i)=>`<div class="sector-card"><strong>${i+1}. ${esc(s.name)}</strong><span>km ${s.from}-${s.to}</span><small>${esc(s.question)}</small></div>`).join("")}</div></div>`;
 }
 function renderTacticalAdvice(stage) { let level="low", icon="📡", title="Carrera controlable", text="Controla sin vaciar gregarios."; if (stage.type==="mountain") {level="high"; icon="⛰️"; title="Montaña realista"; text="La montaña pesa mucho: sprinters penalizados, GC/escaladores dominan.";} if(stage.type==="tt"){level="medium";icon="⏱";title="CRI";text="Salida individual cada 2 minutos, sin rebufo ni grupos.";} if(stage.type==="ttt"){level="medium";icon="🚴‍♂️";title="CRE";text="Equipos salen cada 5 minutos. Tiempo por 4º corredor. Ajusta relevos.";} if(stage.weather.crosswind>50){level="high"; icon="💨"; title="Abanicos posibles"; text="Sube colocación y protege al líder.";} return `<div class="advice ${level}"><span>${icon}</span><div><strong>${title}</strong><p>${text}</p></div></div>`; }
 function renderVisualLanesPreview(){ return `<div class="tv-lanes">${["Fuga","Ataque","Grupo favoritos","Pelotón","Grupo 2","Cortados"].map((x,i)=>`<div class="lane"><strong>${x}</strong><span>${i===3?"Tus corredores empezarán normalmente aquí.":"—"}</span></div>`).join("")}</div>`; }
@@ -403,6 +404,132 @@ function incidentRisk(r,stage,sector,eff){return clamp((sector.type==="cobbles"?
 function energyCost(sector,order,eff,r){const base=sector.type==="flat"?11:sector.type==="climb"?28:sector.type==="cobbles"?25:sector.type==="tt"?27:sector.type==="final"?32:20;return clamp(base*toNum(order.energy,1)*(.55+eff/100)-toNum(r.stats.stamina,75)*.04,3,62);}
 function hydrationCost(stage,sector,eff){return clamp(7+Math.max(0,stage.weather.temp-18)*.22+sector.difficulty*.026+Math.max(0,eff-75)*.045,4,28);}
 function fatigueGain(sector,eff,r){return clamp(sector.difficulty*.045+Math.max(0,eff-70)*.06-r.stats.recovery*.025,.4,12);}
+function stageWinnerSpeed(stage){
+  let speed = stage.type === "flat" ? 45.5 : stage.type === "hilly" ? 39.0 : stage.type === "mountain" ? 31.2 : stage.type === "cobbles" ? 37.0 : stage.type === "tt" ? 51.0 : stage.type === "ttt" ? 53.0 : 38.0;
+  if (stage.weather) {
+    if (stage.weather.roadWet > 55) speed -= 1.0;
+    if (stage.weather.crosswind > 55 && stage.type === "flat") speed -= 1.2;
+    if (stage.weather.temp > 32) speed -= 0.8;
+  }
+  return Math.max(24, speed);
+}
+function stageScore(r, stage, mode = stage.type){
+  const s = r.stats || {};
+  const form = toNum(r.form, 75), fatigue = toNum(r.fatigue, 0), base = toNum(r.base, 75);
+  let score;
+  if (mode === "flat") score = s.sprint*.38 + s.flat*.26 + s.positioning*.16 + s.acceleration*.10 + s.stamina*.06 + form*.04;
+  else if (mode === "mountain") score = s.mountain*.56 + s.stamina*.18 + s.recovery*.10 + form*.08 + base*.08;
+  else if (mode === "hilly") score = s.hills*.38 + s.mountain*.20 + s.acceleration*.16 + s.stamina*.12 + form*.08 + base*.06;
+  else if (mode === "cobbles") score = s.cobbles*.40 + s.positioning*.20 + s.hills*.14 + s.stamina*.12 + form*.08 + base*.06;
+  else if (mode === "tt") score = s.tt*.54 + s.flat*.18 + s.stamina*.13 + form*.08 + base*.07;
+  else if (mode === "ttt") score = s.ttt*.48 + s.tt*.18 + s.flat*.16 + s.stamina*.10 + s.positioning*.04 + form*.04;
+  else score = s.hills*.25 + s.flat*.22 + s.stamina*.20 + s.mountain*.18 + form*.10 + base*.05;
+  if (stage.type === "mountain" && r.roleKey === "sprinter") score -= 30;
+  if (stage.type === "mountain" && r.roleKey === "classics") score -= 14;
+  if (stage.type === "mountain" && r.roleKey === "puncheur" && toNum(s.mountain,65) < 80) score -= 8;
+  if (stage.type === "mountain" && ["gc","co","climber"].includes(r.roleKey)) score += 5;
+  if (stage.type === "mountain" && toNum(s.mountain, 65) < 68) score -= 18;
+  if (stage.type === "cobbles" && toNum(s.cobbles, 65) < 68) score -= 10;
+  if (stage.weather && stage.weather.temp > 31 && toNum(s.stamina, 75) < 76) score -= 4;
+  return score - fatigue*.16;
+}
+function expectedStageBaseTime(stage){
+  return toNum(stage.distance, 150) / stageWinnerSpeed(stage) * 3600;
+}
+function normalizeStageResults(stage, results){
+  if (!results || !results.length) return results || [];
+  if (isTT(stage)) return normalizeTTResults(stage, results);
+  if (isTTT(stage)) return normalizeTTTResults(stage, results);
+  return normalizeRoadResults(stage, results);
+}
+function normalizeTTResults(stage, results){
+  const baseTime = expectedStageBaseTime(stage);
+  const ranked = results.map(res => {
+    const r = getRider(res.riderId);
+    return {...res, __score: stageScore(r, stage, "tt") + rnd(-1.8, 1.8)};
+  }).sort((a,b)=>b.__score-a.__score);
+  const best = ranked[0].__score;
+  ranked.forEach((res,i)=>{
+    const diff = Math.max(0, best - res.__score);
+    res.time = Math.max(600, baseTime + diff*7.5 + i*1.15 + rnd(-6, 12));
+    res.elapsed = res.time + toNum(res.startOffset, 0);
+    res.group = "CRI individual";
+  });
+  return ranked.map(({__score, ...x})=>x);
+}
+function normalizeTTTResults(stage, results){
+  const baseTime = expectedStageBaseTime(stage);
+  const byTeam = {};
+  results.forEach(res => { (byTeam[res.teamId] ||= []).push(res); });
+  const teamScores = Object.entries(byTeam).map(([teamId, arr]) => {
+    const scores = arr.map(res => stageScore(getRider(res.riderId), stage, "ttt")).sort((a,b)=>b-a);
+    const score = avg(scores.slice(0, Math.min(6, scores.length))) + rnd(-1.2, 1.2);
+    return {teamId, arr, score};
+  }).sort((a,b)=>b.score-a.score);
+  const best = teamScores[0] ? teamScores[0].score : 85;
+  teamScores.forEach((teamObj, teamPos) => {
+    const marker = baseTime + Math.max(0, best - teamObj.score)*8.5 + teamPos*3.0 + rnd(-5, 10);
+    const sorted = teamObj.arr.map(res => ({res, score: stageScore(getRider(res.riderId), stage, "ttt") + rnd(-1,1)})).sort((a,b)=>b.score-a.score);
+    sorted.forEach((x,i)=>{
+      if (i <= 3) {
+        x.res.time = marker;
+        x.res.group = `CRE ${getTeam(x.res.teamId).name}`;
+      } else {
+        const weakGap = Math.max(0, sorted[3].score - x.score) * 5.5;
+        x.res.time = marker + (weakGap > 18 ? weakGap + rnd(8,80) : rnd(0,8));
+        x.res.group = x.res.time - marker > 10 ? "Descolgado CRE" : `CRE ${getTeam(x.res.teamId).name}`;
+      }
+      x.res.elapsed = x.res.time + toNum(x.res.startOffset, 0);
+    });
+  });
+  return results;
+}
+function normalizeRoadResults(stage, results){
+  const baseTime = expectedStageBaseTime(stage);
+  const maxGap = stage.type === "flat" ? 720 : stage.type === "hilly" ? 1500 : stage.type === "mountain" ? 2100 : stage.type === "cobbles" ? 2100 : 1500;
+  const breakGap = Game.live && Game.live.breakaway ? toNum(Game.live.breakaway.gap, 0) : 0;
+  const survivalThreshold = stage.type === "flat" ? 260 : stage.type === "hilly" ? 190 : stage.type === "cobbles" ? 170 : stage.type === "mountain" ? 300 : 220;
+  const breakSurvives = breakGap > survivalThreshold;
+  const ranked = results.map(res => {
+    const r = getRider(res.riderId);
+    const isBreak = res.group === "Fuga" || (Game.live && Game.live.breakaway && Game.live.breakaway.ids.includes(res.riderId));
+    let score = stageScore(r, stage, stage.type) + rnd(-2.2, 2.2);
+    if (isBreak && breakSurvives) score += stage.type === "mountain" ? 4.0 : 7.0;
+    if (res.incident) score -= 18;
+    return {...res, __score: score, __break: isBreak};
+  }).sort((a,b)=>b.__score-a.__score);
+  const best = ranked[0].__score;
+  let pelotonBaseGap = breakSurvives ? clamp(breakGap, 35, stage.type === "mountain" ? 420 : 720) : 0;
+  ranked.forEach((res,i)=>{
+    const r = getRider(res.riderId);
+    const diff = Math.max(0, best - res.__score);
+    let gapSec;
+    if (stage.type === "flat") {
+      gapSec = i < 85 && !res.incident ? 0 : Math.max(0, (i - 84) * 2.3 + diff * 2.5 + rnd(0,45));
+    } else if (stage.type === "hilly") {
+      gapSec = Math.max(0, diff * 6.2 + i * 0.9 + rnd(-10,35));
+    } else if (stage.type === "mountain") {
+      gapSec = Math.max(0, diff * 12.5 + i * 1.8 + rnd(-12,45));
+      if (r.roleKey === "sprinter" || toNum(r.stats.mountain, 65) < 65) gapSec += rnd(420, 1350);
+      if (["gc","co","climber"].includes(r.roleKey) && toNum(r.stats.mountain, 70) > 82) gapSec *= 0.72;
+    } else if (stage.type === "cobbles") {
+      gapSec = Math.max(0, diff * 7.2 + i * 1.1 + rnd(-8,60));
+      if (toNum(r.stats.cobbles,65) < 65) gapSec += rnd(120,520);
+    } else {
+      gapSec = Math.max(0, diff * 6 + i + rnd(0,30));
+    }
+    if (breakSurvives && !res.__break) gapSec += pelotonBaseGap;
+    if (res.incident) gapSec += rnd(60,420);
+    gapSec = clamp(gapSec, 0, maxGap);
+    res.time = baseTime + gapSec;
+    res.elapsed = res.time;
+    if (!breakSurvives && res.__break) res.group = "Pelotón";
+    if (breakSurvives && res.__break && gapSec < 90) res.group = "Fuga";
+  });
+  const sorted = ranked.sort((a,b)=>a.time-b.time);
+  return applyRoadGroups(stage, sorted.map(({__score,__break,...x})=>x));
+}
+
 function finishStage(renderNow){
   const stage=getStage();
   let results=getRaceRiders().map(r=>{
@@ -434,6 +561,7 @@ function finishStage(renderNow){
   } else if(!isTT(stage)){
     results=applyRoadGroups(stage,results);
   }
+  results = normalizeStageResults(stage, results);
   results = results.filter(r=>Number.isFinite(r.time)).sort((a,b)=>a.time-b.time);
   results.forEach((x,i)=>x.pos=i+1);
   applyPoints(stage,results);

@@ -4,7 +4,7 @@
    v0.14 Pro Peloton + Season Calendar + TT/TTT + Training Camps
    ============================================================ */
 
-const SAVE_VERSION = "v0.14";
+const SAVE_VERSION = "v0.15";
 const ROSTER_SIZE = 8;
 const DEFAULT_RACE_ID = "santos";
 
@@ -361,27 +361,82 @@ function raceWeather(month, climate, dayIndex = 0) {
 }
 
 function generateProfilePoints(distance, stageType, elevation, climbs = [], walls = [], paves = []) {
-  const points = [];
-  let alt = stageType === "mountain" ? 480 : stageType === "hilly" ? 260 : 95;
-  for (let km = 0; km <= distance; km++) {
-    let slopeAlt = alt + Math.sin(km / 8) * 35 + Math.sin(km / 19) * 45 + hashNoise(`${distance}_${stageType}_${km}`, 18);
-    climbs.forEach(c => {
-      const start = Math.max(0, c.km - c.length);
-      if (km >= start && km <= c.km) {
-        const p = (km - start) / Math.max(1, c.length);
-        slopeAlt += p * c.length * c.gradient * 10;
-      }
-      if (km > c.km && km <= c.km + c.length * 0.75) {
-        const p = 1 - ((km - c.km) / Math.max(1, c.length * 0.75));
-        slopeAlt += p * c.length * c.gradient * 8;
-      }
-    });
-    walls.forEach(w => {
-      if (km >= w.km - w.length && km <= w.km) slopeAlt += 140 * ((km - (w.km - w.length)) / Math.max(0.1, w.length));
-    });
-    if (stageType === "flat") slopeAlt = 60 + Math.sin(km / 10) * 18 + hashNoise(`flat_${km}_${distance}`, 8);
-    points.push({km, alt: Math.max(10, Math.round(slopeAlt))});
+  const d = Math.max(1, Math.round(distance));
+  const gradients = Array(d + 1).fill(0);
+
+  for (let km = 0; km <= d; km++) {
+    let base = 0;
+    if (stageType === "flat") base = Math.sin(km / 9) * 0.35 + hashNoise(`flat_micro_${distance}_${km}`, 0.28);
+    if (stageType === "hilly") base = Math.sin(km / 7) * 1.05 + Math.sin(km / 19) * 0.65 + hashNoise(`hill_micro_${distance}_${km}`, 0.55);
+    if (stageType === "mountain") base = Math.sin(km / 8) * 0.80 + Math.sin(km / 21) * 0.55 + hashNoise(`mount_micro_${distance}_${km}`, 0.45);
+    if (stageType === "cobbles") base = Math.sin(km / 6) * 0.65 + hashNoise(`cobbles_micro_${distance}_${km}`, 0.65);
+    if (stageType === "tt" || stageType === "ttt") base = Math.sin(km / 12) * 0.45 + hashNoise(`tt_micro_${distance}_${km}`, 0.25);
+    gradients[km] += base;
   }
+
+  climbs.forEach((c, climbIndex) => {
+    const summit = dataClamp(Math.round(c.km), 0, d);
+    const start = dataClamp(Math.round(c.km - c.length), 0, d);
+    const length = Math.max(1, summit - start);
+    for (let km = start; km <= summit; km++) {
+      const p = (km - start) / Math.max(1, length);
+      const variable = 0.82 + 0.20 * Math.sin(p * Math.PI * 3.0) + 0.10 * Math.sin(p * Math.PI * 8.0) + hashNoise(`climb_${distance}_${climbIndex}_${km}`, 0.10);
+      const ramp = p < 0.12 ? 0.72 + p * 2.2 : p > 0.88 ? 0.92 + (1 - p) * 0.70 : 1.0;
+      gradients[km] += Math.max(2.2, c.gradient * variable * ramp);
+    }
+
+    const descentLen = Math.max(4, Math.round(length * 0.82));
+    const descentEnd = dataClamp(summit + descentLen, 0, d);
+    for (let km = summit + 1; km <= descentEnd; km++) {
+      const p = (km - summit) / Math.max(1, descentLen);
+      const variable = 0.75 + 0.18 * Math.sin(p * Math.PI * 4.0) + hashNoise(`descent_${distance}_${climbIndex}_${km}`, 0.08);
+      gradients[km] -= Math.max(1.0, c.gradient * 0.58 * variable);
+    }
+  });
+
+  walls.forEach((wallItem, wallIndex) => {
+    const summit = dataClamp(Math.round(wallItem.km), 0, d);
+    const start = dataClamp(Math.round(wallItem.km - wallItem.length), 0, d);
+    for (let km = start; km <= summit; km++) {
+      gradients[km] += wallItem.gradient * (0.95 + hashNoise(`wall_${distance}_${wallIndex}_${km}`, 0.12));
+    }
+    for (let km = summit + 1; km <= Math.min(d, summit + Math.max(2, Math.round(wallItem.length * 2))); km++) {
+      gradients[km] -= wallItem.gradient * 0.35;
+    }
+  });
+
+  paves.forEach((segment, index) => {
+    for (let km = Math.max(0, Math.round(segment.from)); km <= Math.min(d, Math.round(segment.to)); km++) {
+      gradients[km] += hashNoise(`pave_ripple_${distance}_${index}_${km}`, 0.45);
+    }
+  });
+
+  let alt = stageType === "mountain" ? 420 : stageType === "hilly" ? 220 : stageType === "cobbles" ? 105 : 80;
+  const points = [];
+  let gain = 0;
+  for (let km = 0; km <= d; km++) {
+    if (km > 0) {
+      const delta = gradients[km] * 10;
+      alt += delta;
+      if (delta > 0) gain += delta;
+      if (stageType === "flat") alt = 65 + (alt - 65) * 0.88;
+      alt = Math.max(8, alt);
+    }
+    points.push({ km, alt: Math.round(alt) });
+  }
+
+  const desiredGain = Math.max(200, elevation || gain);
+  if (gain > 50 && desiredGain > 0) {
+    const scale = dataClamp(desiredGain / gain, 0.55, 1.85);
+    let scaledAlt = points[0].alt;
+    for (let i = 1; i < points.length; i++) {
+      const rawDelta = points[i].alt - points[i - 1].alt;
+      const delta = rawDelta > 0 ? rawDelta * scale : rawDelta * dataClamp(scale * 0.85, 0.55, 1.45);
+      scaledAlt = Math.max(8, scaledAlt + delta);
+      points[i].alt = Math.round(scaledAlt);
+    }
+  }
+
   return points;
 }
 
