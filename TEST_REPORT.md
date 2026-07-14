@@ -1,6 +1,25 @@
-# Informe de validación v0.24
+# Informe de validación v0.24+
 
-Validación ejecutada sobre los archivos incluidos en este paquete.
+## Objetivo principal
+
+Validar que la selección de ocho corredores permite iniciar la carrera aunque el navegador bloquee el almacenamiento local.
+
+## Pruebas de navegador real
+
+Ejecutadas en Chromium headless con DOM real y `localStorage` deliberadamente inaccesible:
+
+- Carrera única: selección automática de 8 corredores → confirmación → Race Director cargado.
+- Temporada: selección automática de 8 corredores → confirmación → primera carrera de temporada cargada.
+- No se produjeron errores de página.
+- La imposibilidad de guardar se trató como aviso y no bloqueó la navegación.
+- Simulación rápida posterior a la confirmación: clasificación completa, tiempos finitos y sin `NaN`.
+
+## Matriz de convocatoria
+
+- 34 equipos probados en la primera carrera del calendario.
+- 36 carreras probadas con un equipo de referencia.
+- Modo temporada probado por separado.
+- 71 flujos de confirmación completados sin fallos.
 
 ## Sintaxis
 
@@ -9,47 +28,19 @@ Validación ejecutada sobre los archivos incluidos en este paquete.
 - `game.js`: correcta.
 - `v024-expansion.js`: correcta.
 
-## Carga y datos
+## Sistemas conservados
 
-- 34 equipos.
-- 927 corredores.
-- 36 eventos/carreras.
-- Pantalla inicial renderizada correctamente.
+- Carrera única y temporada.
+- Selección y bloqueo de ocho corredores.
+- Race Director y simulación rápida.
+- CRI y CRE.
+- Motor físico CP/W′ y grupos.
+- Clima, fugas, nutrición y material.
+- Manager, objetivos, contratos, staff, scouting, mentoría y logística.
+- Vista TV, telemetría, análisis, alertas, récords y palmarés.
 
-## Simulación
+## Guardado
 
-- Etapa normal: 272 corredores, tiempos numéricos y clasificación completa.
-- Telemetría postetapa: 272 informes individuales.
-- CRI: tiempos finitos, salida individual y offsets de dos minutos.
-- CRE: tiempos finitos, bloques separados y tiempo común para los cuatro primeros del equipo.
-- Alta montaña: ganador de perfil GC y cero sprinters en el top 10 de la prueba ejecutada.
-- Aleatoriedad: tres ejecuciones produjeron ganadores y top 5 diferentes.
-
-## Manager y persistencia
-
-- Guardado/carga con clave `cyclingManager_v024`.
-- 927 contratos y promesas.
-- 927 calendarios individuales.
-- 927 perfiles fisiológicos CP/W′.
-- Staff para los 34 equipos.
-- Alertas, scouting, mentoría, palmarés y récords inicializados.
-
-## Pantallas comprobadas
-
-- Race Director.
-- Vista TV.
-- Estrategia.
-- Alimentación.
-- Material.
-- Equipo.
-- Clasificaciones.
-- Objetivos.
-- Plan anual.
-- Contratos/cantera.
-- Staff/logística.
-- Análisis.
-- Alertas.
-- Récords.
-- Historial.
-
-La validación se realizó con un entorno JavaScript Node/VM que simula el DOM y ejecuta el motor completo. No sustituye una prueba visual manual en cada navegador, pero verifica carga, sintaxis, estado, simulación y renderizado de las vistas principales.
+- Clave nueva: `cyclingManager_v024plus`.
+- Los guardados anteriores se pueden borrar desde la pantalla inicial.
+- Si Safari, modo privado o una política del navegador impide usar `localStorage`, el juego sigue funcionando durante la sesión.

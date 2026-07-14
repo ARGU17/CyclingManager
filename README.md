@@ -1,13 +1,13 @@
-# Cycling Manager Tour v0.24
+# Cycling Manager Tour v0.24+
 
-Versión integrada que conserva la base funcional v0.19 y añade los sistemas previstos para v0.21, v0.23 y v0.24.
+Versión integrada que conserva la base funcional v0.19 y añade los sistemas previstos para v0.21, v0.23 y v0.24+.
 
 ## Instalación en GitHub Pages
 
 1. Sube **todos los archivos de esta carpeta** a la raíz de tu repositorio.
 2. Comprueba que `index.html`, `data.js`, `v024-data.js`, `game.js`, `v024-expansion.js`, `styles.css` y `v024.css` están en la misma carpeta.
 3. Activa GitHub Pages desde la rama principal y la carpeta raíz.
-4. Al abrir la app, pulsa **Borrar guardado** antes de empezar una partida v0.24.
+4. Al abrir la app, pulsa **Borrar guardado** antes de empezar una partida v0.24+.
 
 ## Archivos
 
@@ -15,9 +15,14 @@ Versión integrada que conserva la base funcional v0.19 y añade los sistemas pr
 - `data.js`: datos completos heredados de v0.19, equipos, corredores, calendario, material y carreras.
 - `v024-data.js`: definiciones nuevas de fisiología, calendarios, contratos, neumáticos, scouting y alertas.
 - `game.js`: motor y funcionalidades completas de v0.19.
-- `v024-expansion.js`: ampliación v0.24, sin eliminar los sistemas anteriores.
+- `v024-expansion.js`: ampliación v0.24+, sin eliminar los sistemas anteriores.
 - `styles.css`: estilos completos heredados.
 - `v024.css`: estilos de los sistemas nuevos.
+
+
+## Corrección principal v0.24+
+
+La convocatoria ya puede confirmarse en carrera única y temporada aunque el navegador bloquee `localStorage`. El juego entra primero en la carrera y después intenta guardar. Si el almacenamiento no está disponible, la sesión sigue funcionando sin quedar atrapada en la pantalla de selección.
 
 ## Sistemas conservados
 
@@ -34,7 +39,7 @@ Versión integrada que conserva la base funcional v0.19 y añade los sistemas pr
 - Clasificaciones, UCI, sponsor, objetivos, mercado, contratos, staff, scouting y training camps.
 - Vista TV y perfil 2D de un punto por kilómetro.
 
-## Nuevos sistemas v0.24
+## Nuevos sistemas v0.24+
 
 ### Motor físico y táctico
 
@@ -84,4 +89,4 @@ Versión integrada que conserva la base funcional v0.19 y añade los sistemas pr
 
 ## Nota de compatibilidad
 
-La clave de guardado es `cyclingManager_v024`. Los guardados anteriores no se cargan automáticamente para evitar estados incompatibles.
+La clave de guardado es `cyclingManager_v024plus`. Los guardados anteriores no se cargan automáticamente para evitar estados incompatibles.
