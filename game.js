@@ -1,11 +1,11 @@
 /* ============================================================
    CYCLING MANAGER TOUR
    game.js
-   v0.19 realism patch
+   v0.24 integrated expansion
    ============================================================ */
 
 const app = document.getElementById("app");
-const SAVE_KEY = "cyclingManager_v019";
+const SAVE_KEY = "cyclingManager_v024";
 
 const Game = {
   version: SAVE_VERSION,
@@ -144,7 +144,7 @@ function saveGame(show = true) {
 }
 function loadGame() {
   const raw = localStorage.getItem(SAVE_KEY);
-  if (!raw) return toast("No hay guardado v0.19. Empieza partida nueva.");
+  if (!raw) return toast("No hay guardado v0.24. Empieza una partida nueva.");
   try {
     const obj = JSON.parse(raw);
     if (obj.version !== SAVE_VERSION) {
@@ -194,7 +194,7 @@ function render() {
 function renderHome() {
   app.innerHTML = `
     <div class="header">
-      <div><h1>Cycling Manager Tour</h1><p>v0.19 · simulación realista · perfiles 1 km con microgradientes · gaps estabilizados</p></div>
+      <div><h1>Cycling Manager Tour</h1><p>v0.24 · motor físico CP/W′ · grupos · manager avanzado · perfiles 1 km con microgradientes · gaps estabilizados</p></div>
       <div class="top-actions"><button class="secondary" onclick="loadGame()">Cargar</button><button class="danger" onclick="clearSave()">Borrar guardado</button></div>
     </div>
     <section class="panel"><h2>Modo de juego</h2><div class="mode-grid">
@@ -610,7 +610,7 @@ function renderLiveRadar(groups){const rivals=getImportantRivals();return `<div 
 function renderEnergyHeatmap(){return `<div class="energy-map">${getTeamRiders(Game.selectedTeamId).map(r=>{const e=Game.live.states[r.id]?.energy||0,cls=e>68?"good":e>38?"warn":"bad";return `<div class="energy ${cls}"><strong>${esc(r.name)}</strong><span>${Math.round(e)}%</span></div>`;}).join("")}</div>`;}
 
 /* ============================================================
-   v0.19 Race Director Pro + Group Engine + Rival AI Patch
+   v0.24 Race Director Pro + Physical Group Engine + Rival AI
    ============================================================ */
 
 function ensureV017State() {
@@ -651,7 +651,7 @@ function renderActionBar(live) {
     <div class="actionbar ${live ? "live" : ""}">
       <div>
         <strong>${live ? `Sector ${Game.live.sectorIndex + 1}/${stage.sectors.length} · ${sector.name}` : "Salida de etapa"}</strong>
-        <p>${live ? `Km ${sector.from}-${sector.to} · ${sector.question}` : "Simulación rápida o Race Director por sectores. Motor v0.19 basado en grupos + IA rival."}</p>
+        <p>${live ? `Km ${sector.from}-${sector.to} · ${sector.question}` : "Simulación rápida o Race Director por sectores. Motor v0.24 basado en grupos, CP/W′ e IA rival."}</p>
         <div class="actionbar-mini">
           <span class="control-pill ${situation.controlClass}">${situation.controlLabel}</span>
           <span class="control-pill ${situation.threatClass}">${situation.threatLabel}</span>
@@ -738,7 +738,7 @@ function renderVisualLanesPreview() {
       ${["Fuga", "Grupo perseguidor", "Grupo favoritos", "Pelotón", "Grupo 2", "Autobús", "Cortados"].map((x, i) => `
         <div class="lane ${i === 2 ? "fav" : i === 3 ? "peloton" : i === 0 ? "break" : ""}">
           <strong>${x}</strong>
-          <span>${i === 3 ? "Salida normal de carrera. El motor v0.19 moverá grupos según colaboración, W/kg y objetivos." : "—"}</span>
+          <span>${i === 3 ? "Salida normal de carrera. El motor v0.24 moverá grupos según colaboración, potencia, W/kg y objetivos." : "—"}</span>
         </div>
       `).join("")}
     </div>`;
@@ -1283,16 +1283,16 @@ init();
 
 
 /* ============================================================
-   v0.19 MANAGER EXPANSION
+   v0.24 MANAGER EXPANSION
    Prioridades 4, 5, 6 y 8: objetivos, mercado, forma/calendario,
-   pantalla TV. Se añade por extensión para conservar v0.19.
+   pantalla TV. Se amplía por extensión para conservar la base anterior.
    ============================================================ */
 
 function ensureManagerSystems() {
   if (!Game.riders || !Game.riders.length) return;
   const team = Game.selectedTeamId ? getTeam(Game.selectedTeamId) : null;
   if (!Game.manager) Game.manager = {};
-  if (!Game.manager.version) Game.manager.version = "v0.19";
+  if (!Game.manager.version) Game.manager.version = "v0.24";
   if (!Number.isFinite(Game.manager.budget)) {
     const base = team ? (team.level === "WT" ? 34000000 : 9200000) : 18000000;
     const ai = team && team.ai ? team.ai : { gc: 50, sprint: 50, classics: 50 };
@@ -1606,7 +1606,7 @@ renderBetweenRaces = function() {
   const next = byId(RACES, SEASON_RACE_IDS[Game.seasonIndex + 1]);
   const selected = Game.lastRaceRosterIds || [];
   const non = getFullTeamRiders(Game.selectedTeamId).filter(r => !selected.includes(r.id));
-  app.innerHTML = `<div class="header"><div><h1>Entre carreras</h1><p>Terminado: ${esc(curr.name)} · Próxima: ${next ? esc(next.name) : "Final de temporada"}</p></div><div class="top-actions"><button class="secondary" onclick="saveGame()">Guardar</button><button onclick="advanceToNextRace()">Aplicar camp y seguir</button></div></div>${renderManagerHeaderV019()}<section class="panel"><h2>Training camps v0.19</h2><p class="muted">Los no convocados entrenan; los convocados recuperan. El staff y el plan individual modifican el resultado.</p><div class="training-grid">${TRAINING_CAMPS_V019.map(t=>`<button class="training-card ${Game.trainingCampIdV019===t.id?"active":""}" onclick="Game.trainingCampIdV019='${t.id}';renderBetweenRaces()"><strong>${esc(t.name)}</strong><span>${esc(t.destination)} · ${t.days} días · ${moneyV019(t.cost)}</span><small>${esc(t.description)}</small><em>${formatEffects(t.effects)} · riesgo ${t.risk}%</em></button>`).join("")}</div></section><section class="panel"><h2>No convocados que entrenarán</h2><div class="roster-grid">${non.map(r=>`<div class="status-card"><div class="badge-row"><span class="badge green">${esc(r.role)}</span><span class="badge blue">Forma ${Math.round(r.form)}</span><span class="badge orange">Fatiga ${Math.round(r.fatigue)}</span></div><h3>${esc(r.name)}</h3>${miniStats(r)}</div>`).join("")}</div></section>`;
+  app.innerHTML = `<div class="header"><div><h1>Entre carreras</h1><p>Terminado: ${esc(curr.name)} · Próxima: ${next ? esc(next.name) : "Final de temporada"}</p></div><div class="top-actions"><button class="secondary" onclick="saveGame()">Guardar</button><button onclick="advanceToNextRace()">Aplicar camp y seguir</button></div></div>${renderManagerHeaderV019()}<section class="panel"><h2>Training camps v0.24</h2><p class="muted">Los no convocados entrenan; los convocados recuperan. El staff y el plan individual modifican el resultado.</p><div class="training-grid">${TRAINING_CAMPS_V019.map(t=>`<button class="training-card ${Game.trainingCampIdV019===t.id?"active":""}" onclick="Game.trainingCampIdV019='${t.id}';renderBetweenRaces()"><strong>${esc(t.name)}</strong><span>${esc(t.destination)} · ${t.days} días · ${moneyV019(t.cost)}</span><small>${esc(t.description)}</small><em>${formatEffects(t.effects)} · riesgo ${t.risk}%</em></button>`).join("")}</div></section><section class="panel"><h2>No convocados que entrenarán</h2><div class="roster-grid">${non.map(r=>`<div class="status-card"><div class="badge-row"><span class="badge green">${esc(r.role)}</span><span class="badge blue">Forma ${Math.round(r.form)}</span><span class="badge orange">Fatiga ${Math.round(r.fatigue)}</span></div><h3>${esc(r.name)}</h3>${miniStats(r)}</div>`).join("")}</div></section>`;
 };
 
 function staffEffectV019(key) {
