@@ -1,46 +1,103 @@
-# Informe de validación v0.24+
-
-## Objetivo principal
-
-Validar que la selección de ocho corredores permite iniciar la carrera aunque el navegador bloquee el almacenamiento local.
-
-## Pruebas de navegador real
-
-Ejecutadas en Chromium headless con DOM real y `localStorage` deliberadamente inaccesible:
-
-- Carrera única: selección automática de 8 corredores → confirmación → Race Director cargado.
-- Temporada: selección automática de 8 corredores → confirmación → primera carrera de temporada cargada.
-- No se produjeron errores de página.
-- La imposibilidad de guardar se trató como aviso y no bloqueó la navegación.
-- Simulación rápida posterior a la confirmación: clasificación completa, tiempos finitos y sin `NaN`.
-
-## Matriz de convocatoria
-
-- 34 equipos probados en la primera carrera del calendario.
-- 36 carreras probadas con un equipo de referencia.
-- Modo temporada probado por separado.
-- 71 flujos de confirmación completados sin fallos.
+# Informe de validación · Cycling Manager v0.25 Stage Lab
 
 ## Sintaxis
 
-- `data.js`: correcta.
-- `v024-data.js`: correcta.
-- `game.js`: correcta.
-- `v024-expansion.js`: correcta.
+Se ejecutó `node --check` sobre todos los archivos JavaScript del paquete principal y de `stage-lab/`.
 
-## Sistemas conservados
+Resultado: **correcto**.
 
-- Carrera única y temporada.
-- Selección y bloqueo de ocho corredores.
-- Race Director y simulación rápida.
-- CRI y CRE.
-- Motor físico CP/W′ y grupos.
-- Clima, fugas, nutrición y material.
-- Manager, objetivos, contratos, staff, scouting, mentoría y logística.
-- Vista TV, telemetría, análisis, alertas, récords y palmarés.
+## Generador Stage Lab
 
-## Guardado
+Pruebas originales del generador ejecutadas:
 
-- Clave nueva: `cyclingManager_v024plus`.
-- Los guardados anteriores se pueden borrar desde la pantalla inicial.
-- Si Safari, modo privado o una política del navegador impide usar `localStorage`, el juego sigue funcionando durante la sesión.
+- generación y exportación GPX;
+- progreso y estructura plana;
+- sincronización del mapa;
+- actualización GeoJSON con teselas/DEM pendientes;
+- recuperación adaptativa del enrutado Valhalla.
+
+Resultado: **correcto**.
+
+## Calendario completo
+
+Se validaron los 36 eventos del calendario:
+
+- modo geográfico compatible;
+- número de etapas;
+- vector de tipos de etapa;
+- vector de distancias objetivo;
+- configuración Stage Lab específica.
+
+Además, se generaron y convirtieron automáticamente:
+
+```text
+36 eventos
+164 etapas
+54.746 puntos GPX compactados
+```
+
+Todas las etapas produjeron:
+
+- GPX válido;
+- al menos dos puntos de geometría;
+- sectores físicos;
+- tipo de etapa preservado;
+- integración con el formato del simulador.
+
+## Casos específicos
+
+- Milano-Sanremo: clásica de un día, GPX integrado y convocatoria confirmada.
+- Omloop Het Nieuwsblad: tipo `cobbles` preservado.
+- Paris-Nice: ocho etapas y CRE preservada.
+- Tour de France: 21 etapas generadas y convertidas.
+- Giro d'Italia: 21 etapas generadas y convertidas.
+- Vuelta a España: 21 etapas generadas y convertidas.
+
+## Prueba de flujo en navegador
+
+Mediante Chromium con contenido y scripts inyectados localmente se verificó:
+
+### Carrera única
+
+```text
+selección de carrera
+→ selección de equipo
+→ apertura Stage Lab
+→ generación del evento
+→ aceptación GPX
+→ convocatoria 8/8
+→ confirmación
+→ pantalla de carrera GPX
+```
+
+Resultado: **correcto**.
+
+### Temporada
+
+```text
+primera carrera
+→ Stage Lab
+→ aceptación GPX
+→ convocatoria
+→ carrera
+→ entre carreras
+→ siguiente evento
+→ nueva apertura automática de Stage Lab
+```
+
+Resultado: **correcto**.
+
+## Perfil
+
+Se comprobó la presencia de los diez colores requeridos:
+
+```text
+#1a4bff #2c7cff #2bb2ff #24c6c6 #14b81f
+#63cf15 #b5c718 #e4c625 #ee9430 #dd5a22
+```
+
+Se verificó el renderizado SVG local de respaldo y la estructura ECharts de alta frecuencia.
+
+## Limitación del entorno de prueba
+
+La navegación directa a una URL local o `file://` mediante el navegador automatizado estaba bloqueada por la política del entorno. Por ello, las pruebas de navegador se ejecutaron con el HTML y los scripts inyectados en Chromium. La ejecución normal mediante servidor estático y GitHub Pages sigue siendo el método de despliegue previsto.
