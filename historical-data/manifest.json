@@ -1,0 +1,265 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-22",
+  "years": [
+    {
+      "year": 1990,
+      "status": "build-required",
+      "teamCount": 0,
+      "riderCount": 0,
+      "file": null
+    },
+    {
+      "year": 1991,
+      "status": "build-required",
+      "teamCount": 0,
+      "riderCount": 0,
+      "file": null
+    },
+    {
+      "year": 1992,
+      "status": "build-required",
+      "teamCount": 0,
+      "riderCount": 0,
+      "file": null
+    },
+    {
+      "year": 1993,
+      "status": "build-required",
+      "teamCount": 0,
+      "riderCount": 0,
+      "file": null
+    },
+    {
+      "year": 1994,
+      "status": "build-required",
+      "teamCount": 0,
+      "riderCount": 0,
+      "file": null
+    },
+    {
+      "year": 1995,
+      "status": "build-required",
+      "teamCount": 0,
+      "riderCount": 0,
+      "file": null
+    },
+    {
+      "year": 1996,
+      "status": "build-required",
+      "teamCount": 0,
+      "riderCount": 0,
+      "file": null
+    },
+    {
+      "year": 1997,
+      "status": "build-required",
+      "teamCount": 0,
+      "riderCount": 0,
+      "file": null
+    },
+    {
+      "year": 1998,
+      "status": "build-required",
+      "teamCount": 0,
+      "riderCount": 0,
+      "file": null
+    },
+    {
+      "year": 1999,
+      "status": "build-required",
+      "teamCount": 0,
+      "riderCount": 0,
+      "file": null
+    },
+    {
+      "year": 2000,
+      "status": "build-required",
+      "teamCount": 0,
+      "riderCount": 0,
+      "file": null
+    },
+    {
+      "year": 2001,
+      "status": "build-required",
+      "teamCount": 0,
+      "riderCount": 0,
+      "file": null
+    },
+    {
+      "year": 2002,
+      "status": "build-required",
+      "teamCount": 0,
+      "riderCount": 0,
+      "file": null
+    },
+    {
+      "year": 2003,
+      "status": "build-required",
+      "teamCount": 0,
+      "riderCount": 0,
+      "file": null
+    },
+    {
+      "year": 2004,
+      "status": "build-required",
+      "teamCount": 0,
+      "riderCount": 0,
+      "file": null
+    },
+    {
+      "year": 2005,
+      "status": "build-required",
+      "teamCount": 0,
+      "riderCount": 0,
+      "file": null
+    },
+    {
+      "year": 2006,
+      "status": "build-required",
+      "teamCount": 0,
+      "riderCount": 0,
+      "file": null
+    },
+    {
+      "year": 2007,
+      "status": "build-required",
+      "teamCount": 0,
+      "riderCount": 0,
+      "file": null
+    },
+    {
+      "year": 2008,
+      "status": "build-required",
+      "teamCount": 0,
+      "riderCount": 0,
+      "file": null
+    },
+    {
+      "year": 2009,
+      "status": "build-required",
+      "teamCount": 0,
+      "riderCount": 0,
+      "file": null
+    },
+    {
+      "year": 2010,
+      "status": "build-required",
+      "teamCount": 0,
+      "riderCount": 0,
+      "file": null
+    },
+    {
+      "year": 2011,
+      "status": "build-required",
+      "teamCount": 0,
+      "riderCount": 0,
+      "file": null
+    },
+    {
+      "year": 2012,
+      "status": "build-required",
+      "teamCount": 0,
+      "riderCount": 0,
+      "file": null
+    },
+    {
+      "year": 2013,
+      "status": "build-required",
+      "teamCount": 0,
+      "riderCount": 0,
+      "file": null
+    },
+    {
+      "year": 2014,
+      "status": "build-required",
+      "teamCount": 0,
+      "riderCount": 0,
+      "file": null
+    },
+    {
+      "year": 2015,
+      "status": "build-required",
+      "teamCount": 0,
+      "riderCount": 0,
+      "file": null
+    },
+    {
+      "year": 2016,
+      "status": "build-required",
+      "teamCount": 0,
+      "riderCount": 0,
+      "file": null
+    },
+    {
+      "year": 2017,
+      "status": "build-required",
+      "teamCount": 0,
+      "riderCount": 0,
+      "file": null
+    },
+    {
+      "year": 2018,
+      "status": "included-open-dataset",
+      "teamCount": 51,
+      "riderCount": 1005,
+      "file": "2018.json"
+    },
+    {
+      "year": 2019,
+      "status": "build-required",
+      "teamCount": 0,
+      "riderCount": 0,
+      "file": null
+    },
+    {
+      "year": 2020,
+      "status": "build-required",
+      "teamCount": 0,
+      "riderCount": 0,
+      "file": null
+    },
+    {
+      "year": 2021,
+      "status": "build-required",
+      "teamCount": 0,
+      "riderCount": 0,
+      "file": null
+    },
+    {
+      "year": 2022,
+      "status": "build-required",
+      "teamCount": 0,
+      "riderCount": 0,
+      "file": null
+    },
+    {
+      "year": 2023,
+      "status": "build-required",
+      "teamCount": 0,
+      "riderCount": 0,
+      "file": null
+    },
+    {
+      "year": 2024,
+      "status": "build-required",
+      "teamCount": 0,
+      "riderCount": 0,
+      "file": null
+    },
+    {
+      "year": 2025,
+      "status": "build-required",
+      "teamCount": 0,
+      "riderCount": 0,
+      "file": null
+    },
+    {
+      "year": 2026,
+      "status": "included-simulator-base",
+      "teamCount": 34,
+      "riderCount": 927,
+      "file": "2026.json"
+    }
+  ]
+}
