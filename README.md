@@ -1,213 +1,159 @@
-# Cycling Manager Tour v0.26 · Stage Lab + salto de temporada
+# Cycling Manager Tour v0.25 Historical
 
-Esta versión conserva íntegramente la integración de **Grand Tour Stage Lab** de v0.25 y añade un planificador de calendario para el modo temporada.
+Versión ampliada de **v0.24+** preparada para GitHub Pages. Conserva el motor anterior y añade una arquitectura de temporadas históricas, selector por año, cruce de épocas y staff nominal.
 
-Ahora puedes decidir qué carreras quieres disputar manualmente y cuáles deben simularse automáticamente para avanzar directamente hacia las grandes vueltas, monumentos, Mundial u otros objetivos prioritarios.
+## Inicio rápido
 
-## Flujo de temporada v0.26
+1. Sube **todos los archivos y carpetas** a la raíz del repositorio.
+2. Activa GitHub Pages desde la rama principal.
+3. Abre `index.html` a través de la URL de GitHub Pages.
+4. Pulsa **Borrar guardado** una vez si vienes de v0.24+.
 
-```text
-Modo temporada
-→ seleccionar carreras manuales/automáticas
-→ seleccionar equipo
-→ simulación automática de eventos no prioritarios
-→ Grand Tour Stage Lab en la siguiente carrera manual
-→ selección de 8 corredores
-→ desarrollo normal de la competición
-→ planificador entre carreras
-```
+> Los packs JSON se cargan con `fetch`; por ello, la selección histórica debe abrirse desde GitHub Pages o un servidor local. Abrir `index.html` directamente como `file://` puede bloquear la carga de JSON por seguridad del navegador.
 
-Las pruebas marcadas como **JUGAR** conservan el flujo completo:
+## Modos históricos
 
-```text
-Stage Lab → GPX → perfil Radial → convocatoria → carrera con física a 250 m
-```
+- **Carrera única histórica:** equipos del año elegido.
+- **Temporada histórica:** calendario encadenado y equipos de una única temporada.
+- **Carrera especial multi-era:** mezcla equipos de varias temporadas.
+- **Temporada especial multi-era:** calendario completo con generaciones enfrentadas.
+- **Normalización igualada:** compara capacidades deportivas sin penalización tecnológica.
+- **Tecnología de época:** aplica una pequeña diferencia en aerodinámica y crono a épocas antiguas.
 
-Las pruebas marcadas como **AUTO** se resuelven en segundo plano y el calendario continúa automáticamente.
+## Cobertura incluida en el ZIP
 
----
+| Año | Equipos | Corredores | Estado |
+|---:|---:|---:|---|
+| 2018 | 51 | 1.005 | Nombres/equipos procedentes de un dataset abierto derivado de PCS; ratings estimados |
+| 2026 | 34 | 927 | Base completa del simulador v0.24+ |
 
-## Funciones nuevas v0.26
+La interfaz muestra de forma explícita qué años están incluidos y cuáles requieren generación. **No se inventan corredores para aparentar una base completa.**
 
-### Planificador de calendario
+## Generar 1990-2026
 
-En la pantalla inicial del modo temporada aparece un panel con las 36 carreras. Cada evento puede configurarse como:
+ProCyclingStats ofrece acceso a datos mediante solicitud de API y limita las peticiones durante 2026. El repositorio incluye un generador con caché, reintentos, validación y rate limiting.
 
-- **JUGAR:** abre Grand Tour Stage Lab y continúa con la convocatoria y carrera normal.
-- **AUTO:** se simula automáticamente sin abrir Stage Lab ni detener el calendario.
+### Desde GitHub Actions
 
-### Presets incluidos
+1. Abre **Actions**.
+2. Selecciona **Build historical database**.
+3. Pulsa **Run workflow**.
+4. Indica el rango de años.
+5. Para construir nombres y plantillas rápidamente, deja `enrich_profiles = false`.
+6. Para ratings más precisos basados en las páginas individuales de PCS, ejecuta uno o pocos años con `enrich_profiles = true`.
 
-- Todo el calendario.
-- Solo grandes vueltas.
-- Grandes vueltas + monumentos + Mundial.
-- Todas las vueltas por etapas.
-- Selección personalizada.
-- Marcar todas las carreras restantes.
-- Simular todas las carreras restantes.
+La acción crea `historical-data/AÑO.json`, actualiza el manifiesto y hace commit automático.
 
-### Salto directo desde “Entre carreras”
-
-Después de terminar un evento puedes seleccionar cualquier competición futura y pulsar:
-
-```text
-Simular hasta este evento
-```
-
-El juego procesa automáticamente todas las carreras intermedias y abre Grand Tour Stage Lab en el objetivo seleccionado.
-
-### Simular la carrera actual desde Stage Lab
-
-La cabecera de Stage Lab incorpora el botón:
-
-```text
-Simular esta carrera y continuar
-```
-
-Permite cambiar de decisión sin volver al menú inicial.
-
-### Progreso y parada segura
-
-Durante el salto se muestra:
-
-- carrera que se está simulando;
-- objetivo final;
-- carreras completadas;
-- porcentaje de progreso;
-- resultados recientes;
-- botón para detenerse después de la carrera actual.
-
----
-
-## Modelo de simulación automática
-
-Las carreras omitidas utilizan un **motor deportivo condensado v0.26** diseñado para avanzar el calendario rápidamente sin ejecutar cada kilómetro de forma visual.
-
-El resultado de cada etapa sigue considerando:
-
-- atributos específicos del terreno;
-- rol del corredor;
-- forma y fatiga;
-- CP relativo y W′;
-- durabilidad fisiológica;
-- readiness y objetivos A/B/C;
-- material y neumáticos;
-- clima, pavé y riesgo técnico;
-- CRI y CRE;
-- penalización de sprinters en montaña;
-- agrupamiento y diferencias por tipo de etapa.
-
-También se conservan y actualizan:
-
-- clasificaciones y tiempos acumulados;
-- victorias de etapa y carrera;
-- puntos UCI;
-- fatiga, forma, moral y días de competición;
-- objetivos del sponsor;
-- contratos y promesas;
-- scouting y mentoría;
-- palmarés y récords;
-- entrenamiento entre carreras;
-- historial de temporada.
-
-Las carreras jugadas manualmente siguen utilizando el motor GPX completo de v0.25, con subpasos físicos de **250 m**, CP/W′, grupos, ataques, viento, drafting, nutrición y telemetría.
-
----
-
-## Grand Tour Stage Lab
-
-Stage Lab sigue conectado a los **36 eventos** del calendario y mantiene:
-
-- generación y edición de recorridos;
-- rutas GPX;
-- enrutado opcional OpenStreetMap/Valhalla;
-- mapa 2D y terreno 3D;
-- perfil interactivo;
-- puertos y sectores;
-- exportación GPX y ZIP;
-- transferencia directa al motor del manager.
-
-La colorimetría Radial se conserva sin cambios:
-
-| Pendiente | Color |
-|---:|---|
-| ≤ −9 % | `#1a4bff` |
-| −9 a −6 % | `#2c7cff` |
-| −6 a −3 % | `#2bb2ff` |
-| −3 a −1 % | `#24c6c6` |
-| −1 a 1,5 % | `#14b81f` |
-| 1,5 a 3 % | `#63cf15` |
-| 3 a 5 % | `#b5c718` |
-| 5 a 7 % | `#e4c625` |
-| 7 a 9 % | `#ee9430` |
-| > 9 % | `#dd5a22` |
-
----
-
-## Instalación en GitHub Pages
-
-1. Descomprime el ZIP.
-2. Sube **todo el contenido** a la raíz del repositorio.
-3. Mantén intacta la carpeta `stage-lab/`.
-4. Activa GitHub Pages desde la rama principal y la carpeta raíz.
-5. Realiza una recarga forzada después de sustituir la versión anterior.
-
-Ejecución local:
+### Desde un ordenador
 
 ```bash
-python -m http.server 8080
+pip install requests beautifulsoup4 lxml
+python tools/build_historical_database.py \
+  --start-year 1990 \
+  --end-year 2026 \
+  --output historical-data \
+  --cache .cache/pcs \
+  --delay 1.5 \
+  --rosters-only \
+  --resume
 ```
 
-Después abre:
+Enriquecimiento de una temporada con perfiles individuales:
 
-```text
-http://localhost:8080
+```bash
+python tools/build_historical_database.py \
+  --year 1992 \
+  --output historical-data \
+  --cache .cache/pcs \
+  --delay 1.5
 ```
 
-No se recomienda abrir directamente con `file://` porque el iframe y los mapas pueden quedar restringidos por el navegador.
+Validación:
 
----
-
-## Archivos principales
-
-```text
-index.html
-styles.css
-v024.css
-gpx.css
-stage-lab-integration.css
-v026.css
-
-data.js
-v024-data.js
-gpx-stage-data.js
-gpx-engine.js
-game.js
-v024-expansion.js
-gpx-integration.js
-v024-plus-fix.js
-stage-lab-integration.js
-v026-season-skip.js
-
-stage-lab/
+```bash
+python tools/validate_historical_database.py historical-data
 ```
 
-`v026-season-skip.js` debe cargarse el último, ya que amplía los flujos de inicio, calendario, Stage Lab, pantalla entre carreras, guardado y final de temporada.
+## Formato de pack
 
----
-
-## Guardado y compatibilidad
-
-La versión declarada es:
-
-```text
-v0.26
+```json
+{
+  "schemaVersion": 2,
+  "season": 1992,
+  "completeness": {
+    "status": "complete",
+    "teamCount": 32,
+    "riderCount": 640
+  },
+  "teams": [],
+  "riders": [],
+  "calendar": []
+}
 ```
 
-Se mantiene la clave histórica:
+Los packs también pueden importarse desde la pantalla inicial mediante **Importar pack JSON**.
 
-```text
-cyclingManager_v024
-```
+## Ratings
 
-El cargador acepta partidas de v0.24, v0.24+, v0.25 y v0.26. Para una prueba completamente limpia se recomienda pulsar **Borrar guardado** al sustituir la versión anterior.
+Cuando se ejecuta el enriquecimiento completo, el generador intenta leer las categorías PCS de cada corredor:
+
+- carreras de un día;
+- general;
+- contrarreloj;
+- sprint;
+- escalada;
+- colinas.
+
+A partir de ellas genera las capacidades del simulador:
+
+- llano;
+- sprint;
+- montaña;
+- colinas;
+- pavé;
+- CRI;
+- CRE;
+- resistencia;
+- recuperación;
+- aceleración;
+- colocación;
+- descenso.
+
+Los packs creados con `--rosters-only` mantienen nombres y equipos, pero marcan los ratings como estimados hasta enriquecerse.
+
+## Staff nominal
+
+Se han añadido 23 profesionales ficticios y realistas, cada uno con:
+
+- nombre;
+- edad y nacionalidad;
+- profesión;
+- experiencia;
+- coste;
+- rasgos;
+- habilidades específicas;
+- efectos de carrera.
+
+La selección de staff filtra candidatos según el puesto: director, entrenador, nutricionista, mecánico, analista u ojeador.
+
+## Funciones anteriores conservadas
+
+- Race Director y vista TV.
+- Amenaza táctica y recomendación del director.
+- Clima y estado de carretera.
+- Motor de grupos, ataques y respuestas.
+- CP/W′, potencia y pendiente.
+- Fugas persistentes.
+- Autobús, abanicos, descensos y pavé.
+- CRI y CRE con salidas separadas.
+- Nutrición automática/manual.
+- Cuadros, ruedas, neumáticos y presiones.
+- Calendario individual y objetivos A/B/C.
+- Contratos, promesas, mentoría y scouting.
+- Logística y staff por carrera.
+- Telemetría, gráficos, alertas y palmarés.
+- Selección bloqueada de ocho corredores.
+
+## Uso responsable de datos
+
+Revisa los términos de la fuente antes de ejecutar extracciones masivas. El generador usa una espera mínima, caché y reintentos. Para un proyecto público o comercial, solicita acceso oficial a la API de PCS.
