@@ -1553,7 +1553,7 @@ function simulateTTTSectorV024(stage, sector) {
   TEAMS.forEach(team => {
     let active = getTeamRiders(team.id).filter(r => Game.live.states[r.id] && !String(Game.live.states[r.id].groupId).startsWith("ttt_drop"));
     for (let km = start; km < end; km++) {
-      const distance = Math.min(1, sector.to - km); if (distance <= 0 || active.length < 4) continue;
+      const distance = Math.min(1, sector.to - km); if (distance <= 0 || active.length < 1) continue;
       const capacities = active.map((r, i) => {
         const st = Game.live.states[r.id];
         const baseEffort = Game.riderEfforts[r.id] ?? r.defaultEffort;

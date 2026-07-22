@@ -1,36 +1,15 @@
-# Changelog
+# Changelog — v0.25+ WT Historical
 
-## v0.25 Historical
-
-### Base histórica
-- Selector de temporada entre 1990 y 2026.
-- Equipos filtrados por año.
-- Temporada y carrera única por año.
-- Cruce de épocas en carrera única o temporada.
-- Normalización igualada o tecnología de época.
-- IDs aislados por temporada para impedir colisiones.
-- Importación manual de packs JSON.
-- Manifiesto de cobertura y estado de completitud.
-
-### Datos incluidos
-- Pack 2018: 51 equipos y 1.005 corredores de un dataset abierto derivado de PCS.
-- Pack 2026: 34 equipos y 927 corredores de la base v0.24+.
-- Generador 1990-2026 con caché, rate limit, reintentos y validación.
-- GitHub Action manual para crear y confirmar packs.
-
-### Visual
-- Maillot 3D generado por equipo y temporada.
-- Cuatro patrones de maillot.
-- Badge del año en cada equipo.
-- Buscador y filtro de nivel.
-- Panel de procedencia y cobertura de datos.
-
-### Staff
-- 23 profesionales nominales ficticios.
-- Profesión, nacionalidad, edad, experiencia, coste y rasgos.
-- Habilidades visualizadas por barras.
-- Candidatos filtrados según el puesto de carrera.
-
-### Compatibilidad
-- Conservadas todas las funciones de v0.24+.
-- Nueva clave de guardado `cyclingManager_v025historical`.
+- Añadidos packs locales para todos los años 1990-2026.
+- Añadidos 772 equipos-temporada y 6.126 entradas documentales de corredor para 1990-2025.
+- Añadidos los 18 UCI WorldTeams de 2026 con diez figuras principales reales por equipo.
+- Eliminados 348 nombres de relleno o entradas no seleccionadas del antiguo pack 2026; el nuevo pack contiene 180 corredores curados.
+- Añadido `current-2026-major.js` para cargar de forma inmediata la plantilla curada de 2026.
+- Añadidos accesos rápidos para ONCE, Banesto, US Postal, Caisse d'Epargne, Kelme, Astana, Trek, Telekom, T-Mobile, Cofidis y Saunier Duval.
+- Búsqueda histórica normalizada: `ONCE` reconoce `O.N.C.E` sin confundirlo con `CONCEPT`; `US Postal` reconoce también `U.S POSTAL`.
+- Añadidos maillots 3D deterministas y colores específicos para estructuras históricas icónicas.
+- Convocatorias adaptativas para archivos históricos con menos de ocho corredores.
+- Conservados modo temporada histórica, carrera especial y temporada multi-era.
+- Añadido validador específico para impedir nombres sintéticos en 2026 y exigir diez corredores por WorldTeam.
+- Nueva clave de guardado `cyclingManager_v025plus_wt_history`.
+- Conservados todos los módulos funcionales de v0.24+ y v0.25 Historical.

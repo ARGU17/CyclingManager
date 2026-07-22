@@ -1,14 +1,15 @@
 /* ============================================================
-   CYCLING MANAGER TOUR v0.25 HISTORICAL
-   Motor de temporadas 1990-2026, equipos por año y cruce de épocas.
+   CYCLING MANAGER TOUR v0.25+ WT HISTORICAL
+   Archivo histórico de equipos de élite 1990-2026, selector anual y cruce de épocas.
 
-   La distribución incluye packs locales 2018 y 2026. El generador
-   tools/build_historical_database.py produce el resto de temporadas
-   desde PCS/API autorizado y actualiza historical-data/manifest.json.
+   La distribución incluye todos los packs 1990-2026. Desde 2005 se usa la categoría
+   UCI ProTeam/WorldTeam cuando está disponible; entre 1990 y 2004 se usa el equivalente
+   élite participante en el Tour. Las plantillas proceden del archivo histórico del Tour
+   y se completan, cuando es necesario, con reservas reales de la misma estructura.
    ============================================================ */
 
-const V025_VERSION = "v0.25-historical";
-const V025_SAVE_KEY = "cyclingManager_v025historical";
+const V025_VERSION = "v0.25plus-wt-history";
+const V025_SAVE_KEY = "cyclingManager_v025plus_wt_history";
 
 const HistoricalV025 = {
   baseTeams: clone(TEAMS),
@@ -26,17 +27,17 @@ function ensureHistoricalStateV025() {
   Game.historical ||= {
     selectedYear: 2026,
     databaseMode: "season",
-    specialYears: [2018, 2026],
+    specialYears: [1992, 2026],
     specialCalendarYear: 2026,
     eraNormalization: "equalized",
     activeYears: [2026],
-    activePackStatus: "included-simulator-base",
-    dataMessage: "Pelotón 2026 activo",
+    activePackStatus: "major-riders-verified",
+    dataMessage: "18 UCI WorldTeams 2026 activos",
     teamSearch: "",
     teamLevelFilter: "all",
     showDataTools: false
   };
-  Game.historical.specialYears ||= [2018, 2026];
+  Game.historical.specialYears ||= [1992, 2026];
   Game.historical.activeYears ||= [Game.historical.selectedYear || 2026];
   Game.version = V025_VERSION;
 }
@@ -60,6 +61,35 @@ function slugV025(value) {
   return String(value || "")
     .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
     .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+}
+
+function searchTokensV025(value) {
+  const raw = String(value || "")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase().match(/[a-z0-9]+/g) || [];
+  const tokens = [];
+  for (let i = 0; i < raw.length;) {
+    if (raw[i].length === 1 && /[a-z]/.test(raw[i])) {
+      let joined = "";
+      while (i < raw.length && raw[i].length === 1 && /[a-z]/.test(raw[i])) joined += raw[i++];
+      tokens.push(joined);
+    } else {
+      tokens.push(raw[i++]);
+    }
+  }
+  return tokens;
+}
+
+function containsTokenSequenceV025(haystack, needle) {
+  if (!needle.length) return true;
+  for (let i = 0; i <= haystack.length - needle.length; i++) {
+    let matches = true;
+    for (let j = 0; j < needle.length; j++) {
+      if (haystack[i + j] !== needle[j]) { matches = false; break; }
+    }
+    if (matches) return true;
+  }
+  return false;
 }
 
 function stableHashV025(value) {
@@ -140,19 +170,15 @@ async function loadHistoricalPackV025(year) {
   year = Number(year);
   if (HistoricalV025.packCache[year]) return HistoricalV025.packCache[year];
   if (year === 2026) {
-    const base = normalizePackV025({
-      schemaVersion:2, season:2026, label:"Pelotón 2026",
-      teams: HistoricalV025.baseTeams,
-      riders: HistoricalV025.baseRiders,
-      calendar: HistoricalV025.baseRaces,
-      completeness:{status:"included-simulator-base",teamCount:HistoricalV025.baseTeams.length,riderCount:HistoricalV025.baseRiders.length}
-    });
+    const curated = clone(CURRENT_2026_MAJOR_PACK);
+    curated.calendar = clone(HistoricalV025.baseRaces);
+    const base = normalizePackV025(curated);
     HistoricalV025.packCache[year] = base;
     return base;
   }
   const entry = manifestEntryV025(year);
   if (!entry?.file && !HistoricalV025.importedYears.has(year)) {
-    throw new Error(`La base ${year} aún no está generada. Ejecuta la acción “Build historical database” o importa ${year}.json.`);
+    throw new Error(`El pack histórico ${year} no está disponible en historical-data/. Restaura ${year}.json o actualiza el manifiesto.`);
   }
   HistoricalV025.loading = true;
   try {
@@ -250,6 +276,7 @@ async function activateHistoricalYearV025(year, notify=true) {
     Game.historical.selectedYear = year;
     Game.historical.databaseMode = "season";
     Game.historical.activeYears = [year];
+    Game.historical.teamLevelFilter = "all";
     Game.historical.activePackStatus = pack.completeness?.status || "unknown";
     Game.historical.dataMessage = `${pack.teams.length} equipos · ${pack.riders.length} corredores cargados para ${year}`;
     if (notify) toast(`Temporada ${year} cargada`);
@@ -339,14 +366,20 @@ function setHistoricalLevelV025(value) {
 
 function filteredTeamsV025() {
   ensureHistoricalStateV025();
-  const q = Game.historical.teamSearch.toLowerCase().trim();
+  const queryTokens = searchTokensV025(Game.historical.teamSearch || "");
   const level = Game.historical.teamLevelFilter;
-  return TEAMS.filter(t => (!q || `${t.name} ${t.country} ${t.season}`.toLowerCase().includes(q)) && (level === "all" || t.level === level));
+  return TEAMS.filter(t => {
+    const searchableTokens = searchTokensV025(`${t.name} ${t.displayName || ""} ${t.country} ${t.season} ${t.lineage || ""}`);
+    return containsTokenSequenceV025(searchableTokens, queryTokens) && (level === "all" || t.level === level);
+  });
 }
 
 function packStatusLabelV025(entry) {
   if (!entry) return "No catalogado";
   return {
+    "included-tour-elite-archive":"Incluido · élite histórica",
+    "included-simulator-wt-base":"Incluido · 18 WorldTeams",
+    "major-riders-verified":"Incluido · 18 WorldTeams / figuras verificadas",
     "included-open-dataset":"Incluido · dataset abierto",
     "included-simulator-base":"Incluido · base v0.24+",
     "build-required":"Pendiente de generación",
@@ -359,17 +392,19 @@ function renderHistoricalDataPanelV025() {
   ensureHistoricalStateV025();
   const current = manifestEntryV025(Game.historical.selectedYear);
   const available = availableHistoricalYearsV025();
+  const icons = ["ONCE","Banesto","US Postal","Caisse d'Epargne","Kelme","Astana","Trek","Telekom","T-Mobile","Cofidis","Saunier Duval"];
   return `<section class="panel historical-control-panel">
-    <div class="historical-control-head"><div><h2>Base histórica 1990-2026</h2><p class="muted">Selecciona temporada, carga su pelotón y compite solo con equipos de ese año. Los packs no incluidos se generan con la herramienta PCS del repositorio.</p></div><span class="badge ${current?.file ? "green" : "orange"}">${packStatusLabelV025(current)}</span></div>
+    <div class="historical-control-head"><div><h2>Archivo WT / élite 1990-2026</h2><p class="muted">Selecciona un año para cargar únicamente sus grandes equipos. De 2005 en adelante se identifica la máxima categoría UCI; para 1990-2004 se usa el equivalente élite de la época presente en el Tour.</p></div><span class="badge ${current?.file ? "green" : "orange"}">${packStatusLabelV025(current)}</span></div>
     <div class="historical-controls-grid">
-      <label>Año de temporada<select onchange="activateHistoricalYearV025(Number(this.value))">${allHistoricalYearsV025().map(y=>{const e=manifestEntryV025(y);return `<option value="${y}" ${y===Game.historical.selectedYear?"selected":""}>${y} · ${e?.file?`${e.teamCount} equipos / ${e.riderCount} corredores`:"pack pendiente"}</option>`}).join("")}</select></label>
-      <label>Normalización entre épocas<select onchange="Game.historical.eraNormalization=this.value;renderHome()"><option value="equalized" ${Game.historical.eraNormalization==="equalized"?"selected":""}>Igualada · capacidades puras</option><option value="authentic" ${Game.historical.eraNormalization==="authentic"?"selected":""}>Tecnología de época · penaliza aero/CRI antiguos</option></select></label>
-      <label>Buscar equipo<input class="historical-search" value="${esc(Game.historical.teamSearch)}" oninput="setHistoricalSearchV025(this.value)" placeholder="Nombre, país o año"></label>
-      <label>Nivel<select onchange="setHistoricalLevelV025(this.value)"><option value="all">Todos</option>${[...new Set(TEAMS.map(t=>t.level))].sort().map(l=>`<option value="${esc(l)}" ${Game.historical.teamLevelFilter===l?"selected":""}>${esc(l)}</option>`).join("")}</select></label>
+      <label>Año de temporada<select onchange="activateHistoricalYearV025(Number(this.value))">${allHistoricalYearsV025().map(y=>{const e=manifestEntryV025(y);return `<option value="${y}" ${y===Game.historical.selectedYear?"selected":""}>${y} · ${e?.file?`${e.teamCount} equipos / ${e.riderCount} corredores`:"no disponible"}</option>`}).join("")}</select></label>
+      <label>Normalización entre épocas<select onchange="Game.historical.eraNormalization=this.value;renderHome()"><option value="equalized" ${Game.historical.eraNormalization==="equalized"?"selected":""}>Igualada · capacidades puras</option><option value="authentic" ${Game.historical.eraNormalization==="authentic"?"selected":""}>Tecnología de época · aero/CRI históricos</option></select></label>
+      <label>Buscar equipo<input class="historical-search" value="${esc(Game.historical.teamSearch)}" oninput="setHistoricalSearchV025(this.value)" placeholder="ONCE, Banesto, Telekom…"></label>
+      <label>Nivel<select onchange="setHistoricalLevelV025(this.value)"><option value="all">Todos los equipos cargados</option>${[...new Set(TEAMS.map(t=>t.level))].sort().map(l=>`<option value="${esc(l)}" ${Game.historical.teamLevelFilter===l?"selected":""}>${esc(l)}</option>`).join("")}</select></label>
     </div>
-    <div class="historical-status"><strong>${esc(Game.historical.dataMessage || "")}</strong><span>Packs disponibles en este ZIP: ${available.join(", ")}. El workflow incluido puede generar 1990-2026 sin inventar nombres.</span></div>
-    <div class="historical-tools-row"><button class="secondary" onclick="document.getElementById('historical-pack-input').click()">Importar pack JSON</button><input id="historical-pack-input" type="file" accept="application/json,.json" hidden onchange="importHistoricalPackV025(this.files[0])"><button class="secondary" onclick="Game.historical.showDataTools=!Game.historical.showDataTools;renderHome()">${Game.historical.showDataTools?"Ocultar":"Ver"} herramientas de datos</button></div>
-    ${Game.historical.showDataTools?`<div class="data-tools-note"><strong>Generación íntegra:</strong> ejecuta en GitHub Actions <code>Build historical database</code>. La acción descarga equipo por equipo, valida duplicados, comprueba corredores sin equipo y solo marca un año como completo si pasa los controles. También puedes ejecutar <code>python tools/build_historical_database.py --start-year 1990 --end-year 2026</code>.</div>`:""}
+    <div class="historical-iconic-search"><span>Acceso rápido:</span>${icons.map(name=>`<button class="chip-button" onclick="setHistoricalSearchV025('${name.replaceAll("'","\\'")}')">${esc(name)}</button>`).join("")}<button class="chip-button clear" onclick="setHistoricalSearchV025('')">Todos</button></div>
+    <div class="historical-status"><strong>${esc(Game.historical.dataMessage || "")}</strong><span>Los ${available.length} packs anuales están incluidos. Las reservas de archivo se identifican en la ficha del corredor y nunca usan nombres inventados.</span></div>
+    <div class="historical-tools-row"><button class="secondary" onclick="document.getElementById('historical-pack-input').click()">Importar pack JSON</button><input id="historical-pack-input" type="file" accept="application/json,.json" hidden onchange="importHistoricalPackV025(this.files[0])"><button class="secondary" onclick="Game.historical.showDataTools=!Game.historical.showDataTools;renderHome()">${Game.historical.showDataTools?"Ocultar":"Ver"} trazabilidad</button></div>
+    ${Game.historical.showDataTools?`<div class="data-tools-note"><strong>Criterio histórico:</strong> “WorldTeam” existe desde 2015 y “UCI ProTeam” fue la categoría superior entre 2005 y 2014. Para 1990-2004 se muestra el pelotón élite equivalente. La base de corredores 1990-2025 se deriva del archivo histórico del Tour; 2026 usa la base WT del simulador.</div>`:""}
   </section>`;
 }
 
@@ -418,7 +453,7 @@ renderTeamCard = function(team) {
     ${renderJersey({...team,visual})}<div class="badge-row"><span class="badge jersey-rainbow">${team.season || Game.historical?.selectedYear || 2026}</span><span class="badge green">${esc(team.level || "PRO")}</span><span class="badge">${esc(team.archetype || "Equipo profesional")}</span><span class="badge blue">${riders.length} corredores</span></div>
     <h3>${esc(team.displayName || team.name)}</h3><p class="muted small">${esc(team.country || "International")} · ${esc(getFrame(team.material?.frame).name)} · ${esc(getWheels(team.material?.wheels).name)}</p>
     <div class="chip-row">${riders.slice(0,6).map(r=>`<span class="chip">${esc(r.name)} · ${r.base}</span>`).join("")}</div>
-    <p class="data-provenance">Datos: ${esc(sourceStatus)}</p><button ${riders.length < ROSTER_SIZE ? "disabled" : ""} onclick="selectTeam('${team.id}')">${riders.length < ROSTER_SIZE ? `Plantilla insuficiente (${riders.length}/${ROSTER_SIZE})` : `Seleccionar ${team.season || ""}`}</button>
+    <p class="data-provenance">Datos: ${esc(sourceStatus)}${riders.some(r=>r.archivalReserve)?` · ${riders.filter(r=>r.archivalReserve).length} reservas de archivo`:""}</p><button ${riders.length < 2 ? "disabled" : ""} onclick="selectTeam('${team.id}')">${riders.length < 2 ? "Sin plantilla jugable" : `Seleccionar ${team.season || ""} · ${Math.min(ROSTER_SIZE,riders.length)} corredores`}</button>
   </div>`;
 };
 
@@ -430,7 +465,7 @@ renderHome = function() {
   ensureHistoricalStateV025();
   const filtered = filteredTeamsV025();
   const modeKey = Game.historical.databaseMode === "special" ? (Game.mode === "season" ? "special-season" : "special-single") : Game.mode;
-  app.innerHTML = `<div class="header"><div><h1>Cycling Manager Tour v0.25 Historical</h1><p>Temporadas por año · cruce de épocas · staff nominal · motor completo v0.24+</p></div><div class="top-actions"><button class="secondary" onclick="loadGame()">Cargar</button><button class="danger" onclick="clearSave()">Borrar guardado</button></div></div>
+  app.innerHTML = `<div class="header"><div><h1>Cycling Manager Tour v0.25+ WT Historical</h1><p>WorldTeams y élite histórica por año · cruce de épocas · motor completo v0.24+</p></div><div class="top-actions"><button class="secondary" onclick="loadGame()">Cargar</button><button class="danger" onclick="clearSave()">Borrar guardado</button></div></div>
     <section class="panel"><h2>Modo de juego</h2><div class="mode-grid historical-mode-grid">
       <button class="mode-card ${modeKey==="single"?"active":""}" onclick="setHistoricalGameModeV025('single')"><strong>Carrera única histórica</strong><span>Una carrera con equipos del año seleccionado.</span></button>
       <button class="mode-card ${modeKey==="season"?"active":""}" onclick="setHistoricalGameModeV025('season')"><strong>Temporada histórica</strong><span>Calendario encadenado y equipos de una misma temporada.</span></button>
@@ -472,7 +507,7 @@ saveGame = function(show=true) {
 
 loadGame = async function() {
   const raw = safeStorageGet(V025_SAVE_KEY);
-  if (!raw) return toast("No hay guardado v0.25 Historical");
+  if (!raw) return toast("No hay guardado v0.25+ WT Historical");
   try {
     const obj = JSON.parse(raw);
     if (obj.version !== V025_VERSION) throw new Error("Versión de guardado incompatible");
@@ -537,6 +572,94 @@ init = function() {
 };
 
 ensureHistoricalStateV025();
-HistoricalV025.packCache[2026] = normalizePackV025({season:2026,teams:HistoricalV025.baseTeams,riders:HistoricalV025.baseRiders,calendar:HistoricalV025.baseRaces,completeness:{status:"included-simulator-base"}});
+{
+  const curated2026 = clone(CURRENT_2026_MAJOR_PACK);
+  curated2026.calendar = clone(HistoricalV025.baseRaces);
+  HistoricalV025.packCache[2026] = normalizePackV025(curated2026);
+}
+activatePackDataV025(HistoricalV025.packCache[2026], {normalization:Game.historical.eraNormalization});
+Game.historical.selectedYear = 2026;
+Game.historical.activeYears = [2026];
+Game.historical.activePackStatus = "major-riders-verified";
+Game.historical.dataMessage = `${TEAMS.length} UCI WorldTeams · ${RIDERS.length} figuras principales reales cargadas para 2026`;
 Game.version = V025_VERSION;
 renderHome();
+
+
+/* ============================================================
+   Convocatorias históricas adaptativas
+   Mantiene 8 corredores en plantillas completas y permite disputar
+   temporadas antiguas con archivos documentales más pequeños.
+   ============================================================ */
+function historicalRosterSizeV025(teamId) {
+  const available = getFullTeamRiders(teamId).length;
+  return Math.max(1, Math.min(ROSTER_SIZE, available));
+}
+
+prepareRosterSelection = function() {
+  const required = historicalRosterSizeV025(Game.selectedTeamId);
+  Game.pendingRosterIds = autoSelectRoster(Game.selectedTeamId, getRace()).slice(0, required).map(r => r.id);
+  Game.raceRosters = {};
+  Game.rosterLocked = false;
+  Game.finished = false;
+  Game.betweenRaces = false;
+  Game.live = null;
+  renderRosterSelection();
+};
+
+toggleRoster = function(id) {
+  if (Game.rosterLocked) return;
+  const required = historicalRosterSizeV025(Game.selectedTeamId);
+  if (Game.pendingRosterIds.includes(id)) {
+    Game.pendingRosterIds = Game.pendingRosterIds.filter(x => x !== id);
+  } else {
+    if (Game.pendingRosterIds.length >= required) return toast(`Máximo ${required} corredores para esta plantilla`);
+    Game.pendingRosterIds.push(id);
+  }
+  renderRosterSelection();
+};
+
+confirmRoster = function() {
+  const required = historicalRosterSizeV025(Game.selectedTeamId);
+  const uniqueIds = [...new Set((Game.pendingRosterIds || []).filter(id => !!getRider(id) && getRider(id).teamId === Game.selectedTeamId))];
+  if (uniqueIds.length !== required) {
+    Game.pendingRosterIds = uniqueIds;
+    renderRosterSelection();
+    return toast(`Debes escoger exactamente ${required} corredores`);
+  }
+  try {
+    Game.pendingRosterIds = uniqueIds;
+    Game.raceRosters = {};
+    TEAMS.forEach(team => {
+      const teamSize = historicalRosterSizeV025(team.id);
+      Game.raceRosters[team.id] = autoSelectRoster(team.id, getRace()).filter(Boolean).slice(0, teamSize).map(r => r.id);
+    });
+    Game.raceRosters[Game.selectedTeamId] = [...uniqueIds];
+    Game.lastRaceRosterIds = [...uniqueIds];
+    resetRaceState();
+    Game.rosterLocked = true;
+    renderRace();
+    saveGame(false);
+  } catch (error) {
+    console.error("Error al confirmar convocatoria histórica:", error);
+    Game.rosterLocked = false;
+    toast("No se pudo iniciar la carrera. Revisa la convocatoria e inténtalo de nuevo.");
+    renderRosterSelection();
+  }
+};
+
+renderRosterSelection = function() {
+  const team = getTeam(Game.selectedTeamId), race = getRace();
+  const riders = getFullTeamRiders(Game.selectedTeamId).slice().sort((a,b) => b.base - a.base);
+  const required = historicalRosterSizeV025(Game.selectedTeamId);
+  const reserveCount = riders.filter(r=>r.archivalReserve).length;
+  app.innerHTML = `<div class="header"><div><h1>Selecciona ${required} corredores</h1><p>${esc(team.name)} · ${esc(race.name)} · convocatoria histórica bloqueada durante la carrera</p></div><div class="top-actions"><button class="secondary" onclick="Game.selectedTeamId=null;renderHome()">Volver</button><button id="confirm-roster-button" type="button" onclick="confirmRoster()">Confirmar selección e iniciar</button></div></div>
+    <section class="panel sticky-panel"><div class="roster-summary"><div><strong>${Game.pendingRosterIds.length}/${required} seleccionados</strong><p class="muted small">${required===ROSTER_SIZE?"Convocatoria completa de ocho corredores.":`Archivo parcial: se utilizarán los ${required} corredores disponibles.`}${reserveCount?` · ${reserveCount} reservas reales de la misma estructura y temporadas cercanas.`:""}</p></div><div class="chip-row">${Game.pendingRosterIds.map(id => `<span class="chip selected">${esc(getRider(id).name)}</span>`).join("")}</div></div></section>
+    <section class="panel"><h2>Plantilla ${team.season || ""}</h2><div class="roster-grid">${riders.map(renderRosterCard).join("")}</div></section>`;
+};
+
+renderRosterCard = function(r) {
+  const selected = Game.pendingRosterIds.includes(r.id);
+  const archive = r.archivalReserve ? `<span class="badge historical-reserve">Reserva ${r.sourceSeason || "archivo"}</span>` : "";
+  return `<button class="roster-card ${selected?"selected":""}" onclick="toggleRoster('${r.id}')"><div class="badge-row"><span class="badge green">${esc(r.role)}</span><span class="badge blue">Base ${r.base}</span><span class="badge orange">Forma ${Math.round(r.form)}</span>${archive}</div><h3>${esc(r.name)}</h3><p class="muted small">${esc(r.nationality)} · ${r.age} años · ${r.weightKg} kg</p>${miniStats(r)}</button>`;
+};

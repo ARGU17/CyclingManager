@@ -1,110 +1,49 @@
-# Cycling Manager Tour v0.25 Historical
+# Cycling Manager Tour v0.25+ WT Historical
 
-Versión ampliada de **v0.24+** preparada para GitHub Pages. Conserva el motor anterior y añade una arquitectura de temporadas históricas, selector por año, cruce de épocas y staff nominal.
+Ampliación de v0.24+/v0.25 con archivo anual de grandes equipos masculinos desde 1990 hasta 2026, selector por año y enfrentamientos entre épocas. Se conservan todos los módulos anteriores del simulador.
 
-## Inicio rápido
+## Instalación en GitHub Pages
 
-1. Sube **todos los archivos y carpetas** a la raíz del repositorio.
-2. Activa GitHub Pages desde la rama principal.
-3. Abre `index.html` a través de la URL de GitHub Pages.
-4. Pulsa **Borrar guardado** una vez si vienes de v0.24+.
+1. Descomprime el ZIP.
+2. Sube **todos** los archivos y carpetas a la raíz del repositorio.
+3. Mantén `historical-data/` junto a `index.html`.
+4. Activa GitHub Pages desde la rama principal y la carpeta raíz.
+5. Abre la web y pulsa **Borrar guardado** una vez.
 
-> Los packs JSON se cargan con `fetch`; por ello, la selección histórica debe abrirse desde GitHub Pages o un servidor local. Abrir `index.html` directamente como `file://` puede bloquear la carga de JSON por seguridad del navegador.
+No abras solamente `index.html` desde el sistema de archivos: los packs anuales se cargan mediante `fetch` y deben ejecutarse desde GitHub Pages o un servidor local.
 
-## Modos históricos
+## Archivo histórico incluido
 
-- **Carrera única histórica:** equipos del año elegido.
-- **Temporada histórica:** calendario encadenado y equipos de una única temporada.
-- **Carrera especial multi-era:** mezcla equipos de varias temporadas.
-- **Temporada especial multi-era:** calendario completo con generaciones enfrentadas.
-- **Normalización igualada:** compara capacidades deportivas sin penalización tecnológica.
-- **Tecnología de época:** aplica una pequeña diferencia en aerodinámica y crono a épocas antiguas.
+- **1990-2004:** equipos masculinos de élite equivalentes a la máxima categoría de la época, centrados en las estructuras presentes en el Tour de Francia.
+- **2005-2014:** era UCI ProTeam/ProTour, con archivo anual del pelotón élite.
+- **2015-2025:** era UCI WorldTeam, más las estructuras históricas relevantes necesarias para conservar equipos solicitados como Cofidis o Kelme cuando su estatus varió.
+- **2026:** los 18 UCI WorldTeams, con 10 figuras principales reales por equipo. Se han eliminado los nombres de relleno sintéticos.
 
-## Cobertura incluida en el ZIP
+El paquete contiene **37 archivos anuales**, **790 equipos-temporada** y **6.306 entradas de corredor**. Entre 1990 y 2025 hay 6.126 entradas documentales; 2026 incorpora 180 corredores principales reales, diez por WorldTeam.
 
-| Año | Equipos | Corredores | Estado |
-|---:|---:|---:|---|
-| 2018 | 51 | 1.005 | Nombres/equipos procedentes de un dataset abierto derivado de PCS; ratings estimados |
-| 2026 | 34 | 927 | Base completa del simulador v0.24+ |
+## Equipos históricos destacados
 
-La interfaz muestra de forma explícita qué años están incluidos y cuáles requieren generación. **No se inventan corredores para aparentar una base completa.**
+Incluye, entre otros:
 
-## Generar 1990-2026
+- ONCE / ONCE-Deutsche Bank / ONCE-Eroski.
+- Banesto / iBanesto.com.
+- US Postal Service y Discovery Channel.
+- Kelme / Kelme-Costa Blanca.
+- Caisse d'Epargne y Movistar.
+- Team Deutsche Telekom / Team Telekom / T-Mobile.
+- Astana, Astana-Würth y XDS Astana.
+- Trek Factory Racing, Trek-Segafredo y Lidl-Trek.
+- Cofidis.
+- Saunier Duval-Prodir y Saunier Duval-Scott.
+- Festina, Mapei, Carrera, Mercatone Uno, Rabobank, CSC/Saxo, Quick-Step, Lampre/UAE, Liquigas, BMC, Phonak, Gerolsteiner, Fassa Bortolo, Euskaltel, Team Sky/INEOS y otras estructuras de primer nivel.
 
-ProCyclingStats ofrece acceso a datos mediante solicitud de API y limita las peticiones durante 2026. El repositorio incluye un generador con caché, reintentos, validación y rate limiting.
+La pantalla histórica incorpora accesos rápidos para localizar las estructuras solicitadas aunque el nombre comercial cambie o use puntos, guiones y apóstrofes.
 
-### Desde GitHub Actions
+## Corredores y habilidades
 
-1. Abre **Actions**.
-2. Selecciona **Build historical database**.
-3. Pulsa **Run workflow**.
-4. Indica el rango de años.
-5. Para construir nombres y plantillas rápidamente, deja `enrich_profiles = false`.
-6. Para ratings más precisos basados en las páginas individuales de PCS, ejecuta uno o pocos años con `enrich_profiles = true`.
+Los packs históricos contienen nombres reales del archivo utilizado. Cuando una alineación documental es menor de ocho corredores, se añaden reservas reales de la misma continuidad deportiva en temporadas cercanas, identificadas con `archivalReserve` y `sourceSeason`.
 
-La acción crea `historical-data/AÑO.json`, actualiza el manifiesto y hace commit automático.
-
-### Desde un ordenador
-
-```bash
-pip install requests beautifulsoup4 lxml
-python tools/build_historical_database.py \
-  --start-year 1990 \
-  --end-year 2026 \
-  --output historical-data \
-  --cache .cache/pcs \
-  --delay 1.5 \
-  --rosters-only \
-  --resume
-```
-
-Enriquecimiento de una temporada con perfiles individuales:
-
-```bash
-python tools/build_historical_database.py \
-  --year 1992 \
-  --output historical-data \
-  --cache .cache/pcs \
-  --delay 1.5
-```
-
-Validación:
-
-```bash
-python tools/validate_historical_database.py historical-data
-```
-
-## Formato de pack
-
-```json
-{
-  "schemaVersion": 2,
-  "season": 1992,
-  "completeness": {
-    "status": "complete",
-    "teamCount": 32,
-    "riderCount": 640
-  },
-  "teams": [],
-  "riders": [],
-  "calendar": []
-}
-```
-
-Los packs también pueden importarse desde la pantalla inicial mediante **Importar pack JSON**.
-
-## Ratings
-
-Cuando se ejecuta el enriquecimiento completo, el generador intenta leer las categorías PCS de cada corredor:
-
-- carreras de un día;
-- general;
-- contrarreloj;
-- sprint;
-- escalada;
-- colinas.
-
-A partir de ellas genera las capacidades del simulador:
+Cada corredor dispone de ratings para:
 
 - llano;
 - sprint;
@@ -119,41 +58,24 @@ A partir de ellas genera las capacidades del simulador:
 - colocación;
 - descenso.
 
-Los packs creados con `--rosters-only` mantienen nombres y equipos, pero marcan los ratings como estimados hasta enriquecerse.
+Las figuras históricas más importantes tienen arquetipos y valores revisados manualmente. Las capacidades no pretenden ser mediciones fisiológicas oficiales: son ratings de simulación reproducibles basados en especialidad y rendimiento histórico.
 
-## Staff nominal
+## Modos compatibles
 
-Se han añadido 23 profesionales ficticios y realistas, cada uno con:
+- Carrera individual histórica.
+- Temporada encadenada con los equipos del año seleccionado.
+- Carrera especial multi-era.
+- Temporada especial multi-era, por ejemplo 1992 contra 2026.
+- Igualación de capacidades entre épocas o diferencia tecnológica histórica.
 
-- nombre;
-- edad y nacionalidad;
-- profesión;
-- experiencia;
-- coste;
-- rasgos;
-- habilidades específicas;
-- efectos de carrera.
+## Maillots 3D
 
-La selección de staff filtra candidatos según el puesto: director, entrenador, nutricionista, mecánico, analista u ojeador.
+Cada estructura histórica obtiene representación 3D con año, abreviatura, colores y patrón determinista. Las estructuras icónicas tienen paletas específicas para que ONCE, Banesto, US Postal, Telekom, Kelme, Astana, Trek, Cofidis y Saunier Duval sean visualmente reconocibles.
 
-## Funciones anteriores conservadas
+## Funcionalidades conservadas
 
-- Race Director y vista TV.
-- Amenaza táctica y recomendación del director.
-- Clima y estado de carretera.
-- Motor de grupos, ataques y respuestas.
-- CP/W′, potencia y pendiente.
-- Fugas persistentes.
-- Autobús, abanicos, descensos y pavé.
-- CRI y CRE con salidas separadas.
-- Nutrición automática/manual.
-- Cuadros, ruedas, neumáticos y presiones.
-- Calendario individual y objetivos A/B/C.
-- Contratos, promesas, mentoría y scouting.
-- Logística y staff por carrera.
-- Telemetría, gráficos, alertas y palmarés.
-- Selección bloqueada de ocho corredores.
+Se mantienen Race Director, clima, estado de la carretera, amenaza táctica, recomendación del director, retransmisión TV, motor CP/W′, grupos, ataques, corredores puente, abanicos, autobús, pavé, descensos, nutrición, material, neumáticos, CRI, CRE, objetivos A/B/C, calendario individual, staff nominal, contratos, scouting, cantera, mentoría, logística, telemetría, gráficos, alertas y palmarés.
 
-## Uso responsable de datos
+## Límites de la base
 
-Revisa los términos de la fuente antes de ejecutar extracciones masivas. El generador usa una espera mínima, caché y reintentos. Para un proyecto público o comercial, solicita acceso oficial a la API de PCS.
+La base 1990-2025 se apoya en un archivo histórico del Tour. Es una cobertura amplia del pelotón élite y de los equipos solicitados, pero no una base contractual universal con todos los profesionales inscritos en cada estructura durante los 37 años. Consulta `DATA_SOURCES.md`.
