@@ -1,0 +1,51 @@
+name: Validate WT historical archive
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'historical-data/**'
+      - 'historical-engine.js'
+      - 'historical-manifest.js'
+      - 'staff-database.js'
+      - 'tools/validate_wt_archive.py'
+      - 'tools/smoke_test_v025plus.js'
+      - '.github/workflows/build-historical-database.yml'
+  pull_request:
+    paths:
+      - 'historical-data/**'
+      - 'historical-engine.js'
+      - 'historical-manifest.js'
+      - 'staff-database.js'
+      - 'tools/validate_wt_archive.py'
+      - 'tools/smoke_test_v025plus.js'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate annual packs and identities
+        run: python tools/validate_wt_archive.py
+      - name: Validate JavaScript syntax
+        run: |
+          node --check data.js
+          node --check game.js
+          node --check v024-data.js
+          node --check v024-expansion.js
+          node --check historical-manifest.js
+          node --check historical-engine.js
+          node --check staff-database.js
+      - name: Run historical runtime smoke test
+        run: node tools/smoke_test_v025plus.js
