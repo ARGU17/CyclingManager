@@ -1,73 +1,52 @@
-# Informe de validación · v0.27
+# Informe de validación · v0.29 Club HQ & Sponsors
 
-## Validaciones de sintaxis
+## Integridad de archivos
 
-- Todos los JavaScript de la raíz: correctos.
-- Todos los JavaScript de `stage-lab`: correctos.
-- Herramientas Python: compilación correcta.
-- Referencias CSS/JS de `index.html`: sin archivos ausentes.
-- Referencias CSS/JS de `stage-lab/index.html`: sin archivos ausentes.
+Comparación directa con v0.28:
 
-## Prueba integral v0.27
+- Archivos funcionales de v0.28, excluyendo cachés Python generadas: **134**.
+- Archivos funcionales de v0.29: **140**.
+- Archivos funcionales heredados eliminados: **0**.
+- Archivos aditivos: `v029-data.js`, `v029-club.js`, `v029.css`, `club-showcase.html` y `tools/smoke_test_v029.js`.
+
+Los documentos de versión se actualizaron sin eliminar módulos funcionales.
+
+## Sintaxis
+
+- Todos los JavaScript de la raíz: válidos.
+- Todos los JavaScript directos de `stage-lab`: válidos.
+- `v029-data.js`: válido.
+- `v029-club.js`: válido.
+- `tools/smoke_test_v029.js`: válido.
+- Referencias de `index.html`: presentes.
+
+## Prueba integral v0.29
 
 Ejecutada con:
 
 ```bash
-node tools/smoke_test_v027.js
+node tools/smoke_test_v029.js
 ```
 
 Resultado:
 
-- Asistente inicial v0.26 preservado.
-- Módulos GPX cargados.
+- Estado v0.29 inicializado.
+- 18 sedes cargadas.
+- 10 instalaciones cargadas.
+- Elección de Girona validada.
+- Onboarding previo a la convocatoria validado.
+- Stage Lab compatible.
+- Convocatoria de ocho corredores funcional.
+- 13 ofertas comerciales generadas en la ronda inicial.
+- Contrato de patrocinio aceptado.
+- Construcción de instalación iniciada.
+- Dashboard `Sede & Sponsors` renderizado.
+- Simulación de carrera completada.
+- Exposición comercial postcarrera registrada.
+- Satisfacción de patrocinadores actualizada.
+- Guardado y carga del estado empresarial validados.
 - 34 equipos 2026.
-- 927 registros de corredor 2026.
-- 1.000 perfiles de staff.
-- 1.000 corredores U23.
-- Stage Lab abre antes de la convocatoria.
-- Aceptación GPX correcta.
-- Conversión a perfil y sectores correcta.
-- Convocatoria confirmada.
-- Perfil GPX visible en Race Director.
-- Simulación rápida con tiempos finitos.
-- Telemetría postetapa disponible.
-- Temporada abre Stage Lab en la carrera activa.
-- Multi-era mantiene su selector de pelotón.
-- UAE Tour no se confunde con Tour de France.
-
-## Prueba de vuelta completa
-
-Ejecutada con:
-
-```bash
-node tools/test_v027_stage_lab_multistage.js
-```
-
-Resultado:
-
-- Tour de France generado con 21 etapas.
-- 21/21 etapas convertidas a GPX.
-- 6.699 puntos de recorrido integrados en la prueba.
-- Todas las etapas con perfil y sectores.
-- Convocatoria confirmada.
-- Motor por sectores iniciado correctamente.
-
-## Pruebas propias de Stage Lab
-
-Ejecutadas con:
-
-```bash
-cd stage-lab
-npm test
-```
-
-Resultados:
-
-- Generación de vueltas validada.
-- Exportación GPX validada.
-- Progreso por etapas validado.
-- Sincronización del mapa validada.
-- Recuperación adaptativa de enrutado validada.
+- 927 corredores 2026.
 
 ## Regresión v0.26
 
@@ -77,23 +56,71 @@ Ejecutada con:
 node tools/smoke_test_v026_full.js
 ```
 
-Resultados:
+Resultado:
 
-- Carrera normal: 25 equipos.
-- Tour: 22 equipos.
-- Multi-era: 22 equipos en calendario con gran vuelta.
-- Base 2026 completa.
-- Mercado de staff funcional.
-- Mercado U23 funcional.
+- 34 equipos y 927 corredores en 2026.
+- Mercado de 1.000 profesionales de staff.
+- Mercado de 1.000 corredores U23.
+- Carrera normal limitada a 25 equipos.
+- Tour limitado a 22 equipos.
+- Temporada multi-era con gran vuelta limitada a 22 equipos.
+- Fichaje de staff rival funcional.
+- Incorporación U23 funcional.
 - Compra de autobús funcional.
-- Mejora de departamentos funcional.
-- Simulación con tiempos válidos.
-- Guardado y carga multi-era funcionales.
+- Departamentos actualizables.
+- Guardado multi-era funcional.
 
-## Archivos servibles
+## Regresión v0.27 GPX
 
-Comprobados mediante servidor HTTP local:
+Ejecutada con:
 
-- `/index.html`: 200 OK.
-- `/stage-lab/index.html`: 200 OK.
-- `/gpx-stage-data.js`: 200 OK.
+```bash
+node tools/test_v027_stage_lab_multistage.js
+```
+
+Resultado:
+
+- Tour generado con 21 etapas.
+- 6.699 puntos de perfil integrados.
+- Primera etapa dividida en 22 sectores.
+- Conversión Stage Lab → motor de carrera operativa.
+
+## Stage Lab
+
+Ejecutadas:
+
+```bash
+node stage-lab/smoke-test.js
+node stage-lab/map-sync-test.js
+node stage-lab/routing-recovery-test.js
+```
+
+Resultado:
+
+- Generación de vueltas validada.
+- GPX validado.
+- Progreso y estructura plana validados.
+- Mapa sincronizado aunque las teselas o DEM estén pendientes.
+- Recuperación adaptativa de rutas rechazadas validada.
+
+## Archivo histórico
+
+Ejecutado con:
+
+```bash
+python tools/validate_historical_database.py historical-data
+```
+
+Resultado:
+
+- Temporadas 1990–2026 procesadas.
+- Cero errores de integridad.
+- 2026: 34 equipos y 927 corredores.
+- Se conservan advertencias informativas de plantillas históricas cortas en algunos años; no bloquean la carga.
+
+## Compatibilidad
+
+- Ninguna función anterior se sustituye por datos ficticios de patrocinio.
+- Los nombres comerciales nuevos están marcados como contenido de simulación.
+- La pestaña anterior de Club / Infraestructura sigue disponible.
+- La v0.29 amplía la interfaz y el estado; no reemplaza el motor deportivo.

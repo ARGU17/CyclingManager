@@ -73,3 +73,17 @@ Los puntos GPX se utilizan para:
 - simulación física cada 250 m.
 
 El generador Stage Lab puede crear recorridos procedurales o consultar un servidor de enrutado compatible. Las rutas generadas de forma procedural no se presentan como tracks oficiales de una organización deportiva.
+
+## v0.28 · actualización visual
+
+La v0.28 no modifica fuentes de datos, plantillas, ratings ni recorridos. Los nuevos maillots, avatares y mini perfiles son representaciones visuales generadas localmente a partir de los colores y datos ya incluidos en el simulador; no utilizan fotografías ni recursos externos.
+
+## v0.29 · sede, patrocinadores y finanzas
+
+Las ciudades y sus atributos son parámetros de diseño para el simulador. No representan rankings oficiales, costes inmobiliarios auditados ni presupuestos reales de equipos.
+
+Las 61 empresas del mercado de patrocinio v0.29 y las marcas técnicas incluidas en `v029-data.js` son **ficticias**. Se utilizan para generar negociaciones, exclusividades y conflictos comerciales sin atribuir contratos inexistentes a compañías reales.
+
+Los importes de CAPEX, OPEX, patrocinio, deuda, merchandising, exposición, valor del club y coste de traslado son cifras de equilibrio jugable. No deben interpretarse como cuentas reales de equipos WorldTour o ProTeam.
+
+La v0.29 no modifica la procedencia de las bases históricas, staff, cantera o GPX heredadas de versiones anteriores.

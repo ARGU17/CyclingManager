@@ -1,62 +1,107 @@
 # Changelog
 
-## v0.27 · GPX Stage Lab
+## v0.29 · Club HQ & Sponsors
 
-### Integración
+### Arquitectura
 
-- Fusionado Grand Tour Stage Lab con v0.26 Director Suite.
-- Stage Lab se abre después de seleccionar equipo y antes de la convocatoria.
-- Compatible con carrera individual, temporada, carrera multi-era y temporada multi-era.
-- Compatible con eventos de una etapa, vueltas cortas y grandes vueltas.
-- Las pantallas y sistemas de v0.26 no se sustituyen.
+- Implementación aditiva cargada después de v0.28.
+- Ningún archivo heredado eliminado.
+- Estado persistente aislado en `Game.v029`.
+- Compatibilidad con el guardado principal anterior.
+- Integración con carrera única, temporada, histórico y multi-era.
 
-### Motor GPX
+### Sede
 
-- Física por pendiente cada 250 m.
-- Pendiente interpolada desde el track real.
-- Viento efectivo según orientación de la carretera.
-- Riesgo de viento lateral y abanicos sobre la geometría GPX.
-- Simulación específica para carretera, CRI y CRE.
-- Detección automática de puertos y finales en alto.
-- Sectores generados según ascenso, descenso y pendiente máxima.
-- Integración con CP, W′, energía, hidratación, telemetría y grupos.
+- 18 posibles ciudades de sede.
+- Diez atributos territoriales por ciudad.
+- Coste operativo y coste de traslado.
+- Historial de reubicaciones.
+- Elección inicial antes de la convocatoria.
+- Modificadores de entrenamiento, talento, ciencia, logística y mercado.
 
-### Visualización
+### Campus
 
-- Perfil GPX interactivo.
-- Mapa del recorrido.
-- Scrubber de distancia.
-- Lectura de km, distancia restante, altitud y pendiente.
-- Grupos sincronizados sobre perfil y recorrido.
-- Leyenda de pendientes.
-- Tarjetas de sectores GPX.
+- Nuevo mapa visual del campus.
+- 10 instalaciones con niveles 0–5.
+- CAPEX, OPEX, capacidad, duración y condición.
+- Proyectos simultáneos y avance temporal.
+- Aceleración de obra.
+- Mantenimiento extraordinario.
+- Efectos conectados al motor deportivo y a la gestión.
 
-### Stage Lab
+### Bases secundarias
 
-- Generación procedural de eventos completos.
-- Condicionantes en lenguaje natural.
-- Importación GPX local.
-- Enrutado opcional por carreteras reales.
-- Exportación ZIP.
-- Recuperación adaptativa de rutas rechazadas.
-- Mapa 3D y perfil sincronizados.
+- 10 bases satélite internacionales.
+- Coste de apertura y mantenimiento anual.
+- Especializaciones en altitud, clásicas, calor, scouting, logística y aerodinámica.
 
-### Base incluida
+### Patrocinadores
 
-- Añadidos 18 GPX del Tour aportados por el usuario.
-- Añadida base preprocesada `gpx-stage-data.js`.
-- Añadido evento Tour GPX adicional.
+- Mercado de 61 empresas ficticias de simulación.
+- 13 sectores comerciales.
+- Title sponsor, co-title, secundarios, técnicos e institucionales.
+- Ofertas dinámicas.
+- Prima de firma, fijo, variables, duración y activaciones.
+- Derechos de nombre y color.
+- Exclusividades y límites de activos comerciales.
+- Contraofertas y probabilidad de aceptación.
+- Rescisión con penalización.
+- Satisfacción individual por contrato.
+- Renovación y cierre de temporada.
 
-### Correcciones
+### Socios técnicos
 
-- Corregida la identificación de grandes vueltas.
-- `uae_tour` ya no se clasifica como Tour de France.
-- Tour, Giro y Vuelta mantienen 22 equipos; UAE Tour y otras pruebas permiten hasta 25.
-- Baselines de etapas capturados dinámicamente para años históricos y cruces multi-era.
-- Carga asíncrona de partidas adaptada para restaurar el GPX antes del render final.
-- Eliminada la dependencia del hotfix antiguo `v024PlusPersist`.
+- 9 categorías de producto.
+- 45 marcas ficticias de simulación.
+- Contratos asociados a materiales, vehículos, datos, nutrición y medicina.
+
+### Finanzas
+
+- Cuenta de resultados proyectada.
+- Separación de caja, ingresos y gastos comprometidos.
+- OPEX de campus, bases y flota.
+- Salarios de corredores y staff.
+- Ledger persistente.
+- Línea de crédito, deuda y amortización.
+- Cálculo de valor del club.
+
+### Organización
+
+- Organigrama de 10 puestos ejecutivos.
+- Asignación desde el staff ya contratado.
+- Calidad organizativa, moral departamental y carga de trabajo.
+- Acceso directo al mercado de staff anterior.
+
+### Marca y aficionados
+
+- 10 identidades de club.
+- Gestión de colores y nombre comercial.
+- 12 mercados regionales de aficionados.
+- Seguidores sociales.
+- Precio de merchandising.
+- Estrategia de contenido.
+- Campañas digitales, regionales, documentales y hospitality.
+
+### Exposición y eventos
+
+- Cálculo postcarrera de exposición comercial.
+- Impacto sobre satisfacción, aficionados, ventas y valor.
+- 12 tipos de eventos dinámicos.
+- Tres respuestas posibles por evento.
+- Historial de decisiones.
+
+### Interfaz
+
+- Nueva pestaña `Sede & Sponsors`.
+- Dashboard de club.
+- Vista de sede, campus, patrocinadores, finanzas, marca, organigrama, bases e historial.
+- Estilo Graphite Performance coherente con v0.28.
+- Acceso al Club HQ entre carreras y desde la pantalla final.
 
 ### Compatibilidad
 
-- Mantiene la clave y el esquema de guardado v0.26.
-- Conserva la base histórica, base 2026, staff, U23, infraestructura y todos los sistemas deportivos anteriores.
+- Stage Lab y GPX sin modificaciones destructivas.
+- Motor físico, CP/W′ y Race Director preservados.
+- Archivo histórico y base 2026 preservados.
+- Mercados de staff y U23 preservados.
+- Infraestructura, autobuses, coches y departamentos de v0.26 preservados.

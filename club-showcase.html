@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>v0.29 Club HQ Showcase</title>
+  <link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="v024.css"><link rel="stylesheet" href="historical.css"><link rel="stylesheet" href="v026.css"><link rel="stylesheet" href="gpx.css"><link rel="stylesheet" href="stage-lab-integration.css"><link rel="stylesheet" href="v027.css"><link rel="stylesheet" href="v028.css"><link rel="stylesheet" href="v029.css">
+</head>
+<body><div id="app"></div>
+<script src="data.js"></script><script src="v024-data.js"></script><script src="gpx-stage-data.js"></script><script src="gpx-engine.js"></script><script src="game.js"></script><script src="v024-expansion.js"></script><script src="historical-manifest.js"></script><script src="current-2026-major.js"></script><script src="staff-database.js"></script><script src="historical-engine.js"></script><script src="staff-market-v026.js"></script><script src="youth-market-v026.js"></script><script src="v026-management.js"></script><script src="v026-frontoffice.js"></script><script src="gpx-integration-v027.js"></script><script src="stage-lab-integration-v027.js"></script><script src="v027.js"></script><script src="v028.js"></script><script src="v029-data.js"></script><script src="v029-club.js"></script>
+<script>
+setTimeout(()=>{
+  try{
+    const race=FULL_2026_PACK_V026.calendar.find(r=>r.id==='tour')||FULL_2026_PACK_V026.calendar[0];
+    V026Runtime.catalogTeams=clone(FULL_2026_PACK_V026.teams);V026Runtime.catalogRiders=clone(FULL_2026_PACK_V026.riders);V026Runtime.catalogRaces=[clone(race)];V026Runtime.packYears=[2026];
+    resetWizardV026();Object.assign(Game.v026.wizard,{active:false,mode:'season',selectedYear:2026,selectedRaceIds:[race.id]});
+    const ids=autoNormalFieldV026('uae');applyCompetitionFieldV026(ids,'uae');Game.stageLab.enabled=false;
+    const club=ensureV029State();club.onboardingConfirmed=true;club.brand.identityId='technology';club.campus.projects.push({id:'showcase_project',facilityId:'aero_center',targetLevel:club.campus.facilities.aero_center.level+1,weeksRemaining:7,totalWeeks:14,cost:2100000});
+    Game.pendingRosterIds=autoSelectRoster('uae',getRace()).map(r=>r.id);Game.raceRosters={};TEAMS.forEach(t=>Game.raceRosters[t.id]=autoSelectRoster(t.id,getRace()).map(r=>r.id));Game.rosterLocked=true;resetRaceState();Game.activeTab='club_hq';renderRace();
+  }catch(error){document.getElementById('app').innerHTML='<pre>'+error.stack+'</pre>';console.error(error);}
+},50);
+</script></body></html>
