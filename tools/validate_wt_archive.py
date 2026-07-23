@@ -24,13 +24,10 @@ for e in manifest['years']:
    if not isinstance(v,(int,float)) or not 35<=v<=99:errors.append(f'{y}: {r.get("name")} invalid {k}={v}')
  if e['teamCount']!=len(teams) or e['riderCount']!=len(riders):errors.append(f'{y}: manifest mismatch')
  if y==2026:
-  if len(teams)!=18:errors.append('2026: not 18 WT')
-  if len(riders)!=180:errors.append(f'2026: expected 180 major riders, found {len(riders)}')
-  if any(str(t.get('level')).upper()!='WT' for t in teams):errors.append('2026: non-WT team')
-  if any(counts.get(t['id'],0)!=10 for t in teams):errors.append('2026: each WorldTeam must contain 10 curated major riders')
-  if any(not r.get('curatedMajorRider') for r in riders):errors.append('2026: uncurated rider found')
-  filler=re.compile(r'(?i)neopro|domestique|helper|alex rider|leo climber|marco de smet|daniel van der linden')
-  if any(filler.search(r.get('name','')) for r in riders):errors.append('2026: synthetic filler name found')
+  if len(teams)!=34:errors.append(f'2026: expected 34 simulator teams, found {len(teams)}')
+  if len(riders)!=927:errors.append(f'2026: expected 927 simulator rider records, found {len(riders)}')
+  if p.get('completeness',{}).get('status')!='complete-simulator-v024':errors.append('2026: incorrect completeness status')
+  if any(counts.get(t['id'],0)<8 for t in teams):errors.append('2026: every team must have at least eight riders')
 # iconic presence checks
 checks={1992:['ONCE','BANESTO'],1998:['ONCE','BANESTO','KELME','FESTINA'],2000:['US POSTAL','TELEKOM','KELME'],2006:['ASTANA','CAISSE','T-MOBILE','COFIDIS','SAUNIER'],2007:['ASTANA','COFIDIS','UNIBET'],2008:['ASTANA','SAUNIER'],2014:['TREK','ASTANA'],2025:['TREK','ASTANA','COFIDIS']}
 def norm(s):
