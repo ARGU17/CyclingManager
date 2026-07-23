@@ -1,44 +1,62 @@
-# Changelog — v0.26 Director Suite
+# Changelog
 
-## Interfaz y modos
+## v0.27 · GPX Stage Lab
 
-- Sustituido el inicio anterior por un asistente secuencial: modo → carrera/calendario → pelotón multi-anual → equipo → convocatoria.
-- Las ventanas de modo y carrera desaparecen después de avanzar.
-- Añadida selección obligatoria del pelotón en carrera y temporada multi-anual.
-- Aplicado límite de 25 equipos en pruebas normales y 22 en Tour, Giro y Vuelta.
-- Corregida la reconstrucción de calendarios y equipos multi-era al cargar una partida.
+### Integración
 
-## Base de datos
+- Fusionado Grand Tour Stage Lab con v0.26 Director Suite.
+- Stage Lab se abre después de seleccionar equipo y antes de la convocatoria.
+- Compatible con carrera individual, temporada, carrera multi-era y temporada multi-era.
+- Compatible con eventos de una etapa, vueltas cortas y grandes vueltas.
+- Las pantallas y sistemas de v0.26 no se sustituyen.
 
-- Restaurada íntegramente la base 2026 de v0.24: 34 equipos, 927 registros de corredor y 36 carreras.
-- Reemplazado el pack compacto 2026 de 180 corredores en el manifiesto, JSON anual y archivo de carga inmediata.
-- Mantenidos los packs históricos 1990–2025.
-- Total actualizado: 806 equipos-temporada y 7.053 registros de corredor.
+### Motor GPX
 
-## Staff
+- Física por pendiente cada 250 m.
+- Pendiente interpolada desde el track real.
+- Viento efectivo según orientación de la carretera.
+- Riesgo de viento lateral y abanicos sobre la geometría GPX.
+- Simulación específica para carretera, CRI y CRE.
+- Detección automática de puertos y finales en alto.
+- Sectores generados según ascenso, descenso y pendiente máxima.
+- Integración con CP, W′, energía, hidratación, telemetría y grupos.
 
-- Añadido mercado de 1.000 profesionales.
-- 57 nombres/cargos documentados y 943 perfiles ficticios generados.
-- Añadidos salarios, contratos, cláusulas, habilidades por profesión y procedencia.
-- Añadido fichaje de staff perteneciente a otros equipos.
-- Añadida asignación inicial por equipo cuando existe correspondencia documental.
+### Visualización
 
-## Club e infraestructura
+- Perfil GPX interactivo.
+- Mapa del recorrido.
+- Scrubber de distancia.
+- Lectura de km, distancia restante, altitud y pendiente.
+- Grupos sincronizados sobre perfil y recorrido.
+- Leyenda de pendientes.
+- Tarjetas de sectores GPX.
 
-- Añadidos ocho autobuses de equipo.
-- Añadidos diez coches de dirección y acuerdos de patrocinio.
-- Añadidos diez departamentos ampliables: datos, IA, aero, rendimiento, nutrición, medicina, scouting, logística, material y academia.
-- Añadidos efectos de infraestructura sobre recuperación, táctica, rendimiento y fiabilidad.
+### Stage Lab
 
-## Cantera
+- Generación procedural de eventos completos.
+- Condicionantes en lenguaje natural.
+- Importación GPX local.
+- Enrutado opcional por carreteras reales.
+- Exportación ZIP.
+- Recuperación adaptativa de rutas rechazadas.
+- Mapa 3D y perfil sincronizados.
 
-- Añadido mercado U23 de 1.000 corredores.
-- 35 nombres documentados de academias y 965 perfiles generados.
-- Base inicial limitada a 77.
-- Regla de supertalento limitada exactamente al 0,1 %.
-- Añadido fichaje directo e incorporación a plantilla y contratos.
+### Base incluida
 
-## Compatibilidad
+- Añadidos 18 GPX del Tour aportados por el usuario.
+- Añadida base preprocesada `gpx-stage-data.js`.
+- Añadido evento Tour GPX adicional.
 
-- Conservados todos los módulos de v0.24+, v0.25 Historical y v0.25+ WT Historical.
-- Nueva clave de guardado `cyclingManager_v026_director_suite`.
+### Correcciones
+
+- Corregida la identificación de grandes vueltas.
+- `uae_tour` ya no se clasifica como Tour de France.
+- Tour, Giro y Vuelta mantienen 22 equipos; UAE Tour y otras pruebas permiten hasta 25.
+- Baselines de etapas capturados dinámicamente para años históricos y cruces multi-era.
+- Carga asíncrona de partidas adaptada para restaurar el GPX antes del render final.
+- Eliminada la dependencia del hotfix antiguo `v024PlusPersist`.
+
+### Compatibilidad
+
+- Mantiene la clave y el esquema de guardado v0.26.
+- Conserva la base histórica, base 2026, staff, U23, infraestructura y todos los sistemas deportivos anteriores.

@@ -57,3 +57,19 @@ La asociación CUPRA como coche oficial de Movistar Team para 2026–2027 está 
 Fuente oficial CUPRA–Movistar:
 
 `https://movistarteam.com/en/2025-12-11/cupra-partners-with-movistar-team-as-official-car-for-all-world-tour-men-women-races-to-inspire-the-world-from-barcelona`
+
+## Integración GPX v0.27
+
+La distribución incorpora los archivos GPX entregados por el usuario para etapas del Tour. Los XML originales se mantienen en `gpx/` y se transforman en `gpx-stage-data.js` mediante las herramientas incluidas.
+
+Los puntos GPX se utilizan para:
+
+- geometría del recorrido;
+- altitud;
+- pendiente;
+- orientación de la carretera;
+- detección de puertos;
+- creación de sectores;
+- simulación física cada 250 m.
+
+El generador Stage Lab puede crear recorridos procedurales o consultar un servidor de enrutado compatible. Las rutas generadas de forma procedural no se presentan como tracks oficiales de una organización deportiva.

@@ -1,65 +1,99 @@
-# Informe de validación — v0.26 Director Suite
+# Informe de validación · v0.27
 
-## Resultado
+## Validaciones de sintaxis
 
-**VALIDACIÓN SUPERADA**
+- Todos los JavaScript de la raíz: correctos.
+- Todos los JavaScript de `stage-lab`: correctos.
+- Herramientas Python: compilación correcta.
+- Referencias CSS/JS de `index.html`: sin archivos ausentes.
+- Referencias CSS/JS de `stage-lab/index.html`: sin archivos ausentes.
 
-## Base de datos
+## Prueba integral v0.27
 
-- 37 temporadas cargables: 1990–2026.
-- 806 equipos-temporada.
-- 7.053 registros de corredor.
-- 2026 restaurado con 34 equipos, 927 registros de corredor y 36 carreras.
-- Manifiesto, `historical-data/2026.json` y archivo de carga inmediata sincronizados.
+Ejecutada con:
 
-## Asistente de inicio
+```bash
+node tools/smoke_test_v027.js
+```
 
-- La primera pantalla contiene únicamente la elección de modo.
-- La segunda pantalla contiene año y carrera/calendario.
-- En modo multi-anual aparece una ventana independiente de selección del pelotón.
-- La selección de equipo se muestra después de cerrar los pasos anteriores.
-- La convocatoria de ocho corredores confirma y abre el juego.
+Resultado:
 
-## Límites de equipos
+- Asistente inicial v0.26 preservado.
+- Módulos GPX cargados.
+- 34 equipos 2026.
+- 927 registros de corredor 2026.
+- 1.000 perfiles de staff.
+- 1.000 corredores U23.
+- Stage Lab abre antes de la convocatoria.
+- Aceptación GPX correcta.
+- Conversión a perfil y sectores correcta.
+- Convocatoria confirmada.
+- Perfil GPX visible en Race Director.
+- Simulación rápida con tiempos finitos.
+- Telemetría postetapa disponible.
+- Temporada abre Stage Lab en la carrera activa.
+- Multi-era mantiene su selector de pelotón.
+- UAE Tour no se confunde con Tour de France.
 
-- Carrera de un día probada con 25 equipos.
-- Tour de France probado con 22 equipos.
-- Temporada multi-anual con grandes vueltas limitada a 22 equipos.
-- El equipo del jugador permanece incluido en la selección automática.
+## Prueba de vuelta completa
 
-## Staff y gestión
+Ejecutada con:
 
-- 1.000 perfiles de staff cargados.
-- 57 perfiles nominales/documentados y 943 generados.
-- Mercado, filtros y paginación renderizados.
-- Fichaje de un profesional desde otro equipo validado.
-- Eliminación correcta de su plantilla anterior y asignación al nuevo equipo.
-- Contratos, cláusulas y presupuesto actualizados.
+```bash
+node tools/test_v027_stage_lab_multistage.js
+```
 
-## Infraestructura
+Resultado:
 
-- Ocho autobuses cargados.
-- Diez coches cargados.
-- Compra y activación de autobús validada.
-- Diez departamentos disponibles.
-- Apertura/mejora de departamento y descuento de presupuesto validados.
+- Tour de France generado con 21 etapas.
+- 21/21 etapas convertidas a GPX.
+- 6.699 puntos de recorrido integrados en la prueba.
+- Todas las etapas con perfil y sectores.
+- Convocatoria confirmada.
+- Motor por sectores iniciado correctamente.
 
-## Cantera
+## Pruebas propias de Stage Lab
 
-- 1.000 jóvenes cargados.
-- 35 nombres documentados y 965 generados.
-- Base máxima: 77.
-- Perfiles con potencial 94 o superior: 1/1.000.
-- Fichaje U23 probado: incorporación a plantilla y contrato correctos.
+Ejecutadas con:
 
-## Simulación y persistencia
+```bash
+cd stage-lab
+npm test
+```
 
-- Simulación rápida completada con resultados.
-- Todos los tiempos son finitos; sin `NaN`.
-- Guardado y carga de una temporada especial 1992 + 2026 validados.
-- La carga restaura equipos, carreras, convocatoria y modo multi-era.
-- Sintaxis comprobada en todos los archivos JavaScript.
-- Compilación de herramientas Python comprobada.
-- ZIP verificado sin archivos dañados.
+Resultados:
 
-Prueba principal: `tools/smoke_test_v026_full.js`.
+- Generación de vueltas validada.
+- Exportación GPX validada.
+- Progreso por etapas validado.
+- Sincronización del mapa validada.
+- Recuperación adaptativa de enrutado validada.
+
+## Regresión v0.26
+
+Ejecutada con:
+
+```bash
+node tools/smoke_test_v026_full.js
+```
+
+Resultados:
+
+- Carrera normal: 25 equipos.
+- Tour: 22 equipos.
+- Multi-era: 22 equipos en calendario con gran vuelta.
+- Base 2026 completa.
+- Mercado de staff funcional.
+- Mercado U23 funcional.
+- Compra de autobús funcional.
+- Mejora de departamentos funcional.
+- Simulación con tiempos válidos.
+- Guardado y carga multi-era funcionales.
+
+## Archivos servibles
+
+Comprobados mediante servidor HTTP local:
+
+- `/index.html`: 200 OK.
+- `/stage-lab/index.html`: 200 OK.
+- `/gpx-stage-data.js`: 200 OK.
