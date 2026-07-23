@@ -1,8 +1,8 @@
-# Historical data packs
+# Packs históricos 1990–2026
 
-Un archivo JSON por año entre 1990 y 2026, cargado dinámicamente por `historical-engine.js`.
+Cada archivo anual contiene equipos, corredores, ratings y calendario compatible con el motor histórico.
 
-- 1990-2025: archivo de equipos y corredores del pelotón élite histórico, basado principalmente en el histórico del Tour y enriquecido con estructuras y figuras curadas.
-- 2026: 18 UCI WorldTeams y diez corredores principales reales por equipo; sin nombres sintéticos de relleno.
+- 1990–2025: archivo anual del pelotón profesional de élite utilizado por el simulador.
+- 2026: base íntegra restaurada desde Cycling Manager Tour v0.24, con **34 equipos y 927 registros de corredor**.
 
-La base completa contiene 790 equipos-temporada y 6.306 entradas de corredor.
+La base 2026 reproduce exactamente el dataset de juego de v0.24 para preservar plantillas, compatibilidad y profundidad. Algunas ampliaciones de plantilla de aquella versión fueron generadas por el propio simulador y no deben interpretarse como una certificación contractual externa.
