@@ -14,7 +14,7 @@ const run=code=>vm.runInContext(code,context,{timeout:120000});
 const check=(v,m)=>{if(!v)throw new Error(m)};
 (async()=>{
   check(app.innerHTML.includes('¿Qué tipo de juego quieres iniciar?'),'No abre el asistente inicial');
-  check(run('v029Diagnostics().version')==='v0.29-club-hq-sponsors','No inicializa v0.29');
+  check(run('v029Diagnostics().version')==='v0.29.1-club-hq-hotfix','No inicializa v0.29');
   check(run('V029_HEADQUARTERS.length')>=15,'Catálogo de sedes incompleto');
   check(run('V029_FACILITIES.length')===10,'Instalaciones incompletas');
   check(run('V029_SPONSOR_COMPANIES.length')>=50,'Mercado de patrocinadores insuficiente');
