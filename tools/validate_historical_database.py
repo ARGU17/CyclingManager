@@ -34,7 +34,7 @@ def validate(path: Path):
 
 def main():
     ap=argparse.ArgumentParser(); ap.add_argument('directory',nargs='?',default='historical-data'); ap.add_argument('--require-complete',action='store_true'); args=ap.parse_args()
-    root=Path(args.directory); files=sorted(p for p in root.glob('*.json') if p.name!='manifest.json')
+    root=Path(args.directory); files=sorted(p for p in root.glob('*.json') if p.stem.isdigit() and len(p.stem)==4)
     if not files: print('No packs found',file=sys.stderr); return 2
     failures=0
     for p in files:
