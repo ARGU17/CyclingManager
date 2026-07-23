@@ -1,25 +1,23 @@
-name: Validate WT historical archive
+name: Validate Cycling Manager v0.26
 
 on:
   workflow_dispatch:
   push:
     branches: [ main, master ]
     paths:
+      - '*.js'
+      - '*.css'
       - 'historical-data/**'
-      - 'historical-engine.js'
-      - 'historical-manifest.js'
-      - 'staff-database.js'
       - 'tools/validate_wt_archive.py'
-      - 'tools/smoke_test_v025plus.js'
+      - 'tools/smoke_test_v026_full.js'
       - '.github/workflows/build-historical-database.yml'
   pull_request:
     paths:
+      - '*.js'
+      - '*.css'
       - 'historical-data/**'
-      - 'historical-engine.js'
-      - 'historical-manifest.js'
-      - 'staff-database.js'
       - 'tools/validate_wt_archive.py'
-      - 'tools/smoke_test_v025plus.js'
+      - 'tools/smoke_test_v026_full.js'
 
 permissions:
   contents: read
@@ -27,7 +25,7 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -36,16 +34,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Validate annual packs and identities
+      - name: Validate historical archive
         run: python tools/validate_wt_archive.py
       - name: Validate JavaScript syntax
         run: |
-          node --check data.js
-          node --check game.js
-          node --check v024-data.js
-          node --check v024-expansion.js
-          node --check historical-manifest.js
-          node --check historical-engine.js
-          node --check staff-database.js
-      - name: Run historical runtime smoke test
-        run: node tools/smoke_test_v025plus.js
+          for file in data.js v024-data.js game.js v024-expansion.js historical-manifest.js current-2026-major.js staff-database.js historical-engine.js staff-market-v026.js youth-market-v026.js v026-management.js v026-frontoffice.js; do
+            node --check "$file"
+          done
+      - name: Run v0.26 full smoke test
+        run: node tools/smoke_test_v026_full.js
