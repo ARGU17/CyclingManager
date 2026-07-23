@@ -31,8 +31,8 @@ function ensureHistoricalStateV025() {
     specialCalendarYear: 2026,
     eraNormalization: "equalized",
     activeYears: [2026],
-    activePackStatus: "major-riders-verified",
-    dataMessage: "18 UCI WorldTeams 2026 activos",
+    activePackStatus: "complete-simulator-v024",
+    dataMessage: "34 equipos y 927 registros de corredor de v0.24 activos",
     teamSearch: "",
     teamLevelFilter: "all",
     showDataTools: false
@@ -379,7 +379,8 @@ function packStatusLabelV025(entry) {
   return {
     "included-tour-elite-archive":"Incluido · élite histórica",
     "included-simulator-wt-base":"Incluido · 18 WorldTeams",
-    "major-riders-verified":"Incluido · 18 WorldTeams / figuras verificadas",
+    "major-riders-verified":"Incluido · selección compacta de figuras",
+    "complete-simulator-v024":"Completo · base íntegra del simulador v0.24",
     "included-open-dataset":"Incluido · dataset abierto",
     "included-simulator-base":"Incluido · base v0.24+",
     "build-required":"Pendiente de generación",
@@ -580,8 +581,8 @@ ensureHistoricalStateV025();
 activatePackDataV025(HistoricalV025.packCache[2026], {normalization:Game.historical.eraNormalization});
 Game.historical.selectedYear = 2026;
 Game.historical.activeYears = [2026];
-Game.historical.activePackStatus = "major-riders-verified";
-Game.historical.dataMessage = `${TEAMS.length} UCI WorldTeams · ${RIDERS.length} figuras principales reales cargadas para 2026`;
+Game.historical.activePackStatus = "complete-simulator-v024";
+Game.historical.dataMessage = `${TEAMS.length} equipos · ${RIDERS.length} registros de corredor restaurados desde v0.24`;
 Game.version = V025_VERSION;
 renderHome();
 

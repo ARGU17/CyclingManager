@@ -1,81 +1,110 @@
-# Cycling Manager Tour v0.25+ WT Historical
+# Cycling Manager Tour v0.26 — Director Suite
 
-Ampliación de v0.24+/v0.25 con archivo anual de grandes equipos masculinos desde 1990 hasta 2026, selector por año y enfrentamientos entre épocas. Se conservan todos los módulos anteriores del simulador.
+Actualización integral de v0.25+ WT Historical. Mantiene el motor y todos los módulos anteriores, reorganiza el inicio del juego y añade dirección de club, mercado global de personal, infraestructura y cantera ampliada.
 
 ## Instalación en GitHub Pages
 
 1. Descomprime el ZIP.
-2. Sube **todos** los archivos y carpetas a la raíz del repositorio.
+2. Sube **todos los archivos y carpetas** a la raíz del repositorio.
 3. Mantén `historical-data/` junto a `index.html`.
 4. Activa GitHub Pages desde la rama principal y la carpeta raíz.
-5. Abre la web y pulsa **Borrar guardado** una vez.
+5. Abre la web y pulsa **Borrar guardado** una vez para evitar estados incompatibles de versiones anteriores.
 
-No abras solamente `index.html` desde el sistema de archivos: los packs anuales se cargan mediante `fetch` y deben ejecutarse desde GitHub Pages o un servidor local.
+Los packs históricos se cargan con `fetch`; utiliza GitHub Pages o un servidor local, no abras únicamente `index.html` mediante `file://`.
 
-## Archivo histórico incluido
+## Nuevo flujo de inicio
 
-- **1990-2004:** equipos masculinos de élite equivalentes a la máxima categoría de la época, centrados en las estructuras presentes en el Tour de Francia.
-- **2005-2014:** era UCI ProTeam/ProTour, con archivo anual del pelotón élite.
-- **2015-2025:** era UCI WorldTeam, más las estructuras históricas relevantes necesarias para conservar equipos solicitados como Cofidis o Kelme cuando su estatus varió.
-- **2026:** los 18 UCI WorldTeams, con 10 figuras principales reales por equipo. Se han eliminado los nombres de relleno sintéticos.
+La interfaz inicial funciona como un asistente secuencial:
 
-El paquete contiene **37 archivos anuales**, **790 equipos-temporada** y **6.306 entradas de corredor**. Entre 1990 y 2025 hay 6.126 entradas documentales; 2026 incorpora 180 corredores principales reales, diez por WorldTeam.
+1. **Tipo de juego**: carrera individual, temporada histórica, carrera multi-anual o temporada multi-anual.
+2. **Carrera o calendario**: selección de año y prueba; en temporada pueden encadenarse varias carreras.
+3. **Pelotón multi-anual**: solo aparece en modos especiales y obliga a elegir los equipos participantes.
+4. **Equipo gestionado**.
+5. **Convocatoria de ocho corredores**.
 
-## Equipos históricos destacados
+Al avanzar, las pantallas anteriores desaparecen. Una vez confirmada la convocatoria, se abre directamente el simulador normal.
 
-Incluye, entre otros:
+## Límites de participación
 
-- ONCE / ONCE-Deutsche Bank / ONCE-Eroski.
-- Banesto / iBanesto.com.
-- US Postal Service y Discovery Channel.
-- Kelme / Kelme-Costa Blanca.
-- Caisse d'Epargne y Movistar.
-- Team Deutsche Telekom / Team Telekom / T-Mobile.
-- Astana, Astana-Würth y XDS Astana.
-- Trek Factory Racing, Trek-Segafredo y Lidl-Trek.
-- Cofidis.
-- Saunier Duval-Prodir y Saunier Duval-Scott.
-- Festina, Mapei, Carrera, Mercatone Uno, Rabobank, CSC/Saxo, Quick-Step, Lampre/UAE, Liquigas, BMC, Phonak, Gerolsteiner, Fassa Bortolo, Euskaltel, Team Sky/INEOS y otras estructuras de primer nivel.
+- **Tour de France, Giro d’Italia y Vuelta a España: máximo 22 equipos.**
+- **Resto de carreras y temporadas: máximo 25 equipos.**
+- En modo normal, la IA completa el pelotón e incluye siempre al equipo del jugador.
+- En modo multi-anual, el jugador selecciona expresamente entre 2 y el máximo reglamentario.
 
-La pantalla histórica incorpora accesos rápidos para localizar las estructuras solicitadas aunque el nombre comercial cambie o use puntos, guiones y apóstrofes.
+## Base histórica
 
-## Corredores y habilidades
+- **37 temporadas:** 1990–2026.
+- **806 equipos-temporada.**
+- **7.053 registros de corredor.**
+- Entre 1990 y 2025 se conservan los 772 equipos-temporada y 6.126 corredores del archivo histórico anterior.
+- En 2026 se restaura **íntegramente la base de v0.24: 34 equipos, 927 registros de corredor y 36 carreras**.
 
-Los packs históricos contienen nombres reales del archivo utilizado. Cuando una alineación documental es menor de ocho corredores, se añaden reservas reales de la misma continuidad deportiva en temporadas cercanas, identificadas con `archivalReserve` y `sourceSeason`.
+La restauración 2026 reproduce exactamente el dataset del simulador v0.24 para preservar compatibilidad y profundidad. Parte de las ampliaciones de plantilla de aquella versión fueron generadas por el propio simulador; no se presentan como una verificación contractual externa de cada corredor.
 
-Cada corredor dispone de ratings para:
+Se mantienen ONCE, Banesto, US Postal, Kelme, Caisse d’Epargne, Telekom/T-Mobile, Cofidis, Saunier Duval, Astana, Trek y el resto del archivo histórico ya incluido.
 
-- llano;
-- sprint;
-- montaña;
-- colinas;
-- pavé;
-- CRI;
-- CRE;
-- resistencia;
-- recuperación;
-- aceleración;
-- colocación;
-- descenso.
+## Mercado global de staff
 
-Las figuras históricas más importantes tienen arquetipos y valores revisados manualmente. Las capacidades no pretenden ser mediciones fisiológicas oficiales: son ratings de simulación reproducibles basados en especialidad y rendimiento histórico.
+El mercado contiene **1.000 profesionales**:
 
-## Modos compatibles
+- **57 perfiles con nombre y función documentados** en fuentes oficiales de equipos.
+- **943 perfiles ficticios generados**, claramente identificados como tales.
+- Directores, entrenadores, médicos, fisioterapeutas, nutricionistas, mecánicos, ingenieros, analistas de datos e IA, responsables logísticos y ojeadores.
+- Contratos, salarios, coste de contratación, cláusula de salida y años restantes.
+- Posibilidad de contratar agentes libres o **fichar personal de otro equipo pagando su cláusula**.
+- Asignación inicial de personal real cuando existe una correspondencia fiable con el equipo seleccionado.
 
-- Carrera individual histórica.
-- Temporada encadenada con los equipos del año seleccionado.
-- Carrera especial multi-era.
-- Temporada especial multi-era, por ejemplo 1992 contra 2026.
-- Igualación de capacidades entre épocas o diferencia tecnológica histórica.
+Los nombres y cargos marcados como verificados proceden de fuentes publicadas por los equipos. Las habilidades, salarios, cláusulas y efectos son valores de videojuego, no datos laborales reales.
 
-## Maillots 3D
+## Centro de operaciones del club
 
-Cada estructura histórica obtiene representación 3D con año, abreviatura, colores y patrón determinista. Las estructuras icónicas tienen paletas específicas para que ONCE, Banesto, US Postal, Telekom, Kelme, Astana, Trek, Cofidis y Saunier Duval sean visualmente reconocibles.
+Nueva pestaña **Club / Infraestructura**:
 
-## Funcionalidades conservadas
+- Ocho modelos de autobús, desde estructuras pequeñas hasta unidades de recuperación de gran vuelta.
+- Diez coches de equipo con capacidad, fiabilidad, conectividad y retorno de patrocinio.
+- Compra, activación y costes operativos.
+- Acuerdos de vehículo oficial; la asociación CUPRA–Movistar se marca como documentada y las demás propuestas como simulaciones comerciales.
+- Configuración inicial de activos para los equipos actuales y valores coherentes para equipos históricos.
 
-Se mantienen Race Director, clima, estado de la carretera, amenaza táctica, recomendación del director, retransmisión TV, motor CP/W′, grupos, ataques, corredores puente, abanicos, autobús, pavé, descensos, nutrición, material, neumáticos, CRI, CRE, objetivos A/B/C, calendario individual, staff nominal, contratos, scouting, cantera, mentoría, logística, telemetría, gráficos, alertas y palmarés.
+### Departamentos ampliables
 
-## Límites de la base
+Diez áreas con cinco niveles de desarrollo:
 
-La base 1990-2025 se apoya en un archivo histórico del Tour. Es una cobertura amplia del pelotón élite y de los equipos solicitados, pero no una base contractual universal con todos los profesionales inscritos en cada estructura durante los 37 años. Consulta `DATA_SOURCES.md`.
+- Datos.
+- Análisis de IA.
+- Aerodinámica.
+- Ciencia del rendimiento.
+- Nutrición.
+- Medicina y recuperación.
+- Scouting.
+- Logística.
+- Fiabilidad de material.
+- Academia de desarrollo.
+
+Las inversiones modifican previsión táctica, pacing, recuperación, entrenamiento, scouting, material y recomendaciones del director.
+
+## Mercado U23 y categorías inferiores
+
+El mercado contiene **1.000 jóvenes**:
+
+- **35 nombres documentados** de estructuras de desarrollo; sus ratings son siempre simulados.
+- **965 corredores ficticios generados**.
+- Base inicial máxima de **77**.
+- Solo **un perfil de cada 1.000** alcanza potencial 94 o superior: exactamente el 0,1 %.
+- Filtros por nombre, país, especialidad y origen del dato.
+- Coste de formación/fichaje, salario, potencial, personalidad, progresión e incertidumbre del scouting.
+- Los fichajes se incorporan a la plantilla y reciben contrato de desarrollo.
+
+## Funcionalidades preservadas
+
+Se conservan Race Director, clima, carretera, amenaza táctica, recomendación del director, retransmisión TV, perfil 2D, motor por pendiente, CP/W′, recuperación anaeróbica, grupos, formaciones, ataques y respuestas, corredores puente, abanicos, autobús de sprinters, descensos, pavé, CRI, CRE, material, neumáticos, nutrición, objetivos A/B/C, calendario individual, contratos, promesas, scouting, mentoría, logística, telemetría, gráficos, alertas, récords y palmarés.
+
+## Guardado
+
+Nueva clave de almacenamiento:
+
+```text
+cyclingManager_v026_director_suite
+```
+
+El guardado y la carga reconstruyen también las competiciones multi-anuales y su pelotón seleccionado.

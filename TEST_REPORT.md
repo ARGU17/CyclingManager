@@ -1,57 +1,65 @@
-# Informe de validación — v0.25+ WT Historical
+# Informe de validación — v0.26 Director Suite
 
 ## Resultado
 
 **VALIDACIÓN SUPERADA**
 
-## Base histórica
+## Base de datos
 
-- 37 temporadas cargables: 1990-2026.
-- 790 equipos-temporada.
-- 6.306 entradas de corredor.
-- 772 equipos-temporada y 6.126 entradas entre 1990 y 2025.
-- 18 UCI WorldTeams y 180 figuras principales reales en 2026.
-- 10 corredores curados por cada WorldTeam 2026.
-- 103 incorporaciones históricas curadas para restaurar equipos o figuras ausentes de la clasificación final del Tour.
-- 794 reservas reales de estructuras equivalentes en temporadas cercanas, identificadas mediante `archivalReserve`.
+- 37 temporadas cargables: 1990–2026.
+- 806 equipos-temporada.
+- 7.053 registros de corredor.
+- 2026 restaurado con 34 equipos, 927 registros de corredor y 36 carreras.
+- Manifiesto, `historical-data/2026.json` y archivo de carga inmediata sincronizados.
 
-## Integridad
+## Asistente de inicio
 
-- IDs de equipo únicos por temporada.
-- IDs de corredor únicos por temporada.
-- Cero corredores huérfanos.
-- Todas las referencias `teamId` válidas.
-- Todas las habilidades entre 35 y 99.
-- Manifiesto y packs anuales sincronizados.
-- Ningún nombre sintético de relleno en el pack 2026.
-- Cada uno de los 18 WorldTeams 2026 contiene exactamente diez corredores principales.
+- La primera pantalla contiene únicamente la elección de modo.
+- La segunda pantalla contiene año y carrera/calendario.
+- En modo multi-anual aparece una ventana independiente de selección del pelotón.
+- La selección de equipo se muestra después de cerrar los pasos anteriores.
+- La convocatoria de ocho corredores confirma y abre el juego.
 
-## Equipos históricos comprobados
+## Límites de equipos
 
-- 1992: ONCE y Banesto.
-- 1998: ONCE, Banesto, Kelme y Festina.
-- 2000: US Postal, Telekom y Kelme.
-- 2006: Astana-Würth, Caisse d'Epargne, T-Mobile, Cofidis y Saunier Duval.
-- 2007: Astana, Cofidis y Unibet.com.
-- 2008: Astana y Saunier Duval.
-- 2014 y 2025: Trek y Astana.
+- Carrera de un día probada con 25 equipos.
+- Tour de France probado con 22 equipos.
+- Temporada multi-anual con grandes vueltas limitada a 22 equipos.
+- El equipo del jugador permanece incluido en la selección automática.
 
-## Pruebas de aplicación
+## Staff y gestión
 
-- Inicio directo con 18 WorldTeams y 180 corredores principales de 2026.
-- Carga dinámica de 1992, 2006 y 2026.
-- Selector de equipos por año.
-- Búsqueda normalizada: `ONCE`, `O.N.C.E`, `US Postal`, `U.S Postal`, apóstrofes y guiones.
-- Ausencia de falsos positivos de `ONCE` en `VITAL CONCEPT`.
-- Confirmación de convocatorias de ocho corredores.
-- Convocatorias históricas adaptativas para archivos documentales menores.
-- Simulación completa con tiempos finitos.
-- Cruce multi-era 1992 + 2026 con 40 equipos y sin colisiones de IDs.
-- Staff nominal: 23 profesionales.
-- Sintaxis JavaScript validada con Node.js.
-- Validación de datos ejecutada con `tools/validate_wt_archive.py`.
-- Smoke test ejecutado con `tools/smoke_test_v025plus.js`.
+- 1.000 perfiles de staff cargados.
+- 57 perfiles nominales/documentados y 943 generados.
+- Mercado, filtros y paginación renderizados.
+- Fichaje de un profesional desde otro equipo validado.
+- Eliminación correcta de su plantilla anterior y asignación al nuevo equipo.
+- Contratos, cláusulas y presupuesto actualizados.
 
-## Compatibilidad
+## Infraestructura
 
-Se mantienen Race Director, panel de amenaza, recomendación del director, clima, retransmisión, CP/W′, grupos, ataques, abanicos, autobús, pavé, descenso, material, nutrición, mercado, contratos, scouting, staff, telemetría, gráficos, alertas y palmarés.
+- Ocho autobuses cargados.
+- Diez coches cargados.
+- Compra y activación de autobús validada.
+- Diez departamentos disponibles.
+- Apertura/mejora de departamento y descuento de presupuesto validados.
+
+## Cantera
+
+- 1.000 jóvenes cargados.
+- 35 nombres documentados y 965 generados.
+- Base máxima: 77.
+- Perfiles con potencial 94 o superior: 1/1.000.
+- Fichaje U23 probado: incorporación a plantilla y contrato correctos.
+
+## Simulación y persistencia
+
+- Simulación rápida completada con resultados.
+- Todos los tiempos son finitos; sin `NaN`.
+- Guardado y carga de una temporada especial 1992 + 2026 validados.
+- La carga restaura equipos, carreras, convocatoria y modo multi-era.
+- Sintaxis comprobada en todos los archivos JavaScript.
+- Compilación de herramientas Python comprobada.
+- ZIP verificado sin archivos dañados.
+
+Prueba principal: `tools/smoke_test_v026_full.js`.

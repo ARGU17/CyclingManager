@@ -258,9 +258,9 @@ const HISTORICAL_MANIFEST_V025 = {
     },
     {
       "year": 2026,
-      "status": "major-riders-verified",
-      "teamCount": 18,
-      "riderCount": 180,
+      "status": "complete-simulator-v024",
+      "teamCount": 34,
+      "riderCount": 927,
       "file": "2026.json"
     }
   ]

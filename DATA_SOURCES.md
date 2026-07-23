@@ -1,36 +1,59 @@
-# Fuentes y metodología
+# Fuentes, trazabilidad y datos simulados
 
-## Categoría deportiva
+## Base histórica 1990–2025
 
-La primera división masculina se denominó UCI ProTeam durante la etapa ProTour y UCI WorldTeam desde 2015. Antes de 2005 no existía una licencia WorldTeam equivalente; el simulador utiliza el pelotón profesional de élite de la época, centrado en las estructuras presentes en el Tour de Francia.
+Se conserva la metodología de la versión WT Historical: archivo de equipos del pelotón profesional de élite, participantes históricos y curación manual de estructuras relevantes. No debe interpretarse como un registro contractual universal de todos los ciclistas profesionales de cada año.
 
-La denominación “WT Historical” se usa como simplificación jugable. Algunos equipos solicitados —por ejemplo Cofidis o Kelme— cambiaron de categoría a lo largo del tiempo, pero se conservan cuando forman parte del archivo élite y de la continuidad histórica solicitada.
+Los ratings son valores de videojuego reproducibles y no mediciones fisiológicas oficiales.
 
-## Corredores 1990-2025
+## Base 2026
 
-Fuente base: LeTourDataSet, archivo `TDF_Riders_History.csv`, con ciclistas y equipos registrados en el histórico del Tour de Francia. Se conservan los nombres reales presentes en la fuente para 1990-2025.
+La versión v0.26 restaura exactamente el dataset de Cycling Manager Tour v0.24:
 
-Limitación: el archivo representa participantes y resultados históricos del Tour; no es una lista contractual universal de todos los corredores inscritos en todos los equipos del mundo.
+- 34 equipos.
+- 927 registros de corredor.
+- 36 carreras.
 
-## Restauración de equipos y figuras
+El objetivo es recuperar la profundidad y compatibilidad solicitadas. Algunas ampliaciones de plantilla de v0.24 fueron generadas por el simulador. Por ello, la etiqueta `complete-simulator-v024` significa “base completa del juego”, no “plantilla contractual externamente verificada”.
 
-El archivo se amplía manualmente cuando una estructura o figura histórica importante falta por retirada, descalificación, ausencia del Tour o limitación de la clasificación de origen. Estas entradas se marcan como `curatedHistoricalRoster`.
+## Staff nominal
 
-## Reservas de archivo
+El mercado mezcla dos tipos de registros:
 
-Cuando una plantilla documental ofrece menos de ocho corredores, el generador busca corredores reales de la misma continuidad de equipo en temporadas cercanas. No crea nombres ficticios. Los registros incluyen:
+- `real-verified`: nombre y función publicados por una fuente oficial del equipo.
+- `fictional-generated`: perfil ficticio creado para completar el mercado.
 
-- `archivalReserve: true`
-- `sourceSeason`: temporada real de procedencia
+Se han incorporado perfiles documentados de UAE Team Emirates-XRG, Team Visma | Lease a Bike, Movistar Team, Red Bull–BORA–hansgrohe, Soudal Quick-Step e INEOS Grenadiers. Cada registro nominal conserva `sourceUrl` dentro de `staff-market-v026.js`.
 
-## Ratings
+Fuentes oficiales principales:
 
-Las capacidades se generan de forma determinista mediante especialidad, arquetipo y rendimiento histórico disponible. Se incluyen llano, sprint, montaña, colinas, pavé, CRI, CRE, resistencia, recuperación, aceleración, colocación y descenso. Las grandes figuras tienen perfiles revisados manualmente.
+- UAE Team Emirates-XRG: `https://www.uaeteamemirates.com/team/sports-directors/`
+- Team Visma | Lease a Bike: `https://www.teamvismaleaseabike.com/team/`
+- Movistar Team: `https://movistarteam.com/2025-10-29/movistar-team-impulsa-una-nueva-estructura-en-su-area-deportiva-bajo-el-liderazgo-de-sebastian-unzue`
+- Red Bull–BORA–hansgrohe: noticias oficiales enlazadas individualmente en el dataset.
+- Soudal Quick-Step: `https://soudal-quickstepteam.com/en/team/staff`
+- INEOS Grenadiers: noticias oficiales de dirección de carrera enlazadas en cada perfil.
 
-Los ratings son una representación de videojuego y no datos fisiológicos oficiales.
+Las habilidades, salarios, costes, cláusulas y efectos de todos los perfiles —incluidos los nominales— son valores simulados.
 
-## 2026
+## Cantera
 
-El pack 2026 contiene los 18 UCI WorldTeams registrados para la temporada y diez corredores principales reales por equipo. La selección compacta prioriza líderes, sprinters, clasicómanos, croners y jóvenes determinantes. Los antiguos nombres de relleno sintéticos de la base inicial han sido eliminados.
+Los nombres marcados como `real-name-simulated-rating` proceden de páginas oficiales de academias o equipos de desarrollo. Cada registro conserva su `sourceUrl` en `youth-market-v026.js`.
 
-La plantilla 2026 se incorpora además en `current-2026-major.js` para que el simulador cargue correctamente las figuras reales incluso antes de solicitar el JSON anual.
+Estructuras utilizadas:
+
+- Movistar Team Academy.
+- Team Visma | Lease a Bike Development.
+- Red Bull Rookies.
+- INEOS Racing Academy.
+- UAE Gen Z.
+
+Todos los ratings, potenciales, salarios, precios y personalidades son simulados. Los perfiles `fictional-generated` son completamente ficticios.
+
+## Vehículos y patrocinio
+
+La asociación CUPRA como coche oficial de Movistar Team para 2026–2027 está marcada como documentada. Las restantes marcas y acuerdos incluidos en el mercado de vehículos son escenarios de simulación, aunque utilicen modelos comerciales reales.
+
+Fuente oficial CUPRA–Movistar:
+
+`https://movistarteam.com/en/2025-12-11/cupra-partners-with-movistar-team-as-official-car-for-all-world-tour-men-women-races-to-inspire-the-world-from-barcelona`
