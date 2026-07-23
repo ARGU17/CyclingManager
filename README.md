@@ -1,4 +1,12 @@
-# Cycling Manager Tour v0.29 · Club HQ & Sponsors
+# Cycling Manager Tour v0.29.1 · Club HQ & Sponsors
+
+## Corrección crítica v0.29.1
+
+Esta entrega corrige el bloqueo de la primera pantalla. La causa era un bucle de `MutationObserver`: el decorador de interfaz reescribía el mismo texto de versión en cada mutación, provocaba una nueva mutación y mantenía ocupado el hilo principal indefinidamente.
+
+La corrección hace que el decorador sea **idempotente** y solo modifique el DOM cuando el valor cambia. La clave de guardado se mantiene para conservar las partidas v0.29.
+
+Al actualizar GitHub Pages, reemplaza todos los archivos y realiza una recarga forzada (`Ctrl+F5`). El `index.html` incorpora además un parámetro de versión en `v029-club.js?v=0.29.1` para impedir que el navegador reutilice el JavaScript defectuoso desde caché.
 
 La **v0.29** amplía la v0.28 Graphite Performance con una capa persistente de dirección empresarial del equipo. El proyecto sigue incluyendo todos los módulos deportivos, históricos, GPX y de gestión anteriores; la nueva funcionalidad se carga mediante archivos aditivos al final de `index.html`.
 

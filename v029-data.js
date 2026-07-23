@@ -5,7 +5,7 @@
    ficticios y se usan únicamente como contenido de simulación.
    ============================================================ */
 
-const V029_VERSION = "v0.29-club-hq-sponsors";
+const V029_VERSION = "v0.29.1-club-hq-hotfix";
 
 const V029_HEADQUARTERS = [
   {id:"girona",city:"Girona",country:"España",region:"Cataluña",costIndex:78,connectivity:82,terrain:94,climate:91,commercial:74,talent:86,qualityOfLife:92,cyclingCulture:93,science:79,altitude:54,opex:1450000,relocationCost:2800000,specialties:["Terreno variado","Clima estable","Pelotón internacional"]},

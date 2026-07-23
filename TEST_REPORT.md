@@ -1,4 +1,32 @@
-# Informe de validación · v0.29 Club HQ & Sponsors
+# Informe de validación · v0.29.1 Interaction Hotfix
+
+## Diagnóstico del bloqueo
+
+La v0.29 heredaba de v0.27 un `MutationObserver` sobre `#app`. El observador ejecutaba dinámicamente `decorateV027Interface`, reasignada posteriormente a `decorateV029Interface`. Esta última escribía `textContent = "V0.29"` en cada ejecución, incluso cuando el texto ya era idéntico. Cada escritura generaba una nueva mutación, que volvía a ejecutar el observador. El resultado era un bucle infinito de microtareas y una interfaz visualmente cargada pero sin respuesta a clics.
+
+## Validación en navegador real
+
+Prueba ejecutada con Chromium mediante Chrome DevTools Protocol:
+
+- Los veinte scripts principales cargan sin excepción.
+- `v029-club.js` termina su ejecución; ya no bloquea el hilo principal.
+- Se renderizan las tarjetas Graphite v0.28/v0.29 con sus iconos SVG.
+- Existen seis botones interactivos en el primer paso.
+- La tarjeta `Carrera individual` responde al clic.
+- El asistente avanza a la pantalla de selección de carrera.
+- Se renderizan 37 tarjetas de carrera.
+- El título y la marca visible muestran v0.29.1.
+
+## Regresión automatizada
+
+- `node tools/smoke_test_v029.js`: superado.
+- `node tools/smoke_test_v028.js`: superado.
+- `node tools/smoke_test_v027.js`: superado.
+- Sintaxis de todos los JavaScript raíz: válida.
+
+---
+
+## Informe heredado · v0.29 Club HQ & Sponsors
 
 ## Integridad de archivos
 

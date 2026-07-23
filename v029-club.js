@@ -275,11 +275,11 @@ function renderClubHQV029(){
 
 function renderV029HeadquartersOnboarding(){
   const club=ensureV029State(),team=getTeam(Game.selectedTeamId),selected=club.headquarters.cityId,identity=club.brand.identityId;
-  app.innerHTML=`<header class="v028-wizard-header v029-onboarding-header"><div class="v028-header-main"><button class="v028-back-button" onclick="v029BackFromOnboarding()">← <span>Equipos</span></button><div><span class="v028-brandline">CYCLING MANAGER <b>TOUR</b> <em>V0.29</em></span><h1>Define la sede y el ADN del club</h1><p>${esc(team?.name||"Equipo")} · esta decisión conecta rendimiento, logística, patrocinio e identidad.</p></div></div><div class="v028-header-actions"><button onclick="v029ConfirmOnboarding()">Confirmar y seleccionar corredores →</button></div></header><main class="v029-onboarding"><section><div class="v029-section-title"><div><span>PASO DE CLUB</span><h2>Sede principal</h2><p>La elección inicial no tiene coste de traslado. Después podrás mudarte desde el módulo Club.</p></div></div><div class="v029-hq-grid">${V029_HEADQUARTERS.map(city=>`<button class="v029-hq-option ${selected===city.id?"active":""}" onclick="v029SelectInitialHQ('${city.id}')"><header><strong>${esc(city.city)}</strong><span>${esc(city.country)}</span></header><p>${esc(city.specialties.join(" · "))}</p><div><span>Terreno <b>${city.terrain}</b></span><span>Conexión <b>${city.connectivity}</b></span><span>Mercado <b>${city.commercial}</b></span><span>Ciencia <b>${city.science}</b></span></div><small>OPEX ${v029Money(city.opex)}/año</small></button>`).join("")}</div></section><section><div class="v029-section-title"><div><span>IDENTIDAD</span><h2>ADN deportivo y comercial</h2></div></div><div class="v029-identity-grid onboarding">${V029_CLUB_IDENTITIES.map(x=>`<button class="${identity===x.id?"active":""}" onclick="ensureV029State().brand.identityId='${x.id}';renderRosterSelection()"><strong>${esc(x.name)}</strong><span>${esc(x.description)}</span></button>`).join("")}</div></section><footer class="v029-onboarding-footer"><div><strong>${esc(v029FindHeadquarters(selected).city)}</strong><span>${esc(v029FindIdentity(identity).name)}</span></div><button onclick="v029ConfirmOnboarding()">Crear estructura del club y continuar</button></footer></main>`;
+  app.innerHTML=`<header class="v028-wizard-header v029-onboarding-header"><div class="v028-header-main"><button class="v028-back-button" onclick="v029BackFromOnboarding()">← <span>Equipos</span></button><div><span class="v028-brandline">CYCLING MANAGER <b>TOUR</b> <em>V0.29.1</em></span><h1>Define la sede y el ADN del club</h1><p>${esc(team?.name||"Equipo")} · esta decisión conecta rendimiento, logística, patrocinio e identidad.</p></div></div><div class="v028-header-actions"><button onclick="v029ConfirmOnboarding()">Confirmar y seleccionar corredores →</button></div></header><main class="v029-onboarding"><section><div class="v029-section-title"><div><span>PASO DE CLUB</span><h2>Sede principal</h2><p>La elección inicial no tiene coste de traslado. Después podrás mudarte desde el módulo Club.</p></div></div><div class="v029-hq-grid">${V029_HEADQUARTERS.map(city=>`<button class="v029-hq-option ${selected===city.id?"active":""}" onclick="v029SelectInitialHQ('${city.id}')"><header><strong>${esc(city.city)}</strong><span>${esc(city.country)}</span></header><p>${esc(city.specialties.join(" · "))}</p><div><span>Terreno <b>${city.terrain}</b></span><span>Conexión <b>${city.connectivity}</b></span><span>Mercado <b>${city.commercial}</b></span><span>Ciencia <b>${city.science}</b></span></div><small>OPEX ${v029Money(city.opex)}/año</small></button>`).join("")}</div></section><section><div class="v029-section-title"><div><span>IDENTIDAD</span><h2>ADN deportivo y comercial</h2></div></div><div class="v029-identity-grid onboarding">${V029_CLUB_IDENTITIES.map(x=>`<button class="${identity===x.id?"active":""}" onclick="ensureV029State().brand.identityId='${x.id}';renderRosterSelection()"><strong>${esc(x.name)}</strong><span>${esc(x.description)}</span></button>`).join("")}</div></section><footer class="v029-onboarding-footer"><div><strong>${esc(v029FindHeadquarters(selected).city)}</strong><span>${esc(v029FindIdentity(identity).name)}</span></div><button onclick="v029ConfirmOnboarding()">Crear estructura del club y continuar</button></footer></main>`;
 }
 
 function renderV029RaceRecap(){const club=ensureV029State(),last=club.media.history.slice(-1)[0];if(!last)return"";const avgSat=avg(club.sponsors.contracts.filter(c=>c.status==="active").map(c=>c.satisfaction));return `<section class="panel v029-race-commercial"><div><span>IMPACTO COMERCIAL</span><h2>${last.points} puntos de exposición</h2><p>Mejor corredor #${last.best} · ${last.stageWins} victorias de etapa · satisfacción media ${Math.round(avgSat)}%</p></div><button onclick="v029OpenStandalone('final')">Abrir Club HQ</button></section>`;}
-function v029OpenStandalone(from="race"){V029_UI.standaloneReturn=from;V029_UI.standalone=true;ensureV029State();app.innerHTML=`<div class="header"><div><span class="eyebrow">Cycling Manager Tour v0.29</span><h1>Club Headquarters & Commercial Management</h1><p>${esc(getTeam(Game.selectedTeamId)?.name||"")} · gestión estructural completa</p></div><div class="top-actions"><button class="secondary" onclick="v029CloseStandalone()">Volver</button><button onclick="saveGame()">Guardar</button></div></div>${renderManagerHeaderV019?.()||""}${renderClubHQV029()}`;}
+function v029OpenStandalone(from="race"){V029_UI.standaloneReturn=from;V029_UI.standalone=true;ensureV029State();app.innerHTML=`<div class="header"><div><span class="eyebrow">Cycling Manager Tour v0.29.1</span><h1>Club Headquarters & Commercial Management</h1><p>${esc(getTeam(Game.selectedTeamId)?.name||"")} · gestión estructural completa</p></div><div class="top-actions"><button class="secondary" onclick="v029CloseStandalone()">Volver</button><button onclick="saveGame()">Guardar</button></div></div>${renderManagerHeaderV019?.()||""}${renderClubHQV029()}`;}
 function v029CloseStandalone(){const from=V029_UI.standaloneReturn;V029_UI.standalone=false;if(from==="between"&&typeof renderBetweenRaces==="function")return renderBetweenRaces();if(from==="final"&&typeof renderRaceFinal==="function")return renderRaceFinal();if(from==="season"&&typeof renderSeasonFinal==="function")return renderSeasonFinal();return render();}
 
 function v029ProcessSeasonClose(){
@@ -342,7 +342,39 @@ if(typeof init==="function"){
   init=function(){const result=__v029_init();Game.v029=null;decorateV029Interface();return result;};
 }
 
-function decorateV029Interface(){document.title="Cycling Manager Tour v0.29 · Club HQ & Sponsors";document.documentElement?.classList?.add("v029-club-hq");document.body?.classList?.add("v029-ui");document.querySelectorAll?.(".v027-version-chip,.v028-version-chip").forEach?.(node=>node.remove());document.querySelectorAll?.(".v028-brandline em").forEach?.(node=>node.textContent="V0.29");const header=document.querySelector?.("#app .header");if(header&&!header.querySelector?.(".v029-version-chip")){const chip=document.createElement("span");chip.className="v029-version-chip";chip.textContent="v0.29 · CLUB HQ · GPX 250 m";(header.querySelector?.(".top-actions")||header).appendChild(chip);}}
+function decorateV029Interface(){
+  /*
+   * HOTFIX v0.29.1
+   *
+   * v0.27 mantiene un MutationObserver que resuelve esta función de forma
+   * dinámica. Asignar textContent en cada callback, incluso cuando el texto
+   * ya era V0.29, generaba otra mutación y creaba un bucle infinito de
+   * microtareas. El navegador mostraba la pantalla inicial antigua, pero el
+   * hilo principal quedaba ocupado y los botones no podían responder.
+   *
+   * Esta versión es idempotente: solo modifica el DOM cuando el valor cambia.
+   */
+  if(document.title!=="Cycling Manager Tour v0.29.1 · Club HQ & Sponsors"){
+    document.title="Cycling Manager Tour v0.29.1 · Club HQ & Sponsors";
+  }
+  if(!document.documentElement?.classList?.contains("v029-club-hq")){
+    document.documentElement?.classList?.add("v029-club-hq");
+  }
+  if(!document.body?.classList?.contains("v029-ui")){
+    document.body?.classList?.add("v029-ui");
+  }
+  document.querySelectorAll?.(".v027-version-chip,.v028-version-chip").forEach?.(node=>node.remove());
+  document.querySelectorAll?.(".v028-brandline em").forEach?.(node=>{
+    if(node.textContent!=="V0.29.1")node.textContent="V0.29.1";
+  });
+  const header=document.querySelector?.("#app .header");
+  if(header&&!header.querySelector?.(".v029-version-chip")){
+    const chip=document.createElement("span");
+    chip.className="v029-version-chip";
+    chip.textContent="v0.29.1 · CLUB HQ · GPX 250 m";
+    (header.querySelector?.(".top-actions")||header).appendChild(chip);
+  }
+}
 if(typeof decorateV027Interface==="function")decorateV027Interface=decorateV029Interface;
 
 function v029Diagnostics(){const club=ensureV029State();return{version:V029_VERSION,inherited:typeof v028Diagnostics==="function"?v028Diagnostics():null,headquarters:V029_HEADQUARTERS.length,facilities:V029_FACILITIES.length,sponsorCompanies:V029_SPONSOR_COMPANIES.length,technicalCategories:V029_TECHNICAL_PARTNERS.length,activeContracts:club.sponsors.contracts.length,offers:club.sponsors.offers.length,clubValue:v029ClubValue(),cash:v029ClubCash(),legacyFeatures:{stageLab:typeof renderStageLabSetup==="function",historical:typeof HistoricalV025!=="undefined",staff:typeof STAFF_MARKET_V026!=="undefined"?STAFF_MARKET_V026.length:0,youth:typeof YOUTH_MARKET_V026!=="undefined"?YOUTH_MARKET_V026.length:0}};}

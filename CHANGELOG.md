@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.29.1 · Interaction Hotfix
+
+- Corregido el bloqueo total de la pantalla inicial.
+- Eliminado el bucle infinito entre `MutationObserver` y `decorateV029Interface()`.
+- El decorador visual ahora es idempotente: no reescribe clases, título ni texto si ya tienen el valor correcto.
+- Restaurada la interacción de las cuatro tarjetas de modo.
+- Validado el avance desde Modo a Carrera en Chromium real.
+- Añadido cache-busting para `v029-club.js?v=0.29.1`.
+- Conservada la clave de guardado v0.29 y todas las funciones heredadas.
+
 ## v0.29 · Club HQ & Sponsors
 
 ### Arquitectura
